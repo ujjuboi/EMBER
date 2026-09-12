@@ -1,0 +1,25 @@
+---
+description: EMBER product and UI guardrails for the workout prototype
+alwaysApply: true
+---
+
+# EMBER
+
+Phone-first workout UI. Black `#050505`, orange `#FF5A1F`, Space Grotesk. Shell max width **430px**.
+
+This repo is a **clickable UI prototype**. Mock state lives in `sessionStorage` (`ember-prototype-v5`). Do not add a real backend here unless asked.
+
+## Locked product rules
+
+- A **streak day** is a **completed session** (at least one logged set, then finish). Rest days and abandoned sessions do not count.
+- Home CTA after a completed session: **gone**. Extra work is only via the Train tab. Extra finishes **add** minutes/kcal to today's log (`sessions` counter). They do not extend the streak.
+- **Rest day is explicit.** Empty calendar ≠ rest. Empty partner today = "hasn't trained yet" + **Send reminder**. Logged rest = "rest day", no remind.
+- **Twin flame** only when *you* and the *linked partner* both completed a session today. Show a **heart** (not a flame) and the copy **Twin flame**. Partner marks on the calendar and legends are small hearts, not dots. You = filled square.
+- "Next session unlocks in X hours" counts down to **tonight's midnight**, not the 35-hour streak-expiry clock.
+- Coach is **SVG pose loops** in `src/coach/`, not GIFs or video. Side view unless the move is frontal (jumping jack, pull-apart, celebrate).
+
+## Code habits
+
+- Keep screens in `src/features/*`. Shared chrome in `src/app`. Primitives in `src/components/ui`. Domain logic in `src/lib`. Catalog in `src/data`.
+- Prefer extending `HistoryItem` / store actions over new global state.
+- Copy is product. Don't invent new streak language without checking Home.
