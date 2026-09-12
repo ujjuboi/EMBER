@@ -28,6 +28,7 @@ export function SessionPage() {
   const loggedRef = useRef(0)
   const kcalRef = useRef(0)
   const elapsedRef = useRef(0)
+  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logSetRef = useRef<() => void>(() => {})
   const startNextWorkRef = useRef<() => void>(() => {})
 
@@ -38,7 +39,13 @@ export function SessionPage() {
       elapsedRef.current += 1
       setElapsed(elapsedRef.current)
     }, 1000)
-    return () => window.clearInterval(id)
+    return () => {
+      window.clearInterval(id)
+      if (finishTimeoutRef.current !== null) {
+        clearTimeout(finishTimeoutRef.current)
+        finishTimeoutRef.current = null
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -93,7 +100,7 @@ export function SessionPage() {
     const firstName = session[0]?.exercise.name ?? item.exercise.name
     const title = session.length === 1 ? item.exercise.name : `${firstName} mix`
     const durationMin = Math.max(1, Math.round(elapsedRef.current / 60))
-    window.setTimeout(() => {
+    finishTimeoutRef.current = window.setTimeout(() => {
       finishWorkout({ title, durationMin, calories, bodyPart: trainerBodyPart })
       navigate('/home')
     }, 1400)

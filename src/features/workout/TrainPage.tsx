@@ -94,7 +94,7 @@ export function TrainPage() {
           {plan.map((item) => (
             <li key={item.uid} className="px-3 py-2.5">
               <div className="flex items-start gap-3">
-                <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
+                <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} playing={false} className="h-16 w-16 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start gap-2">
                     <p className="min-w-0 flex-1 pt-0.5 text-sm leading-none">{item.exercise.name}</p>
@@ -248,7 +248,7 @@ function AddSheet({
                     onClick={() => onAdd(exercise)}
                     className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/5"
                   >
-                    <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
+                    <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} playing={false} className="h-16 w-16 shrink-0" />
                     <p className="min-w-0 flex-1 text-sm">{exercise.name}</p>
                     <Plus size={16} className="shrink-0 text-muted" />
                   </button>

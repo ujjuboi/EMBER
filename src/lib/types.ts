@@ -51,7 +51,7 @@ export type AppState = {
   streak: number
   steps: number
   calories: number
-  workoutDoneToday: boolean
+  workoutDoneToday: boolean // unused; kept for HANDOFF shape compatibility
   workoutInProgress: boolean
   partnerLinked: boolean
   partnerSince: string | null

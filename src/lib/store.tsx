@@ -19,7 +19,7 @@ const seedState = (): AppState => ({
   streak: streakFromDates(SEED_HISTORY.map((item) => item.date)),
   steps: 6420,
   calories: 284,
-  workoutDoneToday: false,
+  workoutDoneToday: false, // unused; kept for HANDOFF shape compatibility
   workoutInProgress: false,
   partnerLinked: true,
   partnerSince: daysAgo(42),
@@ -205,7 +205,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       updateProfile: ({ weightKg, heightFt, heightIn, stepGoal, equipment, trainerGoal }) => {
         const s = current()
-        commit({
+        const next: AppState = {
           ...s,
           weightKg,
           heightFt,
@@ -213,7 +213,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           stepGoal,
           equipment: equipment ?? s.equipment,
           trainerGoal: trainerGoal ?? s.trainerGoal,
-        })
+        }
+        if (s.trainerPhase === 'review' && (equipment ?? s.equipment).length > 0) {
+          next.plan = suggestSession(s.trainerBodyPart, next.trainerGoal, next.equipment)
+          next.planSource = 'trainer'
+        }
+        commit(next)
       },
       setEquipment: (id) => {
         const s = current()
@@ -336,7 +341,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           calories: s.calories + calories,
           steps: s.steps + 120,
           streak: streakFromDates(history.filter((item) => !item.rest).map((item) => item.date)),
-          workoutDoneToday: true,
+          workoutDoneToday: true, // dead state; no consumer
           workoutInProgress: false,
           history,
           plan: [],
@@ -361,6 +366,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         commit({
           ...s,
           history: [historyItem, ...s.history.filter((item) => item.date !== date)],
+          workoutInProgress: false,
+          plan: [],
+          planSource: 'trainer',
+          trainerPhase: 'pick',
         })
       },
       unlinkPartner: () => {
