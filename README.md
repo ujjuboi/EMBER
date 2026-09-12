@@ -2,6 +2,8 @@
 
 Phone-first workout tracker — a clickable UI prototype with a black/orange theme, SVG coach, and partner sharing.
 
+<img width="720" height="397" alt="emberDemo" src="https://github.com/user-attachments/assets/33e08dc9-bea3-4102-a043-42a221f739f9" />
+
 **Taking this to production?** Start at **[HANDOFF.md](./HANDOFF.md)**.
 
 ## Quick Start
