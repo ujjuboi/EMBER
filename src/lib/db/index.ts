@@ -82,9 +82,9 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-// --- Schema (version 4) ---
+// --- Schema (version 5) ---
 
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 const WORKOUT_TABLE = `CREATE TABLE IF NOT EXISTS workout (
   id TEXT PRIMARY KEY,
@@ -125,6 +125,14 @@ const WORKOUT_SET_TABLE = `CREATE TABLE IF NOT EXISTS workout_set (
 
 const PLAN_INDEX = 'CREATE INDEX IF NOT EXISTS idx_plan_account_date ON plan (account_email, for_date)'
 const WORKOUT_SET_INDEX = 'CREATE INDEX IF NOT EXISTS idx_workout_set_workout ON workout_set (workout_id)'
+
+const CUSTOM_EXERCISE_TABLE = `CREATE TABLE IF NOT EXISTS custom_exercise (
+  account_email TEXT NOT NULL,
+  id TEXT NOT NULL,
+  exercise_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_email, id)
+)`
 
 async function getSchemaVersion(): Promise<number> {
   const result = await CapacitorSQLite.query({
@@ -238,6 +246,7 @@ async function createSchema(): Promise<void> {
     )`,
       WORKOUT_TABLE,
       WORKOUT_SET_TABLE,
+      CUSTOM_EXERCISE_TABLE,
       PLAN_INDEX,
       WORKOUT_SET_INDEX,
     ]
@@ -261,6 +270,10 @@ async function createSchema(): Promise<void> {
 
   if (version < 4) {
     await migrateV3toV4()
+  }
+
+  if (version < 5) {
+    await migrateV4toV5()
   }
 
   await setSchemaVersion(SCHEMA_VERSION)
@@ -315,6 +328,11 @@ async function migrateV3toV4(): Promise<void> {
     statements: `UPDATE partner SET name = '', streak = 0, steps = 0, calories = 0,
       last_workout = '', history = '[]', partner_linked = 0 WHERE name = 'Rae'`,
   })
+}
+
+// v4 -> v5. Creates the custom_exercise table for user-defined moves.
+async function migrateV4toV5(): Promise<void> {
+  await CapacitorSQLite.execute({ database: DB_NAME, statements: CUSTOM_EXERCISE_TABLE })
 }
 
 export async function accountExists(email: string): Promise<boolean> {
@@ -602,6 +620,40 @@ export async function saveHistory(accountEmail: string, history: HistoryItem[]):
           item.sessions || null,
         ],
       })),
+    ]
+    await CapacitorSQLite.executeSet({
+      database: DB_NAME,
+      set: statements,
+      transaction: true,
+    })
+  })
+}
+
+// --- Custom exercises ---
+
+export async function loadCustomExercises(accountEmail: string): Promise<Exercise[]> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT exercise_json FROM custom_exercise WHERE account_email = ? ORDER BY created_at ASC',
+    values: [accountEmail],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return []
+  return rows.map((row) => JSON.parse(String(row.exercise_json)) as Exercise)
+}
+
+function customExerciseInsertStatement(email: string, exercise: Exercise): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO custom_exercise (account_email, id, exercise_json, created_at) VALUES (?, ?, ?, ?)`,
+    values: [email, exercise.id, JSON.stringify(exercise), new Date().toISOString()],
+  }
+}
+
+export async function saveCustomExercises(accountEmail: string, exercises: Exercise[]): Promise<void> {
+  return enqueue(async () => {
+    const statements = [
+      { statement: 'DELETE FROM custom_exercise WHERE account_email = ?', values: [accountEmail] },
+      ...exercises.map((exercise) => customExerciseInsertStatement(accountEmail, exercise)),
     ]
     await CapacitorSQLite.executeSet({
       database: DB_NAME,
@@ -1051,10 +1103,11 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     planByDate.set(forDate, items)
   }
 
-  const [profile, history, partnerData] = await Promise.all([
+  const [profile, history, partnerData, customExercises] = await Promise.all([
     loadProfile(accountEmail),
     loadHistory(accountEmail),
     loadPartner(accountEmail),
+    loadCustomExercises(accountEmail),
   ])
 
   return {
@@ -1075,6 +1128,7 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     partnerSince: partnerData.partnerSince,
     workouts,
     workoutSets,
+    customExercises,
   }
 }
 
@@ -1093,9 +1147,11 @@ function replaceAccountStatements(backup: EmberBackup): { statement: string; val
     { statement: 'DELETE FROM history WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM partner WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM profile WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM custom_exercise WHERE account_email = ?', values: [email] },
     profileInsertStatement(email, backup.profile),
     partnerInsertFullStatement(email, backup.partner, backup.partnerLinked, backup.partnerSince),
     ...backup.history.map((item) => historyInsertStatement(email, item)),
+    ...(backup.customExercises ?? []).map((exercise) => customExerciseInsertStatement(email, exercise)),
     ...planStatements,
     ...backup.workouts.map(workoutInsertStatement),
     ...backup.workoutSets.map(workoutSetInsertStatement),

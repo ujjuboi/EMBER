@@ -35,6 +35,7 @@ const seedState = (): AppState => ({
   history: [],
   equipment: ['bodyweight'],
   plan: [],
+  customExercises: [],
   planSource: 'trainer',
   trainerPhase: 'pick',
   trainerDay: new Date().getDay(),
@@ -80,12 +81,13 @@ async function loadInitialState(): Promise<AppState> {
           return
         }
 
-        const [profile, history, plan, partnerData, activeWorkout] = await Promise.all([
+        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
           db.loadProfile(sessionEmail),
           db.loadHistory(sessionEmail),
           db.loadPlan(sessionEmail),
           db.loadPartner(sessionEmail),
           db.loadWorkoutInProgress(sessionEmail),
+          db.loadCustomExercises(sessionEmail),
         ])
 
         const totals = workoutTotalsFromHistory(history)
@@ -110,6 +112,7 @@ async function loadInitialState(): Promise<AppState> {
           history,
           equipment: profile.equipment,
           plan,
+          customExercises,
           planSource: profile.planSource,
           trainerPhase: profile.trainerPhase,
           trainerDay: profile.trainerDay,
@@ -159,6 +162,11 @@ function persistHistory(s: AppState): Promise<void> {
 function persistPlan(s: AppState): Promise<void> {
   if (!s.accountEmail) return Promise.resolve()
   return db.savePlan(s.accountEmail, s.plan)
+}
+
+function persistCustomExercises(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveCustomExercises(s.accountEmail, s.customExercises)
 }
 
 function persistPartnerLinked(s: AppState): Promise<void> {
@@ -232,6 +240,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       persistProfile(next),
       persistHistory(next),
       persistPlan(next),
+      persistCustomExercises(next),
       persistPartnerLinked(next),
       persistWorkout(next),
     ]).then((results) => {
@@ -309,12 +318,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: 'No account for that email, or wrong password.' }
         }
         await db.setSession(trimmed)
-        const [profile, history, plan, partnerData, activeWorkout] = await Promise.all([
+        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
           db.loadProfile(trimmed),
           db.loadHistory(trimmed),
           db.loadPlan(trimmed),
           db.loadPartner(trimmed),
           db.loadWorkoutInProgress(trimmed),
+          db.loadCustomExercises(trimmed),
         ])
         const totals = workoutTotalsFromHistory(history)
         const next: AppState = {
@@ -337,6 +347,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           history,
           equipment: profile.equipment,
           plan,
+          customExercises,
           planSource: profile.planSource,
           trainerPhase: profile.trainerPhase,
           trainerDay: profile.trainerDay,
@@ -404,6 +415,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         commit({ ...s, plan: [...s.plan, item], planSource: 'custom' })
         return true
+      },
+      saveCustomExercise: (exercise) => {
+        const s = current()
+        const name = exercise.name.trim().toLowerCase()
+        if (s.customExercises.some((item) => item.name.trim().toLowerCase() === name)) {
+          return false
+        }
+        commit({ ...s, customExercises: [...s.customExercises, exercise] })
+        return true
+      },
+      deleteCustomExercise: (id) => {
+        const s = current()
+        commit({ ...s, customExercises: s.customExercises.filter((item) => item.id !== id) })
       },
       updatePlan: (uid, patch) => {
         const s = current()

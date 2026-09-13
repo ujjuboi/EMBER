@@ -83,12 +83,12 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 - **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner` / `workout` / `workout_set`), so multiple accounts on one install never see each other's data.
 - There is **no server**. Auth is local-only — no OAuth, no recovery, no sync. The Google button was removed; `createAccount` / `logIn` / `signOut` all go through the store actions.
 - Onboarding writes profile + kit + optional partner link (any **6-character** code).
-- Schema is versioned (`PRAGMA user_version`, currently **v4**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; existing account data is kept. The v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae). `profile.workout_done_today` is a dead column (retained, never written or read).
+- Schema is versioned (`PRAGMA user_version`, currently **v5**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body). `profile.workout_done_today` is a dead column (retained, never written or read).
 - **Workout lifecycle & resume** (`src/lib/db/index.ts`): each session writes a `workout` row (status `in_progress` → `completed`/`abandoned`) plus per-set detail in `workout_set` (position, exercise, reps/seconds, `weight_kg`). Progress (`currentIndex`, set, phase, elapsed, kcal, rest/work seconds, sets logged) is persisted on transitions only, so a killed tab or iOS background resume restores the session where it stopped. Only one `in_progress` workout exists per account — starting a new one abandons the old.
 - **Weights**: reps exercises carry a `weight_kg` plan value (Train stepper) that is stored on the plan row and copied into each logged `workout_set`.
 - **Plans are date-scoped**: the `plan` row writes `for_date` (today). `history` stays the date-rollup source of truth for calendars/streaks; `streak`/`steps`/`calories` are recomputed from history on hydrate so caches cannot drift.
 - Distribution is an **installable PWA** (manifest + service worker via `vite-plugin-pwa`), not a native wrapper. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
-- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
+- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. Exports include workouts, history, plan, profile, partner, and the user's custom-exercise library. Schema 4 backups still restore. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
 
 Types: `src/lib/types.ts`.  
 Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  
@@ -183,7 +183,9 @@ Week strip is the same calendar used on Partner. `WeekStrip` is an alias of `Log
 
 ### Train
 
-`TrainPage.tsx` generates a plan on first visit (`beginTrainerReview`), and skips regenerating while a workout is `in_progress` (the saved session snapshot wins). Chips change body part and rescore via `suggestSession` (`src/lib/trainer.ts`). Custom exercises allowed. Reps exercises show a **kg** stepper that writes `plan.weight_kg`. Button label: Continue session if `workoutInProgress`, else Start session.
+`TrainPage.tsx` generates a plan on first visit (`beginTrainerReview`), and skips regenerating while a workout is `in_progress` (the saved session snapshot wins). Chips change body part and rescore via `suggestSession` (`src/lib/trainer.ts`). Reps exercises show a **kg** stepper that writes `plan.weight_kg`. Button label: Continue session if `workoutInProgress`, else Start session.
+
+**Custom exercises are a library.** Creating one saves it (per account) to the `custom_exercise` table and it appears in the Add exercise list (keyed by a stable `custom-<uuid>` id — catalog rows keep using their `coachId` poses; custom moves animate the idle loop). Tapping a saved row adds it to the plan; the trash button removes it from the library. Coach previews on Train animate (`playing` defaults on) — there are no GIFs.
 
 ### Session
 

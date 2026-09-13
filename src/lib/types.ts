@@ -19,6 +19,7 @@ export type EmberBackup = {
   partnerSince: string | null
   workouts: Workout[]
   workoutSets: WorkoutSet[]
+  customExercises: Exercise[]
 }
 
 export type PlanSource = 'trainer' | 'custom'
@@ -131,6 +132,7 @@ export type AppState = {
   history: HistoryItem[]
   equipment: Equipment[]
   plan: PlannedExercise[]
+  customExercises: Exercise[]
   planSource: PlanSource
   trainerPhase: TrainerPhase
   trainerDay: number

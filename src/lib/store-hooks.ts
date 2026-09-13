@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { BodyPart, Equipment, TrainerGoal } from '../data/exercises'
+import type { BodyPart, Equipment, Exercise, TrainerGoal } from '../data/exercises'
 import type { AppState, PlannedExercise, SessionProgress, WorkoutSet } from './types'
 
 export type StoreValue = AppState & {
@@ -29,6 +29,8 @@ export type StoreValue = AppState & {
   setEquipment: (id: Equipment) => void
   addEquipment: (id: Equipment) => void
   addToPlan: (item: PlannedExercise) => boolean
+  saveCustomExercise: (exercise: Exercise) => boolean
+  deleteCustomExercise: (id: string) => void
   updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number; weightKg?: number }) => void
   removeFromPlan: (uid: string) => void
   clearPlan: () => void

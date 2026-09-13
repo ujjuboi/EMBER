@@ -1,6 +1,8 @@
 import type { EmberBackup } from './types'
 
-export const BACKUP_SCHEMA = 4
+export const BACKUP_SCHEMA = 5
+
+export const SUPPORTED_BACKUP_SCHEMAS = [4, 5]
 
 export function backupFilename(): string {
   const now = new Date()
@@ -23,12 +25,13 @@ export function parseBackup(text: string): EmberBackup {
   if (backup?.app !== 'ember') {
     throw new Error('That file isn’t an EMBER backup.')
   }
-  if (backup.schema !== BACKUP_SCHEMA) {
+  if (!SUPPORTED_BACKUP_SCHEMAS.includes(backup.schema ?? 0)) {
     throw new Error(`This backup is for an incompatible app version (schema ${backup.schema ?? 'unknown'}).`)
   }
   if (typeof backup?.account?.email !== 'string') {
     throw new Error('That backup is missing its account email.')
   }
+  backup.customExercises ??= []
   return backup as EmberBackup
 }
 
