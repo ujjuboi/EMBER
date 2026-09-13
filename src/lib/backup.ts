@@ -32,6 +32,9 @@ export function parseBackup(text: string): EmberBackup {
     throw new Error('That backup is missing its account email.')
   }
   backup.customExercises ??= []
+  backup.workouts ??= []
+  backup.workoutSets ??= []
+  backup.plan ??= []
   return backup as EmberBackup
 }
 

@@ -30,6 +30,8 @@ export function SessionPage() {
     finishWorkout,
     abandonWorkout,
     persistSessionProgress,
+    recordSet,
+    loadWorkoutSets,
   } = useStore()
 
   const workoutId = workingWorkout?.status === 'in_progress' ? workingWorkout.id : null
@@ -48,10 +50,13 @@ export function SessionPage() {
   const finishing = useRef(false)
   const busy = useRef(false)
   const pendingAdvance = useRef(false)
-  const loggedRef = useRef(0)
+  const loggedRef = useRef(workoutId ? (workingWorkout?.setsLogged ?? 0) : 0)
   const kcalRef = useRef(init.kcal)
   const elapsedRef = useRef(init.elapsed)
   const loggedSetsRef = useRef<WorkoutSet[]>([])
+  // Resolves once sets already persisted for this workout are loaded back, so
+  // finish never writes an incomplete set history after a resumed session.
+  const setsReadyRef = useRef<Promise<void>>(Promise.resolve())
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logSetRef = useRef<() => void>(() => {})
   const startNextWorkRef = useRef<() => void>(() => {})
@@ -128,6 +133,19 @@ export function SessionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Reload sets logged before a possible background-kill so a resumed session
+  // keeps its full set history instead of only the sets logged after reload.
+  useEffect(() => {
+    if (!workoutId) return
+    setsReadyRef.current = loadWorkoutSets(workoutId).then((existing) => {
+      if (loggedSetsRef.current.length === 0) {
+        loggedSetsRef.current = existing
+        loggedRef.current = Math.max(loggedRef.current, existing.length)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workoutId, loadWorkoutSets])
+
   const persist = (overrides?: Partial<{
     restSeconds: number
     workSeconds: number
@@ -160,20 +178,22 @@ export function SessionPage() {
     const title = session.length === 1 ? firstItem.exercise.name : `${firstItem.exercise.name} mix`
     const durationMin = Math.max(1, Math.round(elapsedRef.current / 60))
     finishTimeoutRef.current = window.setTimeout(() => {
-      finishWorkout({
-        workoutId,
-        title,
-        durationMin,
-        calories: kcalRef.current,
-        bodyPart: trainerBodyPart,
-        workoutSets: loggedSetsRef.current,
+      void setsReadyRef.current.then(() => {
+        finishWorkout({
+          workoutId,
+          title,
+          durationMin,
+          calories: kcalRef.current,
+          bodyPart: trainerBodyPart,
+          workoutSets: loggedSetsRef.current,
+        })
+        navigate('/home')
       })
-      navigate('/home')
     }, 1400)
   }
 
   const logSet = () => {
-    if (!item || phase !== 'work' || finishing.current || busy.current) return
+    if (!item || !workoutId || phase !== 'work' || finishing.current || busy.current) return
     busy.current = true
     const gained = estimateKcal({
       met: item.exercise.met,
@@ -185,22 +205,22 @@ export function SessionPage() {
     const nextKcal = kcalRef.current + gained
     kcalRef.current = nextKcal
     const setNoNow = setNo
-    loggedSetsRef.current = [
-      ...loggedSetsRef.current,
-      {
-        id: crypto.randomUUID(),
-        workoutId: '',
-        position: index,
-        exerciseId: item.exercise.id,
-        exerciseName: item.exercise.name,
-        kind: item.exercise.kind,
-        setNo: setNoNow + 1,
-        reps: item.exercise.kind === 'reps' ? item.reps : undefined,
-        seconds: item.exercise.kind === 'timed' ? item.seconds : undefined,
-        weightKg: item.weightKg,
-        done: true,
-      },
-    ]
+    const loggedSet: WorkoutSet = {
+      id: crypto.randomUUID(),
+      workoutId,
+      position: index,
+      exerciseId: item.exercise.id,
+      exerciseName: item.exercise.name,
+      kind: item.exercise.kind,
+      setNo: setNoNow + 1,
+      reps: item.exercise.kind === 'reps' ? item.reps : undefined,
+      seconds: item.exercise.kind === 'timed' ? item.seconds : undefined,
+      weightKg: item.weightKg,
+      done: true,
+    }
+    loggedSetsRef.current = [...loggedSetsRef.current, loggedSet]
+    // Persist each set as it is logged so a killed tab never loses set detail.
+    recordSet(workoutId, loggedSet)
     loggedRef.current += 1
     setKcal(nextKcal)
 

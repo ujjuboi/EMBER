@@ -58,7 +58,7 @@ export function HomePage() {
           action={
             selected === today && !trainedToday && !restToday ? (
               <div className="space-y-3">
-                <Button block onClick={() => navigate('/train')}>
+                <Button block onClick={() => navigate(workoutInProgress ? '/train/go' : '/train')}>
                   {workoutInProgress ? 'Continue session' : 'Start training'}
                 </Button>
                 <Button block variant="line" onClick={logRestDay}>

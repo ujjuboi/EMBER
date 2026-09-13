@@ -496,10 +496,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const persisted = await db.loadWorkoutInProgress(workout.accountEmail)
             const latest = current()
             if (latest.workingWorkout?.id === workout.id && persisted?.id === workout.id) {
-              commit(
-                { ...latest, workingWorkout: { ...workout, ...persisted, exercises: persisted.exercises ?? workout.exercises } },
-                { immediate: true },
-              )
+              // Start from the newest in-memory state and only fill in exercises
+              // from the persisted row, so a newer currentIndex/currentSet/kcal
+              // saved while the re-read was in flight is never regressed.
+              const merged: Workout = {
+                ...latest.workingWorkout,
+                exercises: latest.workingWorkout.exercises ?? persisted.exercises ?? workout.exercises,
+              }
+              commit({ ...latest, workingWorkout: merged }, { immediate: true })
             }
           } catch (err) {
             console.error('[Store] beginWorkout persist failed:', err)
@@ -522,6 +526,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })
         commit({ ...s, workingWorkout: null, workoutInProgress: false })
       },
+      recordSet: (workoutId, set) => {
+        void db.insertWorkoutSets(workoutId, [set]).catch((err) => {
+          console.error('[Store] recordSet failed:', err)
+        })
+      },
+      loadWorkoutSets: (workoutId) => db.loadWorkoutSets(workoutId),
       setTrainerFocus: ({ bodyPart, goal }) => {
         const s = current()
         commit({
@@ -711,7 +721,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         }
         try {
-          await db.importAccount(backup, { newAccount: !matters })
+          await db.importAccount(backup, { newAccount: !matters, intoEmail: opts?.intoEmail })
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Could not restore that backup'
           return { ok: false, error: message }

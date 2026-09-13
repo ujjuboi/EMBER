@@ -272,9 +272,10 @@ async function createSchema(): Promise<void> {
     await migrateV3toV4()
   }
 
-  if (version < 5) {
-    await migrateV4toV5()
-  }
+  // v4 -> v5 only adds an idempotent table, so run it unconditionally: a
+  // database whose user_version was already promoted to 5 without the table
+  // (e.g. by an intermediate build) must still get custom_exercise created.
+  await migrateV4toV5()
 
   await setSchemaVersion(SCHEMA_VERSION)
 }
@@ -631,7 +632,12 @@ export async function saveHistory(accountEmail: string, history: HistoryItem[]):
 
 // --- Custom exercises ---
 
+async function ensureCustomExerciseTable(): Promise<void> {
+  await CapacitorSQLite.execute({ database: DB_NAME, statements: CUSTOM_EXERCISE_TABLE })
+}
+
 export async function loadCustomExercises(accountEmail: string): Promise<Exercise[]> {
+  await ensureCustomExerciseTable()
   const result = await CapacitorSQLite.query({
     database: DB_NAME,
     statement: 'SELECT exercise_json FROM custom_exercise WHERE account_email = ? ORDER BY created_at ASC',
@@ -651,6 +657,7 @@ function customExerciseInsertStatement(email: string, exercise: Exercise): { sta
 
 export async function saveCustomExercises(accountEmail: string, exercises: Exercise[]): Promise<void> {
   return enqueue(async () => {
+    await ensureCustomExerciseTable()
     const statements = [
       { statement: 'DELETE FROM custom_exercise WHERE account_email = ?', values: [accountEmail] },
       ...exercises.map((exercise) => customExerciseInsertStatement(accountEmail, exercise)),
@@ -829,7 +836,7 @@ export async function abandonWorkout(workoutId: string): Promise<void> {
 export async function insertWorkoutSets(workoutId: string, sets: WorkoutSet[]): Promise<void> {
   return enqueue(async () => {
     const statements = sets.map((set) => ({
-      statement: `INSERT INTO workout_set (
+      statement: `INSERT OR REPLACE INTO workout_set (
         id, workout_id, position, exercise_id, exercise_name, kind,
         set_no, reps, seconds, weight_kg, done
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1132,8 +1139,7 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
   }
 }
 
-function replaceAccountStatements(backup: EmberBackup): { statement: string; values: unknown[] }[] {
-  const email = backup.account.email
+function replaceAccountStatements(backup: EmberBackup, email: string): { statement: string; values: unknown[] }[] {
   const planStatements = backup.plan.flatMap(({ forDate, items }) =>
     items.map((item) => planInsertStatement(email, item, forDate)),
   )
@@ -1153,21 +1159,22 @@ function replaceAccountStatements(backup: EmberBackup): { statement: string; val
     ...backup.history.map((item) => historyInsertStatement(email, item)),
     ...(backup.customExercises ?? []).map((exercise) => customExerciseInsertStatement(email, exercise)),
     ...planStatements,
-    ...backup.workouts.map(workoutInsertStatement),
+    ...backup.workouts.map((w) => workoutInsertStatement({ ...w, accountEmail: email })),
     ...backup.workoutSets.map(workoutSetInsertStatement),
   ]
 }
 
-export async function importAccount(backup: EmberBackup, opts: { newAccount: boolean }): Promise<void> {
-  const email = backup.account.email
+export async function importAccount(backup: EmberBackup, opts: { newAccount: boolean; intoEmail?: string }): Promise<void> {
+  const email = opts.intoEmail ?? backup.account.email
   return enqueue(async () => {
-    const set = replaceAccountStatements(backup)
+    await ensureCustomExerciseTable()
+    const set = replaceAccountStatements(backup, email)
     if (opts.newAccount) {
       set.unshift({
         statement: 'INSERT OR IGNORE INTO account (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)',
-        values: [email, backup.account.passwordHash, backup.account.salt, backup.account.createdAt],
+        values: [backup.account.email, backup.account.passwordHash, backup.account.salt, backup.account.createdAt],
       })
-      set.push({ statement: 'UPDATE session SET active_email = ? WHERE id = 1', values: [email] })
+      set.push({ statement: 'UPDATE session SET active_email = ? WHERE id = 1', values: [backup.account.email] })
     }
     await CapacitorSQLite.executeSet({
       database: DB_NAME,

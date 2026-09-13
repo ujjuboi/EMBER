@@ -21,6 +21,7 @@ export function TrainPage() {
     plan,
     planSource,
     workoutInProgress,
+    workingWorkout,
     customExercises,
     setTrainerFocus,
     addToPlan,
@@ -70,8 +71,14 @@ export function TrainPage() {
   }
 
   const startLabel = workoutInProgress ? 'Continue session' : 'Start session'
+  const resumable = workoutInProgress && workingWorkout?.status === 'in_progress'
 
   const startSession = () => {
+    if (resumable) {
+      setError('')
+      navigate('/train/go')
+      return
+    }
     if (plan.length === 0) {
       setError('Add at least one exercise')
       return

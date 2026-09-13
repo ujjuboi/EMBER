@@ -50,6 +50,9 @@ export async function verify(
   salt: string,
   expected: string,
 ): Promise<boolean> {
+  if (typeof expected !== 'string' || expected.length !== (HASH_BITS / 8) * 2 || !/^[0-9a-f]+$/i.test(expected)) {
+    return false
+  }
   const actual = await hashPassword(password, salt)
   const a = new Uint8Array(actual.match(/.{2}/g)!.map((h) => parseInt(h, 16)))
   const b = new Uint8Array(expected.match(/.{2}/g)!.map((h) => parseInt(h, 16)))
