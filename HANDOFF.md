@@ -4,16 +4,16 @@ You are taking a **finished clickable UI prototype** and turning it into a real 
 
 **Start here, in order:**
 
-1. Click the live app: [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/) (phone width)
+1. Run it: `npm install` then `npm run dev` (phone width), or deploy `dist/` to Netlify/Vercel and install it as a PWA (see [plans/pwa-distribution.md](./plans/pwa-distribution.md))
 2. Read [docs/PRODUCT_RULES.md](./docs/PRODUCT_RULES.md)
 3. Skim [docs/COMPONENT_MAP.md](./docs/COMPONENT_MAP.md)
-4. Replace `src/lib/store.tsx` with a real backend — keep the same action names and `src/lib/types.ts`
+4. Note: persistence is already **on-device SQLite** with an offline-capable PWA — do not swap `store.tsx` for a server unless asked.
 
 The source of truth for behavior is the running UI plus this file.
 
 Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motion is SVG code.
 
-**Send your engineer this folder** (zip it, skip `node_modules` and `dist`). Point them at `HANDOFF.md`. The live link above is the clickable spec.
+**Send your engineer this folder** (zip it, skip `node_modules` and `dist`). Point them at `HANDOFF.md`. The installable PWA is the clickable spec.
 
 ---
 
@@ -22,6 +22,7 @@ Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motio
 | This prototype **is** | This prototype **is not** |
 | --- | --- |
 | Phone-first React UI (390–430px) | Server auth / OAuth, payments, or sync |
+| An installable, offline-capable PWA | A native App Store / Play Store build |
 | All main screens, empty/error states, motion | Native pedometer / Health Connect |
 | A scored session suggester + full exercise catalog | A gym-machine catalog or trainer AI |
 | SVG wireframe coach that performs each move | GIFs, Lottie, or video clips |
@@ -76,14 +77,14 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 
 ## How state works today
 
-`src/lib/store.tsx` is a React context over **on-device SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web).
+`src/lib/store.tsx` is a React context over **on-device SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA service worker precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so persistence **survives offline** after first load.
 
-- **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user.
+- **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user. `crypto.subtle` requires HTTPS — `localhost` and Netlify/Vercel are fine, plain `http://` on a LAN phone is not.
 - **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner`), so multiple accounts on one install never see each other's data.
 - There is **no server**. Auth is local-only — no OAuth, no recovery, no sync. The Google button was removed; `createAccount` / `logIn` / `signOut` all go through the store actions.
 - Onboarding writes profile + kit + optional partner link (any **6-character** code).
 - Schema is versioned (`PRAGMA user_version`, currently **v2**). A schema bump drops and recreates tables, so old demo data is not preserved.
-- If you add a real backend later, keep the same `AppState` shape and action names; screens already speak it.
+- Distribution is an **installable PWA** (manifest + service worker via `vite-plugin-pwa`), not a native wrapper. See [plans/pwa-distribution.md](./plans/pwa-distribution.md).
 
 Types: `src/lib/types.ts`.  
 Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  
@@ -240,13 +241,15 @@ Chrome: `max-w-[430px]`, bottom nav with `env(safe-area-inset-bottom)`. Buttons:
 
 ## Turning this into a real app (minimal-effort order)
 
-1. **Keep the UI.** Replace `store.tsx` actions with API calls. Same TypeScript types.
-2. **Auth (server)** — local accounts already exist (add PBKDF2-hashed credentials, session restore, per-account rows in SQLite). Remaining: real server-side session/JWT, email validation beyond the `@` check, and OAuth if you want Google.
+This is already a real, **installable, offline PWA** — the remaining roadmap is feature work, not re-hosting:
+
+1. **Ship it.** Deploy `dist/` to Netlify/Vercel (HTTPS is automatic) and install from Chrome/Safari. No App Store, no code signing. See [plans/pwa-distribution.md](./plans/pwa-distribution.md).
+2. **Auth (server, if you must)** — local accounts already exist (PBKDF2-hashed credentials, session restore, per-account rows). Remaining: real server-side session/JWT, email validation beyond the `@` check, and OAuth if you want Google.
 3. **User + history** — persist `HistoryItem[]`, streak computed server-side from workout dates (exclude rest).
 4. **Partner** — real invite codes, both users’ histories, reminder as push. Twin flame = both have a workout on `today` in the user’s timezone.
 5. **Steps** — Health Connect / HealthKit; prototype `steps` field is fake.
 6. **Session recover** — today, leaving `/train/go` drops live timers. Persist set index if you need crash recovery.
-7. **PWA / Capacitor** — `index.html` already has theme-color and apple web-app meta.
+7. **PWA gaps (iOS)** — background timers throttle, push needs web push (iOS 16.4+), screen-wake. Tracked in the PWA plan's backlog.
 
 Do not rebuild the calendar, coach, or Train chips from scratch unless design changes. Copy the components.
 
@@ -265,21 +268,17 @@ Seed Rae has workouts plus one rest day, and **no session today** (`src/data/see
 
 ---
 
-## Live prototype
+## Live app & hosting
 
-**Open this:** [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/)
+EMBER is an **installable PWA** — no APK, no App Store. Deploy `dist/` (result of `npm run build`) to a static HTTPS host:
 
-Anyone with the link can use it (local accounts stored in the browser's IndexedDB). Phone width is best.
+- **Netlify** — `netlify.toml` is ready: `netlify deploy --prod` (build command `npm run build`, publish dir `dist`, SPA fallback included).
+- **Vercel** — `vercel.json` is ready: `vercel --prod` (rewrites SPA fallback).
 
-This anonymous host **expires 13 Sep 2026 ~08:00 UTC** unless claimed. To keep it:
+Verify after deploy:
 
-1. Open this claim link exactly (do not shorten it): [https://here.now/c/fzSm6NW6r-oejTcu](https://here.now/c/fzSm6NW6r-oejTcu)
-2. Create a here.now account if asked
+1. `dist/` contains `sw.js`, `manifest.webmanifest`, and `icons/*`.
+2. Load the site, install it (Chrome: **Install app**; Safari: **Add to Home Screen**) — it opens standalone.
+3. Go offline (airplane mode) and reload — the app and a workout round-trip still work; data persists in the IndexedDB/OPFS store.
 
-To republish from this repo after `npm run build`:
-
-```bash
-node scripts/publish-here-now.mjs
-```
-
-SPA fallback is configured for Netlify (`netlify.toml`) and Vercel (`vercel.json`) if you move hosting.
+Older short-lived anonymous hosts (here.now) are deprecated and removed.

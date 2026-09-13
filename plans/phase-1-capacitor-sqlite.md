@@ -114,3 +114,18 @@ should be avoided, hydration can stay transparent via a
   `checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })`
   (omitting `openModes` would make jeep-sqlite close the just-opened
   connection and fail every following query).
+
+## Superseded by the PWA decision
+
+The **Capacitor native wrapper** steps in this plan (section 1: `android/`,
+`ios/`, `capacitor.config.ts`) are **obsolete**. `plans/pwa-distribution.md`
+replaced native packaging with an **installable, offline-capable PWA** served
+over HTTPS (Netlify/Vercel). The `android/` and `ios/` folders and
+`@capacitor/android` / `@capacitor/ios` / `@capgo/capacitor-updater` /
+`@capacitor/cli` were removed.
+
+Do **not** re-run `npx cap add android|ios` or add a native wrapper back
+without revisiting that decision. Everything else here — the SQLite data layer
+(`src/lib/db/`), the web fallback via `jeep-sqlite` +
+`CapacitorSQLite.initWebStore()`, and the checked-in WASM — is **still current**
+and is exactly what the PWA relies on for offline persistence.

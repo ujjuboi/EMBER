@@ -181,9 +181,9 @@ Manual test path:
 
 ## Risks
 
-- `crypto.subtle` requires a secure context. Works on Capacitor native and
-  `localhost` dev, but fails over plain `http://` LAN phone browser. Low risk
-  since this is a mobile app.
+- `crypto.subtle` requires a secure context. Works on the installable PWA
+  (HTTPS, e.g. Netlify/Vercel) and `localhost` dev, but fails over plain
+  `http://` LAN phone browser. Low risk since the PWA is served over HTTPS.
 - Upgrade wipes current device demo data (acceptable; see migration above).
   If preservation is needed later, implement a column-ALTER path before
   drop-recreate.
