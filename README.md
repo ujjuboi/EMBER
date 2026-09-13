@@ -46,7 +46,7 @@ src/
   components/ui/   Shared primitives (buttons, chips, fields, toast, timer)
   data/            Exercise catalog + seed data
   features/
-    auth/          Login, signup, onboarding (mock)
+    auth/          Login, signup, onboarding (local accounts)
     home/          Home, streak, month calendar
     workout/       Train planner + live session
     partner/       Partner compare + pairing
@@ -57,7 +57,7 @@ src/
 
 ## Features (Prototype)
 
-- Mock auth (email + Google stub)
+- Local accounts with PBKDF2-hashed passwords (SQLite)
 - Onboarding with body kit selection and partner pairing
 - Streak tracking (calendar days with completed workouts)
 - Auto-generated workout plans by body part, goal, and equipment
@@ -69,7 +69,7 @@ src/
 
 ## Persistence
 
-State is stored in `sessionStorage` under key `ember-prototype-v5`. Closing the tab clears data. See `src/lib/store.tsx` for the shape and actions.
+State lives in on-device **SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). Accounts are stored locally with PBKDF2-hashed passwords (`src/lib/password.ts`), and all data (`profile` / `history` / `plan` / `partner`) is scoped per account with a `session` row restoring the last logged-in user. There is no server — auth and storage never leave the device. See `src/lib/store.tsx` for the shape and actions.
 
 ## Preview & Deploy
 

@@ -21,12 +21,12 @@ Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motio
 
 | This prototype **is** | This prototype **is not** |
 | --- | --- |
-| Phone-first React UI (390–430px) | Production auth, payments, or sync |
+| Phone-first React UI (390–430px) | Server auth / OAuth, payments, or sync |
 | All main screens, empty/error states, motion | Native pedometer / Health Connect |
 | A scored session suggester + full exercise catalog | A gym-machine catalog or trainer AI |
 | SVG wireframe coach that performs each move | GIFs, Lottie, or video clips |
 | Mock partner “Rae” + pairing UX | Live multiplayer or push notifications |
-| `sessionStorage` mock store | API, DB, or accounts |
+| Local SQLite accounts + per-account rows | Server/API, sync, or cloud accounts |
 
 Stack: **Vite 8 + React 19 + TypeScript + Tailwind v4 + React Router 7 + lucide-react + Framer Motion** (toast only).
 
@@ -58,13 +58,13 @@ src/
   components/ui/       Buttons, chips, fields, confirm, toast, timer
   data/                Exercise catalog + seed history/partner
   features/
-    auth/              Login / signup (mock) + onboarding
+    auth/              Login / signup (local accounts) + onboarding
     home/              Home + week/month calendar
     workout/           Train planner + live session
     partner/           Partner tab + home partner card
     profile/           You (profile, kit, unlink)
     trainer/           Goal/kit chips used by Train + You
-  lib/                 Store, types, dates, trainer scoring, calories
+  lib/                 Store, SQLite db layer, password hashing, dates, trainer scoring, calories
 ```
 
 Unused leftovers (safe to delete when you wire the real app, or reuse):
@@ -76,16 +76,18 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 
 ## How state works today
 
-`src/lib/store.tsx` is a React context. It loads/saves JSON in **`sessionStorage` key `ember-prototype-v5`**.
+`src/lib/store.tsx` is a React context over **on-device SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web).
 
-Implications for you:
-
-- A full tab reload **keeps** the mock user. Closing the tab clears it.
-- There is no server. `createAccount` / `logIn` / `continueWithGoogle` only flip `signedIn`.
+- **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user.
+- **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner`), so multiple accounts on one install never see each other's data.
+- There is **no server**. Auth is local-only — no OAuth, no recovery, no sync. The Google button was removed; `createAccount` / `logIn` / `signOut` all go through the store actions.
 - Onboarding writes profile + kit + optional partner link (any **6-character** code).
-- Swap this file for API hooks. Keep the same `AppState` shape as long as you can; screens already speak it.
+- Schema is versioned (`PRAGMA user_version`, currently **v2**). A schema bump drops and recreates tables, so old demo data is not preserved.
+- If you add a real backend later, keep the same `AppState` shape and action names; screens already speak it.
 
 Types: `src/lib/types.ts`.  
+Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  
+Hashing: `src/lib/password.ts`.  
 Catalog: `src/data/exercises.ts`.  
 Seed partner **Rae**: `src/data/seed.ts`.
 
@@ -165,9 +167,9 @@ Users log rest from Home (**Log rest day**) only before they have a workout toda
 
 ### Auth / onboarding
 
-Mock validation only (email has `@`, password ≥ 6). Google is a stub. Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = linked to seed Rae.
+Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = linked to seed Rae.
 
-**Tester path:** Continue with Google → keep defaults → partner code `EMBER9` → Save. Lands on Train.
+**Tester path:** Create an account (any email + password of ≥6 chars) → keep defaults → partner code `EMBER9` → Save. Lands on Train.
 
 ### Home
 
@@ -239,7 +241,7 @@ Chrome: `max-w-[430px]`, bottom nav with `env(safe-area-inset-bottom)`. Buttons:
 ## Turning this into a real app (minimal-effort order)
 
 1. **Keep the UI.** Replace `store.tsx` actions with API calls. Same TypeScript types.
-2. **Auth** — real session cookie/JWT; delete mock email uniqueness.
+2. **Auth (server)** — local accounts already exist (add PBKDF2-hashed credentials, session restore, per-account rows in SQLite). Remaining: real server-side session/JWT, email validation beyond the `@` check, and OAuth if you want Google.
 3. **User + history** — persist `HistoryItem[]`, streak computed server-side from workout dates (exclude rest).
 4. **Partner** — real invite codes, both users’ histories, reminder as push. Twin flame = both have a workout on `today` in the user’s timezone.
 5. **Steps** — Health Connect / HealthKit; prototype `steps` field is fake.
@@ -252,14 +254,14 @@ Do not rebuild the calendar, coach, or Train chips from scratch unless design ch
 
 ## Demo script (for your tester)
 
-1. Open the live link. Continue with Google.
+1. Open the live link. Create an account (any email + password, e.g. tester@ember.app / `member9`).
 2. Onboarding: partner code `EMBER9` → **Save**. Lands on **Train** (by design).
 3. Home: **Start training** or **Log rest day**. Calendar hearts = Rae’s workouts. Today empty for Rae → **Send reminder**.
 4. Train → Start session → Log set through (or End after one set). Land on Home: **All fired up**, no extra-session button.
 5. Train again, finish: today’s minutes/kcal go up (`N sessions`).
 6. You → Unlink to see empty Partner; pair again with any 6 characters.
 
-Seed Rae has workouts plus one rest day, and **no session today** (`src/data/seed.ts`). Closing the browser tab clears `sessionStorage`.
+Seed Rae has workouts plus one rest day, and **no session today** (`src/data/seed.ts`). Data persists in on-device SQLite — closing the tab does **not** clear it; use You → **Log out** to end the session and return to the login screen.
 
 ---
 
@@ -267,7 +269,7 @@ Seed Rae has workouts plus one rest day, and **no session today** (`src/data/see
 
 **Open this:** [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/)
 
-Anyone with the link can use it (mock auth only — no real accounts). Phone width is best.
+Anyone with the link can use it (local accounts stored in the browser's IndexedDB). Phone width is best.
 
 This anonymous host **expires 13 Sep 2026 ~08:00 UTC** unless claimed. To keep it:
 

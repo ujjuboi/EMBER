@@ -1,6 +1,6 @@
 # Workout programs — 12-week periodized + custom trainer
 
-Feature-only plan. One program per `TRAINER_GOAL` (6 goals from `src/data/exercises.ts:33`) plus a custom trainer. SQLite integration (issue #2 / `plans/phase-1-capacitor-sqlite.md`) is a separate later step — this feature stays on sessionStorage for now; data models are designed to migrate cleanly into the DB schema afterward.
+Feature-only plan. One program per `TRAINER_GOAL` (6 goals from `src/data/exercises.ts:33`) plus a custom trainer. SQLite persistence has landed (`plans/phase-1-capacitor-sqlite.md` → `src/lib/db/index.ts`) — implement this on the DB layer: add a `programs` table keyed by `account_email` and load/save through the store, exactly like the existing profile/history/plan/partner rows.
 
 ## Decisions (locked)
 

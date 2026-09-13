@@ -7,7 +7,7 @@ alwaysApply: true
 
 Phone-first workout UI. Black `#050505`, orange `#FF5A1F`, Space Grotesk. Shell max width **430px**.
 
-This repo is a **clickable UI prototype**. Mock state lives in `sessionStorage` (`ember-prototype-v5`). Do not add a real backend here unless asked.
+This repo is a **clickable UI prototype** with on-device persistence. State lives in **SQLite** (`src/lib/db/index.ts`, IndexedDB-backed on web). Local accounts use PBKDF2-hashed passwords (`src/lib/password.ts`). There is **no server** — auth is local-only. Do not add a real backend here unless asked.
 
 ## Locked product rules
 

@@ -7,7 +7,7 @@ After each completed workout, prompt a progress photo. When the last 7 days hold
 ## Decisions (confirmed)
 
 - **Capture:** real capture via hidden `<input type="file" accept="image/*" capture="user">` (opens phone camera; desktop file picker fallback) → canvas-normalized square 640px JPEG (q≈0.7) → data URL. "Skip" always offered.
-- **Persistence:** compressed data URLs stored in `sessionStorage` via the existing store (`ember-prototype-v5`), carrying through `loadState`/`persist`. Bridges to the phase-1 SQLite plan later (see note).
+- **Persistence:** photos live in the on-device SQLite DB (`src/lib/db/index.ts` — SQLite persistence has landed per `plans/phase-1-capacitor-sqlite.md`). Add a `photos` table keyed by `account_email`, and carry data URLs through the existing `save`/`load` funnel.
 - **Surface:** new **Progress** section on the You page — full-week photo history + auto-generated GIF once eligible.
 - **GIF encoder:** `gifenc` (tiny MIT, pure JS with own types, no wasm) — frames drawn to an offscreen canvas, RLE/quantized, ~400–600ms per frame.
 
@@ -25,7 +25,7 @@ After each completed workout, prompt a progress photo. When the last 7 days hold
   - "Snap a progress photo" + **Take photo** (triggers file input) + **Skip**.
   - On photo: read file → downscale/compress (`src/lib/photo.ts`) → `saveProgressPhoto` → `finishWorkout(...)` → `navigate('/home')`.
   - On skip: same without saving. Existing `finishTimeoutRef` cleanup stays.
-- New helper `src/lib/photo.ts`: `fileToSquareJpeg(file, { size = 640, quality = 0.7 })` with a generated-size guard (re-compress at lower quality if > ~150KB so a week fits comfortably in the 5MB budget).
+- New helper `src/lib/photo.ts`: `fileToSquareJpeg(file, { size = 640, quality = 0.7 })` with a generated-size guard (re-compress at lower quality if > ~150KB so a week stays small in IndexedDB/SQLite).
 
 ### 3. GIF generation — `src/lib/gif.ts` (new, `npm i gifenc`)
 
@@ -44,7 +44,7 @@ After each completed workout, prompt a progress photo. When the last 7 days hold
 - One photo per workout **day** (replacing on repeats) — keeps the week window clean; multiple sessions a day share the slot.
 - GIF blob lives in memory only (not persisted); regenerating on open is cheap for ≤7 frames.
 - No binary assets added to the repo — consistent with HANDOFF/"no GIF files" stance (output is the generated GIF, not committed assets).
-- `sessionStorage` 5MB ceiling is the documented constraint; cross-link `plans/phase-1-capacitor-sqlite.md` so photos migrate to Capacitor Filesystem/SQLite with persistence.
+- Blob data URLs are persisted through SQLite (`src/lib/db/index.ts`), no raw binaries in the repo; the old `sessionStorage` 5MB ceiling no longer applies.
 
 ## Verification
 
