@@ -55,8 +55,3 @@ export function useStore(): StoreValue {
   if (!ctx) throw new Error('useStore must be used inside StoreProvider')
   return ctx
 }
-
-export function useDbReady(): boolean {
-  const ctx = useContext(StoreContext)
-  return ctx?.ready ?? false
-}

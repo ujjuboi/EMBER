@@ -93,8 +93,8 @@ async function loadInitialState(): Promise<AppState> {
   return _initialState ?? seedState()
 }
 
-function persistProfile(s: AppState): void {
-  void db.saveProfile({
+function persistProfile(s: AppState): Promise<void> {
+  return db.saveProfile({
     displayName: s.displayName,
     weightKg: s.weightKg,
     heightFt: s.heightFt,
@@ -119,16 +119,16 @@ function persistProfile(s: AppState): void {
   })
 }
 
-function persistHistory(history: HistoryItem[]): void {
-  void db.saveHistory(history)
+function persistHistory(history: HistoryItem[]): Promise<void> {
+  return db.saveHistory(history)
 }
 
-function persistPlan(plan: PlannedExercise[]): void {
-  void db.savePlan(plan)
+function persistPlan(plan: PlannedExercise[]): Promise<void> {
+  return db.savePlan(plan)
 }
 
-function persistPartnerLinked(linked: boolean, since: string | null): void {
-  void db.updatePartnerLinked(linked, since)
+function persistPartnerLinked(linked: boolean, since: string | null): Promise<void> {
+  return db.updatePartnerLinked(linked, since)
 }
 
 function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
@@ -141,6 +141,7 @@ function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
 }
 
 const COMMIT_DEBOUNCE_MS = 400
+const PERSIST_RETRY_MS = 4000
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState | null>(null)
@@ -170,41 +171,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     hydrate()
   }, [hydrate])
 
-  const flushWrites = useCallback(() => {
+  const flushWrites = useCallback(function flushWrites(): Promise<void> {
     if (flushTimerRef.current !== null) {
       window.clearTimeout(flushTimerRef.current)
       flushTimerRef.current = null
     }
     const next = pendingStateRef.current
     pendingStateRef.current = null
-    if (!next) return
-    persistProfile(next)
-    persistHistory(next.history)
-    persistPlan(next.plan)
-    persistPartnerLinked(next.partnerLinked, next.partnerSince)
+    if (!next) return Promise.resolve()
+    const flush = Promise.allSettled([
+      persistProfile(next),
+      persistHistory(next.history),
+      persistPlan(next.plan),
+      persistPartnerLinked(next.partnerLinked, next.partnerSince),
+    ]).then((results) => {
+      const failed = results.some((r) => r.status === 'rejected')
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error('[Store] Persist failed:', i, r.reason)
+      })
+      if (failed && !pendingStateRef.current && flushTimerRef.current === null) {
+        pendingStateRef.current = next
+        flushTimerRef.current = window.setTimeout(() => void flushWrites(), PERSIST_RETRY_MS)
+      }
+    })
+    return flush
   }, [])
 
   useEffect(() => {
+    const onFlush = () => void flushWrites()
     const onHide = () => {
-      if (document.visibilityState === 'hidden') flushWrites()
+      if (document.visibilityState === 'hidden') void flushWrites()
     }
-    window.addEventListener('pagehide', flushWrites)
-    window.addEventListener('beforeunload', flushWrites)
+    window.addEventListener('pagehide', onFlush)
+    window.addEventListener('beforeunload', onFlush)
     document.addEventListener('visibilitychange', onHide)
     return () => {
-      window.removeEventListener('pagehide', flushWrites)
-      window.removeEventListener('beforeunload', flushWrites)
+      window.removeEventListener('pagehide', onFlush)
+      window.removeEventListener('beforeunload', onFlush)
       document.removeEventListener('visibilitychange', onHide)
-      flushWrites()
     }
   }, [flushWrites])
 
-  const commit = useCallback((next: AppState) => {
+  const commit = useCallback((next: AppState, opts?: { immediate?: boolean }) => {
     pendingStateRef.current = next
     stateRef.current = next
     setState(next)
-    if (flushTimerRef.current !== null) window.clearTimeout(flushTimerRef.current)
-    flushTimerRef.current = window.setTimeout(flushWrites, COMMIT_DEBOUNCE_MS)
+    if (flushTimerRef.current !== null) {
+      window.clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    if (opts?.immediate) {
+      void flushWrites()
+    } else {
+      flushTimerRef.current = window.setTimeout(() => void flushWrites(), COMMIT_DEBOUNCE_MS)
+    }
   }, [flushWrites])
 
   const value = useMemo<StoreValue>(() => {
@@ -328,11 +348,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       clearPlan: () => {
         const s = current()
-        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false })
+        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false }, { immediate: true })
       },
       beginWorkout: () => {
         const s = current()
-        commit({ ...s, workoutInProgress: true })
+        commit({ ...s, workoutInProgress: true }, { immediate: true })
       },
       setTrainerFocus: ({ bodyPart, goal }) => {
         const s = current()
@@ -414,7 +434,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
-        })
+        }, { immediate: true })
       },
       logRestDay: () => {
         const s = current()
@@ -437,7 +457,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
-        })
+        }, { immediate: true })
       },
       unlinkPartner: () => {
         const s = current()

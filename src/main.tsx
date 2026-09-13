@@ -9,6 +9,8 @@ import './index.css'
 async function initSqlite(): Promise<void> {
   if (Capacitor.getPlatform() !== 'web') return
   await defineCustomElements(window)
+  // Early web-store init so jeep-sqlite is ready before mount.
+  // initDb re-calls it (idempotent) for non-web entry paths.
   await CapacitorSQLite.initWebStore()
 }
 

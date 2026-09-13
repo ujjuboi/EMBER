@@ -23,10 +23,6 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   return run
 }
 
-export function isDbReady(): boolean {
-  return _ready
-}
-
 export async function initDb(): Promise<void> {
   if (_ready) return
   if (_initPromise) {
@@ -34,12 +30,15 @@ export async function initDb(): Promise<void> {
     return
   }
   _initPromise = (async () => {
+    let opened = false
     try {
+      // Idempotent; also primed in main.tsx so the web store is ready before React mounts.
       if (Capacitor.getPlatform() === 'web') {
         await CapacitorSQLite.initWebStore()
       }
       await CapacitorSQLite.createConnection({ database: DB_NAME, readonly: false })
       await CapacitorSQLite.open({ database: DB_NAME })
+      opened = true
       if (Capacitor.getPlatform() === 'web') {
         await CapacitorSQLite.checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })
       }
@@ -48,10 +47,21 @@ export async function initDb(): Promise<void> {
     } catch (err) {
       console.error('[DB] Failed to initialize:', err)
       _ready = false
-      _initPromise = null
+      if (opened) {
+        try {
+          await CapacitorSQLite.close({ database: DB_NAME })
+        } catch (closeErr) {
+          console.error('[DB] Failed to close connection after init error:', closeErr)
+        }
+      }
       throw err
     }
-  })()
+  })().catch((err) => {
+    // Clear only after the partial connection is torn down, so a retry
+    // never calls createConnection for a name that is still open.
+    _initPromise = null
+    throw err
+  })
   await _initPromise
 }
 
@@ -384,7 +394,7 @@ async function seedPartnerRow(): Promise<void> {
   })
 }
 
-export async function savePartner(partner: Partner): Promise<void> {
+export async function savePartner(partner: Partner, linked = false, since: string | null = null): Promise<void> {
   return enqueue(async () => {
     const historyJson = JSON.stringify(partner.history)
     await CapacitorSQLite.executeSet({
@@ -394,8 +404,8 @@ export async function savePartner(partner: Partner): Promise<void> {
         { statement: 'DELETE FROM partner WHERE id = 1', values: [] },
         {
           statement: `INSERT INTO partner (id, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
-           VALUES (1, ?, ?, ?, ?, ?, ?, 0, NULL)`,
-          values: [partner.name, partner.streak, partner.steps, partner.calories, partner.lastWorkout, historyJson],
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          values: [partner.name, partner.streak, partner.steps, partner.calories, partner.lastWorkout, historyJson, linked ? 1 : 0, since],
         },
       ],
     })
@@ -473,9 +483,7 @@ export async function migrateLegacy(): Promise<boolean> {
 
     await saveHistory(history as HistoryItem[])
     await savePlan(plan as PlannedExercise[])
-    await savePartner(partner as Partner)
-
-    await updatePartnerLinked(!!parsed.partnerLinked, parsed.partnerSince ? String(parsed.partnerSince) : null)
+    await savePartner(partner as Partner, !!parsed.partnerLinked, parsed.partnerSince ? String(parsed.partnerSince) : null)
 
     sessionStorage.removeItem(STORAGE_KEY)
     return true
