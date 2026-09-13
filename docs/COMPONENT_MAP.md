@@ -16,7 +16,7 @@ Read this after [HANDOFF.md](../HANDOFF.md). Every screen is already implemented
 
 | File | Route | Job |
 | --- | --- | --- |
-| `auth/AuthPage.tsx` | `/` | Login / signup / Google stub |
+| `auth/AuthPage.tsx` | `/` | Login / signup (local accounts) |
 | `auth/OnboardingPage.tsx` | `/onboarding` | Name, body, kit, optional 6-char partner code |
 | `home/HomePage.tsx` | `/home` | Greeting, week calendar, streak copy, Home CTAs |
 | `home/MonthCalendar.tsx` | used on Home + Partner | Day cells, you=square, partner=heart, remind, range select |
@@ -55,7 +55,9 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 
 | File | Job |
 | --- | --- |
-| `lib/store.tsx` | Mock app state. `sessionStorage` key `ember-prototype-v5`. **Replace this for a real backend.** |
+| `lib/store.tsx` | App state. React context over on-device SQLite (`lib/db/index.ts`), per-account rows + session restore |
+| `lib/db/index.ts` | Schema v2 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner`), all load/save, `createAccountRow` / `verifyCredentials` |
+| `lib/password.ts` | PBKDF2-SHA256 hashing (per-user salt, 100k iterations) |
 | `lib/types.ts` | `AppState`, `HistoryItem`, `Partner`, `PlannedExercise` |
 | `lib/dates.ts` | ISO days, calendar grids, `nextMidnightMs`, `streakFromDates` |
 | `lib/activity.ts` | `isRestLog` / `isWorkoutLog` |
@@ -65,8 +67,8 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | `data/exercises.ts` | Catalog (`coachId`, body parts, kit, goals) |
 | `data/seed.ts` | Demo user history + partner **Rae** |
 
-## Store actions you will re-implement
+## Store actions
 
-`createAccount` · `logIn` · `continueWithGoogle` · `completeOnboarding` · `logOut` · `updateProfile` · `setEquipment` · `linkPartner` · `unlinkPartner` · `beginTrainerReview` · `setTrainerFocus` · `beginWorkout` · `finishWorkout` · `logRestDay` · `clearPlan` · plan edits · `showToast`
+`createAccount` · `logIn` · `signOut` · `completeOnboarding` · `updateProfile` · `setEquipment` · `addEquipment` · `addToPlan` · `updatePlan` · `removeFromPlan` · `clearPlan` · `beginWorkout` · `setTrainerFocus` · `setTrainerDay` · `applyTrainerPlan` · `beginTrainerReview` · `backToTrainerPick` · `finishWorkout` · `logRestDay` · `linkPartner` · `unlinkPartner` · `showToast` · `clearToast`
 
-Keep the same names if you want screens to stay untouched.
+`createAccount` / `logIn` / `signOut` are async and hit `lib/db/index.ts`. Keep the same names if you want screens to stay untouched.

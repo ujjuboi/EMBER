@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { isWorkoutLog } from '../../lib/activity'
 import { isoDate, nextMidnightMs } from '../../lib/dates'
 import { formatSpan } from '../../lib/format'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { sessionTitle } from '../../lib/trainer'
 import { PartnerWidget } from '../partner/PartnerWidget'
 import { WeekStrip } from './MonthCalendar'
@@ -58,7 +58,7 @@ export function HomePage() {
           action={
             selected === today && !trainedToday && !restToday ? (
               <div className="space-y-3">
-                <Button block onClick={() => navigate('/train')}>
+                <Button block onClick={() => navigate(workoutInProgress ? '/train/go' : '/train')}>
                   {workoutInProgress ? 'Continue session' : 'Start training'}
                 </Button>
                 <Button block variant="line" onClick={logRestDay}>

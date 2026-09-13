@@ -1,38 +1,63 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 
 export function AuthPage() {
-  const { signedIn, onboarded, createAccount, logIn, continueWithGoogle } = useStore()
+  const { signedIn, onboarded, createAccount, logIn, importData } = useStore()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [restoring, setRestoring] = useState(false)
+  const restoreInputRef = useRef<HTMLInputElement>(null)
 
   if (signedIn && onboarded) return <Navigate to="/home" replace />
   if (signedIn && !onboarded) return <Navigate to="/onboarding" replace />
 
-  const submit = () => {
-    if (mode === 'signup') {
-      const result = createAccount(email, password)
+  const onRestoreFile = async (file: File) => {
+    if (restoring) return
+    setRestoring(true)
+    try {
+      const result = await importData(file)
       if (!result.ok) {
-        setError(result.error ?? 'Could not create account')
+        setError(result.error ?? 'Could not restore that backup')
         return
       }
       setError('')
-      navigate('/onboarding')
-      return
+      navigate(result.dest ?? '/home')
+    } finally {
+      setRestoring(false)
     }
-    const result = logIn(email, password)
-    if (!result.ok) {
-      setError(result.error ?? 'Could not log in')
-      return
+  }
+
+  const submit = async () => {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      if (mode === 'signup') {
+        const result = await createAccount(email, password)
+        if (!result.ok) {
+          setError(result.error ?? 'Could not create account')
+          return
+        }
+        setError('')
+        navigate('/onboarding')
+        return
+      }
+      const result = await logIn(email, password)
+      if (!result.ok) {
+        setError(result.error ?? 'Could not log in')
+        return
+      }
+      setError('')
+      navigate(result.dest ?? '/home')
+    } finally {
+      setSubmitting(false)
     }
-    setError('')
-    navigate(result.dest ?? '/home')
   }
 
   return (
@@ -61,27 +86,14 @@ export function AuthPage() {
           placeholder="••••••••"
           error={error}
         />
-        <Button block onClick={submit}>
-          {mode === 'login' ? 'Log in' : 'Create account'}
-        </Button>
-
-        <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-muted">
-          <span className="h-px flex-1 bg-line" />
-          or
-          <span className="h-px flex-1 bg-line" />
-        </div>
-
-        <Button
-          block
-          variant="line"
-          onClick={() => {
-            const { dest } = continueWithGoogle()
-            navigate(dest)
-          }}
-          className="flex items-center justify-center gap-3"
-        >
-          <GoogleMark />
-          Continue with Google
+        <Button block onClick={submit} disabled={submitting}>
+          {submitting
+            ? mode === 'login'
+              ? 'Logging in…'
+              : 'Creating account…'
+            : mode === 'login'
+              ? 'Log in'
+              : 'Create account'}
         </Button>
 
         {mode === 'login' ? (
@@ -107,15 +119,29 @@ export function AuthPage() {
             Already have an account? <span className="text-orange">Log in</span>
           </button>
         )}
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => restoreInputRef.current?.click()}
+            disabled={restoring}
+            className="w-full text-center text-sm text-muted"
+          >
+            {restoring ? 'Restoring…' : <span className="text-orange">Restore from backup</span>}
+          </button>
+          <input
+            ref={restoreInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) void onRestoreFile(file)
+              event.target.value = ''
+            }}
+          />
+        </div>
       </div>
     </div>
-  )
-}
-
-function GoogleMark() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.3 14.6 2.4 12 2.4 6.9 2.4 2.8 6.5 2.8 11.6S6.9 20.8 12 20.8c5.2 0 8.6-3.6 8.6-8.7 0-.6 0-1-.1-1.5H12z" />
-    </svg>
   )
 }

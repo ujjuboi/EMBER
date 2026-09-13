@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CoachAvatar } from '../../coach/CoachAvatar'
@@ -7,7 +7,7 @@ import { Chip } from '../../components/ui/Chip'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
 import { BODY_PARTS, equipmentLabel, goalLabel, type BodyPart, type Exercise } from '../../data/exercises'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { libraryFor } from '../../lib/trainer'
 import type { PlannedExercise } from '../../lib/types'
 
@@ -21,27 +21,41 @@ export function TrainPage() {
     plan,
     planSource,
     workoutInProgress,
+    workingWorkout,
+    customExercises,
     setTrainerFocus,
     addToPlan,
+    deleteCustomExercise,
     updatePlan,
     removeFromPlan,
     applyTrainerPlan,
     beginTrainerReview,
     beginWorkout,
+    showToast,
   } = useStore()
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (workoutInProgress) return
     if (trainerPhase === 'pick') beginTrainerReview()
-    // Generate once on first visit; continue-session keeps the current plan.
+    // Generate once when no session is in progress; an in-progress workout
+    // keeps its own saved plan snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const kitLabel = equipment.length ? equipment.map(equipmentLabel).join(', ') : 'No kit yet'
-  const addable = libraryFor(trainerBodyPart, equipment).filter(
-    (exercise) => !plan.some((item) => item.exercise.id === exercise.id),
-  )
+  const addable = [
+    ...libraryFor(trainerBodyPart, equipment),
+    ...customExercises,
+  ].filter((exercise, index, all) => {
+    const name = exercise.name.trim().toLowerCase()
+    const firstIndex = all.findIndex((item) => item.name.trim().toLowerCase() === name)
+    return (
+      firstIndex === index &&
+      !plan.some((item) => item.exercise.name.trim().toLowerCase() === name)
+    )
+  })
 
   const addLibrary = (exercise: Exercise) => {
     const item: PlannedExercise = {
@@ -51,12 +65,20 @@ export function TrainPage() {
       reps: exercise.defaultReps,
       seconds: exercise.defaultSeconds,
     }
-    addToPlan(item)
+    if (!addToPlan(item)) {
+      showToast('Already in plan')
+    }
   }
 
   const startLabel = workoutInProgress ? 'Continue session' : 'Start session'
+  const resumable = workoutInProgress && workingWorkout?.status === 'in_progress'
 
   const startSession = () => {
+    if (resumable) {
+      setError('')
+      navigate('/train/go')
+      return
+    }
     if (plan.length === 0) {
       setError('Add at least one exercise')
       return
@@ -94,7 +116,7 @@ export function TrainPage() {
           {plan.map((item) => (
             <li key={item.uid} className="px-3 py-2.5">
               <div className="flex items-start gap-3">
-                <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} playing={false} className="h-16 w-16 shrink-0" />
+                <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start gap-2">
                     <p className="min-w-0 flex-1 pt-0.5 text-sm leading-none">{item.exercise.name}</p>
@@ -107,7 +129,7 @@ export function TrainPage() {
                       <X size={16} />
                     </button>
                   </div>
-                  <div className="mt-1.5 flex gap-4">
+                  <div className="mt-1.5 flex gap-4 overflow-x-auto">
                     <Stepper
                       label="Sets"
                       value={item.sets}
@@ -122,11 +144,20 @@ export function TrainPage() {
                         onChange={(seconds) => updatePlan(item.uid, { seconds })}
                       />
                     ) : (
-                      <Stepper
-                        label="Reps"
-                        value={item.reps ?? 1}
-                        onChange={(reps) => updatePlan(item.uid, { reps })}
-                      />
+                      <>
+                        <Stepper
+                          label="Reps"
+                          value={item.reps ?? 1}
+                          onChange={(reps) => updatePlan(item.uid, { reps })}
+                        />
+                        <Stepper
+                          label="kg"
+                          value={item.weightKg ?? 0}
+                          step={2.5}
+                          min={0}
+                          onChange={(weightKg) => updatePlan(item.uid, { weightKg })}
+                        />
+                      </>
                     )}
                   </div>
                 </div>
@@ -169,6 +200,7 @@ export function TrainPage() {
         <AddSheet
           exercises={addable}
           onAdd={addLibrary}
+          onDeleteCustom={(id) => deleteCustomExercise(id)}
           onClose={() => setAddOpen(false)}
         />
       ) : null}
@@ -200,10 +232,12 @@ function useSheetMaxHeight() {
 function AddSheet({
   exercises,
   onAdd,
+  onDeleteCustom,
   onClose,
 }: {
   exercises: Exercise[]
   onAdd: (exercise: Exercise) => void
+  onDeleteCustom: (id: string) => void
   onClose: () => void
 }) {
   const [customOpen, setCustomOpen] = useState(false)
@@ -243,15 +277,28 @@ function AddSheet({
             <ul className="divide-y divide-line border border-line">
               {exercises.map((exercise) => (
                 <li key={exercise.id}>
-                  <button
-                    type="button"
-                    onClick={() => onAdd(exercise)}
-                    className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/5"
-                  >
-                    <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} playing={false} className="h-16 w-16 shrink-0" />
-                    <p className="min-w-0 flex-1 text-sm">{exercise.name}</p>
-                    <Plus size={16} className="shrink-0 text-muted" />
-                  </button>
+                  <div className="flex items-center gap-2 px-3 py-3">
+                    <button
+                      type="button"
+                      onClick={() => onAdd(exercise)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-white/5"
+                    >
+                      <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
+                      <p className="min-w-0 flex-1 text-sm">{exercise.name}</p>
+                    </button>
+                    {exercise.isCustom ? (
+                      <button
+                        type="button"
+                        aria-label={`Delete ${exercise.name}`}
+                        onClick={() => onDeleteCustom(exercise.id)}
+                        className="shrink-0 rounded-lg border border-line p-1.5 text-muted hover:border-orange/50 hover:text-orange"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : (
+                      <Plus size={16} className="shrink-0 text-muted" />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -325,7 +372,7 @@ function Stepper({
 }
 
 function CustomForm({ onAdded }: { onAdded: () => void }) {
-  const { addToPlan } = useStore()
+  const { saveCustomExercise } = useStore()
   const [name, setName] = useState('')
   const [kind, setKind] = useState<'reps' | 'timed'>('reps')
   const [sets, setSets] = useState('3')
@@ -353,25 +400,23 @@ function CustomForm({ onAdded }: { onAdded: () => void }) {
       setError('Hold at least 5 seconds')
       return
     }
-    addToPlan({
-      uid: `custom-${crypto.randomUUID()}`,
-      exercise: {
-        id: 'custom',
-        name: name.trim(),
-        kind,
-        defaultSets: setsNum,
-        defaultReps: kind === 'reps' ? repsNum : undefined,
-        defaultSeconds: kind === 'timed' ? secondsNum : undefined,
-        met: 4,
-        cue: 'Match the idle stance, then move',
-        restSeconds: 45,
-        isCustom: true,
-        equipment: [],
-      },
-      sets: setsNum,
-      reps: kind === 'reps' ? repsNum : undefined,
-      seconds: kind === 'timed' ? secondsNum : undefined,
-    })
+    const exercise: Exercise = {
+      id: `custom-${crypto.randomUUID()}`,
+      name: name.trim(),
+      kind,
+      defaultSets: setsNum,
+      defaultReps: kind === 'reps' ? repsNum : undefined,
+      defaultSeconds: kind === 'timed' ? secondsNum : undefined,
+      met: 4,
+      cue: 'Match the idle stance, then move',
+      restSeconds: 45,
+      isCustom: true,
+      equipment: [],
+    }
+    if (!saveCustomExercise(exercise)) {
+      setError('There is already a move with that name in your library')
+      return
+    }
     onAdded()
   }
 
@@ -396,7 +441,7 @@ function CustomForm({ onAdded }: { onAdded: () => void }) {
       </div>
       {error ? <p className="text-xs text-orange">{error}</p> : null}
       <Button block size="sm" onClick={save}>
-        Add
+        Save to library
       </Button>
     </div>
   )

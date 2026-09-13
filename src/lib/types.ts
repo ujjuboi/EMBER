@@ -1,4 +1,26 @@
 import type { BodyPart, Equipment, Exercise, TrainerGoal } from '../data/exercises'
+import type { ProfileData } from './db'
+
+export type EmberBackup = {
+  app: 'ember'
+  schema: number
+  exportedAt: string
+  account: {
+    email: string
+    passwordHash: string
+    salt: string
+    createdAt: string
+  }
+  profile: ProfileData
+  history: HistoryItem[]
+  plan: { forDate: string; items: PlannedExercise[] }[]
+  partner: Partner
+  partnerLinked: boolean
+  partnerSince: string | null
+  workouts: Workout[]
+  workoutSets: WorkoutSet[]
+  customExercises: Exercise[]
+}
 
 export type PlanSource = 'trainer' | 'custom'
 export type TrainerPhase = 'pick' | 'review'
@@ -31,12 +53,63 @@ export type Partner = {
   history: PartnerActivity[]
 }
 
+export type WorkoutStatus = 'in_progress' | 'completed' | 'abandoned'
+
+export type Workout = {
+  id: string
+  accountEmail: string
+  date: string
+  status: WorkoutStatus
+  startedAt: string
+  finishedAt: string | null
+  title: string | null
+  durationMin: number | null
+  calories: number | null
+  bodyPart: BodyPart | null
+  planForDate: string | null
+  currentIndex: number
+  currentSet: number
+  phase: 'work' | 'rest' | 'done'
+  elapsed: number
+  kcal: number
+  restSeconds: number
+  workSeconds: number
+  setsLogged: number
+  exercises: PlannedExercise[] | null
+}
+
+export type WorkoutSet = {
+  id: string
+  workoutId: string
+  position: number
+  exerciseId: string
+  exerciseName: string
+  kind: 'reps' | 'timed'
+  setNo: number
+  reps?: number
+  seconds?: number
+  weightKg?: number
+  done: boolean
+}
+
+export type SessionProgress = {
+  currentIndex: number
+  currentSet: number
+  phase: 'work' | 'rest' | 'done'
+  elapsed: number
+  kcal: number
+  restSeconds: number
+  workSeconds: number
+  setsLogged: number
+}
+
 export type PlannedExercise = {
   uid: string
   exercise: Exercise
   sets: number
   reps?: number
   seconds?: number
+  weightKg?: number
 }
 
 export type AppState = {
@@ -51,14 +124,15 @@ export type AppState = {
   streak: number
   steps: number
   calories: number
-  workoutDoneToday: boolean // unused; kept for HANDOFF shape compatibility
   workoutInProgress: boolean
+  workingWorkout: Workout | null
   partnerLinked: boolean
   partnerSince: string | null
   partner: Partner
   history: HistoryItem[]
   equipment: Equipment[]
   plan: PlannedExercise[]
+  customExercises: Exercise[]
   planSource: PlanSource
   trainerPhase: TrainerPhase
   trainerDay: number

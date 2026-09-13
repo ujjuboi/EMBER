@@ -22,6 +22,7 @@ Open the Vite URL at ~390px width (phone viewport) or use the LAN address on a r
 - **Routing:** React Router v7
 - **Animations:** Framer Motion
 - **Icons:** Lucide React
+- **PWA:** vite-plugin-pwa (installable, offline-capable service worker)
 - **Linting:** oxlint
 
 ## Design Tokens
@@ -46,7 +47,7 @@ src/
   components/ui/   Shared primitives (buttons, chips, fields, toast, timer)
   data/            Exercise catalog + seed data
   features/
-    auth/          Login, signup, onboarding (mock)
+    auth/          Login, signup, onboarding (local accounts)
     home/          Home, streak, month calendar
     workout/       Train planner + live session
     partner/       Partner compare + pairing
@@ -57,7 +58,7 @@ src/
 
 ## Features (Prototype)
 
-- Mock auth (email + Google stub)
+- Local accounts with PBKDF2-hashed passwords (SQLite)
 - Onboarding with body kit selection and partner pairing
 - Streak tracking (calendar days with completed workouts)
 - Auto-generated workout plans by body part, goal, and equipment
@@ -67,9 +68,23 @@ src/
 - Twin flame status when both partners train on the same day
 - Rest day logging
 
-## Persistence
+## Persistence & privacy
 
-State is stored in `sessionStorage` under key `ember-prototype-v5`. Closing the tab clears data. See `src/lib/store.tsx` for the shape and actions.
+State lives in on-device **SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so the store keeps working **fully offline** after first load. Accounts are stored locally with PBKDF2-hashed passwords (`src/lib/password.ts`), and all data (`profile` / `history` / `plan` / `partner` / `workout` / `workout_set`) is scoped per account with a `session` row restoring the last logged-in user. Finished workouts keep full per-set detail (reps/seconds + weight), and an in-progress session **resumes** where you left off after a reload or background-kill. See `src/lib/store.tsx` for the shape and actions.
+
+Privacy notes:
+
+- **Data never leaves your device.** There is no backend; hosting (Netlify/Vercel) serves static files only and cannot leak user data.
+- **Auth is local UI gating, not server-grade security.** Anyone with access to the device's browser storage (DevTools, backups) can read the data. Password hashes are PBKDF2-salted on-device.
+- **At-rest storage is unencrypted** in the browser's storage sandbox (jeep-sqlite has no web encryption).
+- The only outbound requests are Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`), which carry no user data.
+
+## Install as an app
+
+EMBER is an installable **Progressive Web App** — no app store, no APK.
+
+- **Android:** open the site in Chrome → the browser prompts to **Install app** (or use menu → **Add to Home screen**). It launches full-screen standalone and works offline.
+- **iPhone / iPad:** open the site in Safari → share sheet → **Add to Home Screen** → **Add**. It opens standalone, offline-capable.
 
 ## Preview & Deploy
 
@@ -77,18 +92,17 @@ State is stored in `sessionStorage` under key `ember-prototype-v5`. Closing the 
 npm run build
 ```
 
-SPA fallback is preconfigured for **Netlify** (`netlify.toml`) and **Vercel** (`vercel.json`).
-
-**Live prototype:** [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/)
+SPA fallback is preconfigured for **Netlify** (`netlify.toml`) and **Vercel** (`vercel.json`). HTTPS is required for the local password hash (`crypto.subtle`) and for the service worker — both hosts provide it automatically.
 
 ## Scripts
 
 | Command        | Description           |
 |----------------|-----------------------|
 | `npm run dev`  | Start dev server      |
-| `npm run build`| Production build      |
+| `npm run build`| Production build (generates the service worker + manifest) |
 | `npm run lint` | Run oxlint            |
 | `npm run preview` | Preview production build |
+| `npm run icons`| Regenerate `public/icons/*.png` from `public/favicon.svg` |
 
 ## Code Standards
 

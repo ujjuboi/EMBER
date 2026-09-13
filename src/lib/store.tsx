@@ -1,32 +1,41 @@
-import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
-import { bodyPartForDay, normalizeBodyPart, normalizeTrainerGoal, toggleEquipment, type BodyPart, type Equipment, type TrainerGoal } from '../data/exercises'
-import { SEED_HISTORY, SEED_PARTNER } from '../data/seed'
-import { dateLabel, daysAgo, isoDate, streakFromDates } from './dates'
+import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from 'react'
+import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
+import { dateLabel, isoDate, streakFromDates } from './dates'
+import { generateSalt, hashPassword } from './password'
 import { suggestSession } from './trainer'
-import type { AppState, HistoryItem, PlannedExercise } from './types'
-
-const STORAGE_KEY = 'ember-prototype-v5'
+import { backupFilename, parseBackup, readTextFile, serializeBackup, shareOrDownload } from './backup'
+import type { AppState, HistoryItem, SessionProgress, Workout } from './types'
+import { StoreContext, type StoreValue } from './store-hooks'
+import * as db from './db'
 
 const seedState = (): AppState => ({
   signedIn: false,
   accountEmail: null,
   onboarded: false,
-  displayName: 'Umair',
+  displayName: '',
   weightKg: 72,
   heightFt: 5,
   heightIn: 9,
   stepGoal: 8000,
-  streak: streakFromDates(SEED_HISTORY.map((item) => item.date)),
-  steps: 6420,
-  calories: 284,
-  workoutDoneToday: false, // unused; kept for HANDOFF shape compatibility
+  streak: 0,
+  steps: 0,
+  calories: 0,
   workoutInProgress: false,
-  partnerLinked: true,
-  partnerSince: daysAgo(42),
-  partner: SEED_PARTNER,
-  history: SEED_HISTORY,
+  workingWorkout: null,
+  partnerLinked: false,
+  partnerSince: null,
+  partner: {
+    name: '',
+    streak: 0,
+    steps: 0,
+    calories: 0,
+    lastWorkout: '',
+    history: [],
+  },
+  history: [],
   equipment: ['bodyweight'],
   plan: [],
+  customExercises: [],
   planSource: 'trainer',
   trainerPhase: 'pick',
   trainerDay: new Date().getDay(),
@@ -35,152 +44,319 @@ const seedState = (): AppState => ({
   toast: null,
 })
 
-function remapSessionName(name: string): string {
-  if (name === 'Push + squat') return 'Chest + squat'
-  if (name === 'Full mix') return 'Leg mix'
-  if (name === 'Push') return 'Chest'
-  if (name === 'Pull') return 'Back'
-  if (name === 'Full body') return 'Legs'
-  return name.replace(/^Push ·/, 'Chest ·').replace(/^Pull ·/, 'Back ·').replace(/^Full body ·/, 'Legs ·')
-}
-
-function loadState(): AppState {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedState()
-    const parsed = JSON.parse(raw) as Partial<AppState>
-    const history = (parsed.history ?? seedState().history).map((item) => ({
-      ...item,
-      name: remapSessionName(item.name),
-      bodyPart: item.bodyPart ? normalizeBodyPart(item.bodyPart) : item.bodyPart,
-    }))
-    const partner = parsed.partner
-      ? {
-          ...parsed.partner,
-          lastWorkout: remapSessionName(parsed.partner.lastWorkout ?? ''),
-          history: (parsed.partner.history ?? []).map((item) => ({ ...item, name: remapSessionName(item.name) })),
-        }
-      : seedState().partner
-    return {
-      ...seedState(),
-      ...parsed,
-      history,
-      partner,
-      trainerGoal: normalizeTrainerGoal(parsed.trainerGoal),
-      trainerBodyPart: normalizeBodyPart(parsed.trainerBodyPart ?? seedState().trainerBodyPart),
-      toast: null,
-    }
-  } catch {
-    return seedState()
+function workoutTotalsFromHistory(history: HistoryItem[]): { streak: number; steps: number; calories: number; doneToday: boolean } {
+  const workouts = history.filter((item) => !item.rest)
+  return {
+    streak: streakFromDates(workouts.map((item) => item.date)),
+    steps: workouts.length * 120,
+    calories: workouts.reduce((sum, item) => sum + (item.calories || 0), 0),
+    doneToday: workouts.some((item) => item.date === isoDate()),
   }
 }
 
-function persist(state: AppState) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, toast: null }))
+function workoutTitle(plan: AppState['plan']): string {
+  if (plan.length === 0) return 'Workout'
+  if (plan.length === 1) return plan[0].exercise.name
+  return `${plan[0].exercise.name} mix`
 }
 
-function applyEquipment(s: AppState, equipment: Equipment[], commit: (next: AppState) => void) {
+let _initialState: AppState | null = null
+let _initPromise: Promise<void> | null = null
+
+async function loadInitialState(): Promise<AppState> {
+  if (_initialState) return _initialState
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      try {
+        await db.initDb()
+
+        // Dev convenience: provision a test account + session on first load.
+        if (import.meta.env.DEV) {
+          await db.ensureDevSeed()
+        }
+
+        const sessionEmail = await db.getSession()
+        if (!sessionEmail) {
+          _initialState = seedState()
+          return
+        }
+
+        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
+          db.loadProfile(sessionEmail),
+          db.loadHistory(sessionEmail),
+          db.loadPlan(sessionEmail),
+          db.loadPartner(sessionEmail),
+          db.loadWorkoutInProgress(sessionEmail),
+          db.loadCustomExercises(sessionEmail),
+        ])
+
+        const totals = workoutTotalsFromHistory(history)
+
+        _initialState = {
+          signedIn: true,
+          accountEmail: sessionEmail,
+          onboarded: profile.onboarded,
+          displayName: profile.displayName,
+          weightKg: profile.weightKg,
+          heightFt: profile.heightFt,
+          heightIn: profile.heightIn,
+          stepGoal: profile.stepGoal,
+          streak: totals.streak,
+          steps: totals.steps,
+          calories: totals.calories,
+          workoutInProgress: !!activeWorkout,
+          workingWorkout: activeWorkout,
+          partnerLinked: partnerData.partnerLinked,
+          partnerSince: partnerData.partnerSince,
+          partner: partnerData.partner,
+          history,
+          equipment: profile.equipment,
+          plan,
+          customExercises,
+          planSource: profile.planSource,
+          trainerPhase: profile.trainerPhase,
+          trainerDay: profile.trainerDay,
+          trainerBodyPart: profile.trainerBodyPart,
+          trainerGoal: profile.trainerGoal,
+          toast: null,
+        }
+      } catch (err) {
+        _initPromise = null
+        throw err
+      }
+    })()
+  }
+  await _initPromise
+  return _initialState ?? seedState()
+}
+
+function persistProfile(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveProfile(s.accountEmail, {
+    displayName: s.displayName,
+    weightKg: s.weightKg,
+    heightFt: s.heightFt,
+    heightIn: s.heightIn,
+    stepGoal: s.stepGoal,
+    onboarded: s.onboarded,
+    equipment: s.equipment,
+    trainerPhase: s.trainerPhase,
+    trainerDay: s.trainerDay,
+    trainerBodyPart: s.trainerBodyPart,
+    trainerGoal: s.trainerGoal,
+    partnerLinked: s.partnerLinked,
+    partnerSince: s.partnerSince,
+    streak: s.streak,
+    steps: s.steps,
+    calories: s.calories,
+    workoutInProgress: s.workoutInProgress,
+    planSource: s.planSource,
+  })
+}
+
+function persistHistory(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveHistory(s.accountEmail, s.history)
+}
+
+function persistPlan(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.savePlan(s.accountEmail, s.plan)
+}
+
+function persistCustomExercises(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveCustomExercises(s.accountEmail, s.customExercises)
+}
+
+function persistPartnerLinked(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.updatePartnerLinked(s.accountEmail, s.partnerLinked, s.partnerSince)
+}
+
+function persistWorkout(s: AppState): Promise<void> {
+  if (!s.accountEmail || !s.workingWorkout) return Promise.resolve()
+  return db.updateWorkoutProgress(s.workingWorkout.id, {
+    currentIndex: s.workingWorkout.currentIndex,
+    currentSet: s.workingWorkout.currentSet,
+    phase: s.workingWorkout.phase,
+    elapsed: s.workingWorkout.elapsed,
+    kcal: s.workingWorkout.kcal,
+    restSeconds: s.workingWorkout.restSeconds,
+    workSeconds: s.workingWorkout.workSeconds,
+    setsLogged: s.workingWorkout.setsLogged,
+  })
+}
+
+function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
   const next: AppState = { ...s, equipment }
   if (s.trainerPhase === 'review') {
     next.plan = suggestSession(s.trainerBodyPart, s.trainerGoal, equipment)
     next.planSource = 'trainer'
   }
-  commit(next)
+  return next
 }
 
-type StoreValue = AppState & {
-  createAccount: (email: string, password: string) => { ok: boolean; error?: string }
-  logIn: (email: string, password: string) => { ok: boolean; error?: string; dest?: '/home' | '/onboarding' }
-  continueWithGoogle: () => { dest: '/home' | '/onboarding' }
-  completeOnboarding: (input: {
-    displayName: string
-    weightKg: number
-    heightFt: number
-    heightIn: number
-    stepGoal: number
-    partnerCode: string
-    equipment: Equipment[]
-    trainerGoal: TrainerGoal
-  }) => void
-  updateProfile: (input: {
-    weightKg: number
-    heightFt: number
-    heightIn: number
-    stepGoal: number
-    equipment?: Equipment[]
-    trainerGoal?: TrainerGoal
-  }) => void
-  setEquipment: (id: Equipment) => void
-  addEquipment: (id: Equipment) => void
-  addToPlan: (item: PlannedExercise) => void
-  updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number }) => void
-  removeFromPlan: (uid: string) => void
-  clearPlan: () => void
-  beginWorkout: () => void
-  setTrainerFocus: (input: { bodyPart: BodyPart; goal: TrainerGoal }) => void
-  setTrainerDay: (day: number) => void
-  applyTrainerPlan: () => void
-  beginTrainerReview: () => void
-  backToTrainerPick: () => void
-  finishWorkout: (input: { title: string; durationMin: number; calories: number; bodyPart?: BodyPart }) => void
-  logRestDay: () => void
-  unlinkPartner: () => void
-  linkPartner: (code: string) => { ok: boolean; error?: string }
-  showToast: (message: string) => void
-  clearToast: () => void
-  signOut: () => void
-}
-
-const StoreContext = createContext<StoreValue | null>(null)
+const COMMIT_DEBOUNCE_MS = 400
+const PERSIST_RETRY_MS = 4000
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(loadState)
+  const [state, setState] = useState<AppState | null>(null)
+  const [hydrated, setHydrated] = useState(false)
+  const [initError, setInitError] = useState<string | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
-  const commit = (next: AppState) => {
-    persist(next)
+  const pendingStateRef = useRef<AppState | null>(null)
+  const flushTimerRef = useRef<number | null>(null)
+
+  const hydrate = useCallback(() => {
+    void loadInitialState()
+      .then((s) => {
+        setState(s)
+        stateRef.current = s
+        setInitError(null)
+        setHydrated(true)
+      })
+      .catch((err) => {
+        console.error('[Store] Hydration failed:', err)
+        setInitError(err instanceof Error ? err.message : String(err))
+      })
+  }, [])
+
+  useEffect(() => {
+    hydrate()
+  }, [hydrate])
+
+  const flushWrites = useCallback(function flushWrites(): Promise<void> {
+    if (flushTimerRef.current !== null) {
+      window.clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    const next = pendingStateRef.current
+    pendingStateRef.current = null
+    if (!next) return Promise.resolve()
+    const flush = Promise.allSettled([
+      persistProfile(next),
+      persistHistory(next),
+      persistPlan(next),
+      persistCustomExercises(next),
+      persistPartnerLinked(next),
+      persistWorkout(next),
+    ]).then((results) => {
+      const failed = results.some((r) => r.status === 'rejected')
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error('[Store] Persist failed:', i, r.reason)
+      })
+      if (failed && !pendingStateRef.current && flushTimerRef.current === null) {
+        pendingStateRef.current = next
+        flushTimerRef.current = window.setTimeout(() => void flushWrites(), PERSIST_RETRY_MS)
+      }
+    })
+    return flush
+  }, [])
+
+  useEffect(() => {
+    const onFlush = () => void flushWrites()
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void flushWrites()
+    }
+    window.addEventListener('pagehide', onFlush)
+    window.addEventListener('beforeunload', onFlush)
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      window.removeEventListener('pagehide', onFlush)
+      window.removeEventListener('beforeunload', onFlush)
+      document.removeEventListener('visibilitychange', onHide)
+    }
+  }, [flushWrites])
+
+  const commit = useCallback((next: AppState, opts?: { immediate?: boolean }) => {
+    pendingStateRef.current = next
     stateRef.current = next
     setState(next)
-  }
+    if (flushTimerRef.current !== null) {
+      window.clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    if (opts?.immediate) {
+      void flushWrites()
+    } else {
+      flushTimerRef.current = window.setTimeout(() => void flushWrites(), COMMIT_DEBOUNCE_MS)
+    }
+  }, [flushWrites])
 
   const value = useMemo<StoreValue>(() => {
-    const current = () => stateRef.current
+    const base = state ?? seedState()
+    const current = () => stateRef.current ?? seedState()
     return {
-      ...state,
-      createAccount: (email, password) => {
-        const s = current()
+      ...base,
+      ready: hydrated,
+      initError,
+      retryInit: hydrate,
+      createAccount: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
         if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
         if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters' }
-        if (s.accountEmail && s.accountEmail !== trimmed) {
+        if (await db.accountExists(trimmed)) {
           return { ok: false, error: 'An account already exists. Log in instead.' }
         }
-        if (s.accountEmail === trimmed && s.onboarded) {
-          return { ok: false, error: 'That email is taken. Log in.' }
-        }
-        commit({ ...s, accountEmail: trimmed, signedIn: true })
+        const salt = generateSalt()
+        const hash = await hashPassword(password, salt)
+        await db.createAccountRow(trimmed, hash, salt)
+        await db.setSession(trimmed)
+        const base = seedState()
+        commit({ ...base, signedIn: true, accountEmail: trimmed, onboarded: false })
         return { ok: true }
       },
-      logIn: (email, password) => {
-        const s = current()
+      logIn: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
         if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
         if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters' }
-        if (!s.accountEmail) {
-          return { ok: false, error: 'No account yet. Create one to start.' }
+        const verified = await db.verifyCredentials(trimmed, password)
+        if (!verified) {
+          return { ok: false, error: 'No account for that email, or wrong password.' }
         }
-        if (s.accountEmail !== trimmed) {
-          return { ok: false, error: 'No account for that email. Create one.' }
+        await db.setSession(trimmed)
+        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
+          db.loadProfile(trimmed),
+          db.loadHistory(trimmed),
+          db.loadPlan(trimmed),
+          db.loadPartner(trimmed),
+          db.loadWorkoutInProgress(trimmed),
+          db.loadCustomExercises(trimmed),
+        ])
+        const totals = workoutTotalsFromHistory(history)
+        const next: AppState = {
+          signedIn: true,
+          accountEmail: trimmed,
+          onboarded: profile.onboarded,
+          displayName: profile.displayName,
+          weightKg: profile.weightKg,
+          heightFt: profile.heightFt,
+          heightIn: profile.heightIn,
+          stepGoal: profile.stepGoal,
+          streak: totals.streak,
+          steps: totals.steps,
+          calories: totals.calories,
+          workoutInProgress: !!activeWorkout,
+          workingWorkout: activeWorkout,
+          partnerLinked: partnerData.partnerLinked,
+          partnerSince: partnerData.partnerSince,
+          partner: partnerData.partner,
+          history,
+          equipment: profile.equipment,
+          plan,
+          customExercises,
+          planSource: profile.planSource,
+          trainerPhase: profile.trainerPhase,
+          trainerDay: profile.trainerDay,
+          trainerBodyPart: profile.trainerBodyPart,
+          trainerGoal: profile.trainerGoal,
+          toast: null,
         }
-        commit({ ...s, signedIn: true })
-        return { ok: true, dest: s.onboarded ? '/home' : '/onboarding' }
-      },
-      continueWithGoogle: () => {
-        const s = current()
-        const email = s.accountEmail ?? 'google@ember.app'
-        commit({ ...s, accountEmail: email, signedIn: true })
-        return { dest: s.onboarded ? '/home' : '/onboarding' }
+        commit(next)
+        return { ok: true, dest: next.onboarded ? '/home' : '/onboarding' }
       },
       completeOnboarding: ({ displayName, weightKg, heightFt, heightIn, stepGoal, partnerCode, equipment, trainerGoal }) => {
         const s = current()
@@ -189,7 +365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s,
           onboarded: true,
           signedIn: true,
-          displayName: displayName.trim() || 'Umair',
+          displayName: displayName.trim(),
           weightKg,
           heightFt,
           heightIn,
@@ -222,16 +398,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       setEquipment: (id) => {
         const s = current()
-        applyEquipment(s, toggleEquipment(s.equipment, id), commit)
+        commit(applyEquipment(s, toggleEquipment(s.equipment, id)))
       },
       addEquipment: (id) => {
         const s = current()
         if (s.equipment.includes(id)) return
-        applyEquipment(s, [...s.equipment, id], commit)
+        commit(applyEquipment(s, [...s.equipment, id]))
       },
       addToPlan: (item) => {
         const s = current()
+        const name = item.exercise.name.trim().toLowerCase()
+        // The exercise name is the unique key within a plan: two exercises with
+        // the same name cannot coexist, no matter how they entered the plan.
+        if (s.plan.some((existing) => existing.exercise.name.trim().toLowerCase() === name)) {
+          return false
+        }
         commit({ ...s, plan: [...s.plan, item], planSource: 'custom' })
+        return true
+      },
+      saveCustomExercise: (exercise) => {
+        const s = current()
+        const name = exercise.name.trim().toLowerCase()
+        if (s.customExercises.some((item) => item.name.trim().toLowerCase() === name)) {
+          return false
+        }
+        commit({ ...s, customExercises: [...s.customExercises, exercise] })
+        return true
+      },
+      deleteCustomExercise: (id) => {
+        const s = current()
+        commit({ ...s, customExercises: s.customExercises.filter((item) => item.id !== id) })
       },
       updatePlan: (uid, patch) => {
         const s = current()
@@ -247,6 +443,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               sets: Math.max(1, sets),
               reps: reps !== undefined ? Math.max(1, reps) : undefined,
               seconds: seconds !== undefined ? Math.max(5, seconds) : undefined,
+              weightKg: patch.weightKg !== undefined ? Math.max(0, patch.weightKg) : item.weightKg,
             }
           }),
         })
@@ -261,12 +458,80 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       clearPlan: () => {
         const s = current()
-        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false })
+        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false, workingWorkout: null }, { immediate: true })
       },
       beginWorkout: () => {
         const s = current()
-        commit({ ...s, workoutInProgress: true })
+        if (!s.accountEmail || s.plan.length === 0) return
+        const workout: Workout = {
+          id: crypto.randomUUID(),
+          accountEmail: s.accountEmail,
+          date: isoDate(),
+          status: 'in_progress',
+          startedAt: new Date().toISOString(),
+          finishedAt: null,
+          title: workoutTitle(s.plan),
+          durationMin: null,
+          calories: null,
+          bodyPart: s.trainerBodyPart,
+          planForDate: isoDate(),
+          currentIndex: 0,
+          currentSet: 0,
+          phase: 'work',
+          elapsed: 0,
+          kcal: 0,
+          restSeconds: 0,
+          workSeconds: 0,
+          setsLogged: 0,
+          exercises: s.plan,
+        }
+        const workingWorkout = workout
+        commit({ ...s, workingWorkout, workoutInProgress: true }, { immediate: true })
+        void (async () => {
+          try {
+            await db.abandonWorkouts(workout.accountEmail)
+            await db.saveWorkout(workout)
+            await db.savePlan(workout.accountEmail, workout.exercises ?? [], workout.planForDate ?? isoDate())
+            // Re-read so rapid progress made during the await is not overwritten.
+            const persisted = await db.loadWorkoutInProgress(workout.accountEmail)
+            const latest = current()
+            if (latest.workingWorkout?.id === workout.id && persisted?.id === workout.id) {
+              // Start from the newest in-memory state and only fill in exercises
+              // from the persisted row, so a newer currentIndex/currentSet/kcal
+              // saved while the re-read was in flight is never regressed.
+              const merged: Workout = {
+                ...latest.workingWorkout,
+                exercises: latest.workingWorkout.exercises ?? persisted.exercises ?? workout.exercises,
+              }
+              commit({ ...latest, workingWorkout: merged }, { immediate: true })
+            }
+          } catch (err) {
+            console.error('[Store] beginWorkout persist failed:', err)
+          }
+        })()
       },
+      persistSessionProgress: (progress: SessionProgress) => {
+        const s = current()
+        if (!s.workingWorkout || !s.accountEmail) return
+        const workingWorkout: Workout = { ...s.workingWorkout, ...progress }
+        commit(
+          { ...s, workingWorkout, workoutInProgress: true },
+          { immediate: true },
+        )
+      },
+      abandonWorkout: (workoutId: string) => {
+        const s = current()
+        void db.abandonWorkout(workoutId).catch((err) => {
+          console.error('[Store] abandonWorkout failed:', err)
+        })
+        commit({ ...s, workingWorkout: null, workoutInProgress: false })
+      },
+      recordSet: (workoutId, set) => {
+        void db.insertWorkoutSets(workoutId, [set]).catch((err) => {
+          console.error('[Store] recordSet failed:', err)
+        })
+      },
+      loadWorkoutSets: (workoutId) => db.loadWorkoutSets(workoutId),
       setTrainerFocus: ({ bodyPart, goal }) => {
         const s = current()
         commit({
@@ -312,8 +577,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const s = current()
         commit({ ...s, trainerPhase: 'pick' })
       },
-      finishWorkout: ({ title, durationMin, calories, bodyPart }) => {
+      finishWorkout: ({ workoutId, title, durationMin, calories, bodyPart, workoutSets }) => {
         const s = current()
+        if (!s.accountEmail) return
         const date = isoDate()
         const existing = s.history.find((item) => item.date === date)
         const merge = existing && !existing.rest
@@ -336,18 +602,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               bodyPart: bodyPart ?? s.trainerBodyPart,
             }
         const history = [historyItem, ...s.history.filter((item) => item.date !== date)]
+        const totals = workoutTotalsFromHistory(history)
+        void (async () => {
+          try {
+            await db.abandonWorkouts(s.accountEmail!)
+            await db.finalizeWorkout(workoutId, { title, durationMin, calories, bodyPart: bodyPart ?? s.trainerBodyPart })
+            if (workoutSets.length > 0) {
+              await db.insertWorkoutSets(workoutId, workoutSets)
+            }
+          } catch (err) {
+            console.error('[Store] finishWorkout persist failed:', err)
+          }
+        })()
         commit({
           ...s,
-          calories: s.calories + calories,
-          steps: s.steps + 120,
-          streak: streakFromDates(history.filter((item) => !item.rest).map((item) => item.date)),
-          workoutDoneToday: true, // dead state; no consumer
+          calories: totals.calories,
+          steps: totals.steps,
+          streak: totals.streak,
           workoutInProgress: false,
+          workingWorkout: null,
           history,
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
-        })
+        }, { immediate: true })
       },
       logRestDay: () => {
         const s = current()
@@ -367,10 +645,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s,
           history: [historyItem, ...s.history.filter((item) => item.date !== date)],
           workoutInProgress: false,
+          workingWorkout: null,
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
-        })
+        }, { immediate: true })
       },
       unlinkPartner: () => {
         const s = current()
@@ -386,23 +665,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true }
       },
       showToast: (message) => {
-        setState({ ...stateRef.current, toast: message })
+        const ref = stateRef.current
+        if (!ref) return
+        setState({ ...ref, toast: message })
       },
       clearToast: () => {
-        setState({ ...stateRef.current, toast: null })
+        const ref = stateRef.current
+        if (!ref) return
+        setState({ ...ref, toast: null })
       },
-      signOut: () => {
+      signOut: async () => {
+        try {
+          await db.clearSession()
+        } catch (err) {
+          console.error('[Store] Failed to clear session:', err)
+        }
+        commit({ ...seedState() })
+      },
+      exportData: async () => {
         const s = current()
-        commit({ ...s, signedIn: false, plan: [], trainerPhase: 'pick' })
+        if (!s.accountEmail) return { ok: false, error: 'Log in first' }
+        try {
+          const backup = await db.exportAccount(s.accountEmail)
+          const json = serializeBackup(backup)
+          const result = await shareOrDownload(json, backupFilename())
+          const message =
+            result === 'shared'
+              ? 'Backup exported — keep it somewhere safe'
+              : result === 'copied'
+                ? 'Backup copied to clipboard'
+                : 'Backup saved'
+          commit({ ...current(), toast: message })
+          return { ok: true }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not export'
+          commit({ ...current(), toast: message })
+          return { ok: false, error: message }
+        }
+      },
+      importData: async (file, opts) => {
+        let backup
+        try {
+          const text = await readTextFile(file)
+          backup = parseBackup(text)
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not read that backup'
+          return { ok: false, error: message }
+        }
+        const s = current()
+        const matters = s.accountEmail && opts?.intoEmail !== undefined
+        if (!matters && (await db.accountExists(backup.account.email))) {
+          return {
+            ok: false,
+            error: `An account already exists for ${backup.account.email}. Log in instead.`,
+          }
+        }
+        try {
+          await db.importAccount(backup, { newAccount: !matters, intoEmail: opts?.intoEmail })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not restore that backup'
+          return { ok: false, error: message }
+        }
+        _initialState = null
+        _initPromise = null
+        const fresh = await loadInitialState()
+        commit({ ...fresh, toast: 'Backup restored' })
+        const dest = backup.profile.onboarded ? '/home' : '/onboarding'
+        return { ok: true, dest }
       },
     }
-  }, [state])
+  }, [state, hydrated, initError, hydrate, commit])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
-}
-
-export function useStore(): StoreValue {
-  const ctx = useContext(StoreContext)
-  if (!ctx) throw new Error('useStore must be used inside StoreProvider')
-  return ctx
 }

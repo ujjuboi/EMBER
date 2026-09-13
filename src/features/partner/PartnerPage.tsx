@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/Button'
 import { Stat } from '../../components/ui/Stat'
 import { isoDate } from '../../lib/dates'
 import { fmt } from '../../lib/format'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { LogCalendar, WhoSwatch } from '../home/MonthCalendar'
 import { PairPanel } from './PartnerWidget'
 
@@ -11,7 +11,7 @@ export function PartnerPage() {
   const { partner, partnerLinked, streak, steps, calories, history, showToast } = useStore()
   const [selected, setSelected] = useState(isoDate)
 
-  if (!partnerLinked) {
+  if (!partnerLinked || !partner.name) {
     return (
       <div className="px-5 pb-28 pt-8">
         <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Partner</p>

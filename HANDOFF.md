@@ -4,16 +4,16 @@ You are taking a **finished clickable UI prototype** and turning it into a real 
 
 **Start here, in order:**
 
-1. Click the live app: [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/) (phone width)
+1. Run it: `npm install` then `npm run dev` (phone width), or deploy `dist/` to Netlify/Vercel and install it as a PWA (see [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md))
 2. Read [docs/PRODUCT_RULES.md](./docs/PRODUCT_RULES.md)
 3. Skim [docs/COMPONENT_MAP.md](./docs/COMPONENT_MAP.md)
-4. Replace `src/lib/store.tsx` with a real backend — keep the same action names and `src/lib/types.ts`
+4. Note: persistence is already **on-device SQLite** with an offline-capable PWA — do not swap `store.tsx` for a server unless asked.
 
 The source of truth for behavior is the running UI plus this file.
 
 Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motion is SVG code.
 
-**Send your engineer this folder** (zip it, skip `node_modules` and `dist`). Point them at `HANDOFF.md`. The live link above is the clickable spec.
+**Send your engineer this folder** (zip it, skip `node_modules` and `dist`). Point them at `HANDOFF.md`. The installable PWA is the clickable spec.
 
 ---
 
@@ -21,12 +21,13 @@ Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motio
 
 | This prototype **is** | This prototype **is not** |
 | --- | --- |
-| Phone-first React UI (390–430px) | Production auth, payments, or sync |
+| Phone-first React UI (390–430px) | Server auth / OAuth, payments, or sync |
+| An installable, offline-capable PWA | A native App Store / Play Store build |
 | All main screens, empty/error states, motion | Native pedometer / Health Connect |
 | A scored session suggester + full exercise catalog | A gym-machine catalog or trainer AI |
 | SVG wireframe coach that performs each move | GIFs, Lottie, or video clips |
-| Mock partner “Rae” + pairing UX | Live multiplayer or push notifications |
-| `sessionStorage` mock store | API, DB, or accounts |
+| Pairing UX (no-op prototype) | Live multiplayer or push notifications |
+| Local SQLite accounts + per-account rows | Server/API, sync, or cloud accounts |
 
 Stack: **Vite 8 + React 19 + TypeScript + Tailwind v4 + React Router 7 + lucide-react + Framer Motion** (toast only).
 
@@ -56,15 +57,15 @@ src/
   app/                 Shell, bottom nav, route gate
   coach/               Stick-figure coach (poses + SVG renderer)
   components/ui/       Buttons, chips, fields, confirm, toast, timer
-  data/                Exercise catalog + seed history/partner
+  data/                Exercise catalog
   features/
-    auth/              Login / signup (mock) + onboarding
+    auth/              Login / signup (local accounts) + onboarding
     home/              Home + week/month calendar
     workout/           Train planner + live session
     partner/           Partner tab + home partner card
     profile/           You (profile, kit, unlink)
     trainer/           Goal/kit chips used by Train + You
-  lib/                 Store, types, dates, trainer scoring, calories
+  lib/                 Store, SQLite db layer, password hashing, dates, trainer scoring, calories
 ```
 
 Unused leftovers (safe to delete when you wire the real app, or reuse):
@@ -76,18 +77,23 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 
 ## How state works today
 
-`src/lib/store.tsx` is a React context. It loads/saves JSON in **`sessionStorage` key `ember-prototype-v5`**.
+`src/lib/store.tsx` is a React context over **on-device SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA service worker precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so persistence **survives offline** after first load.
 
-Implications for you:
-
-- A full tab reload **keeps** the mock user. Closing the tab clears it.
-- There is no server. `createAccount` / `logIn` / `continueWithGoogle` only flip `signedIn`.
+- **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user. `crypto.subtle` requires HTTPS — `localhost` and Netlify/Vercel are fine, plain `http://` on a LAN phone is not.
+- **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner` / `workout` / `workout_set`), so multiple accounts on one install never see each other's data.
+- There is **no server**. Auth is local-only — no OAuth, no recovery, no sync. The Google button was removed; `createAccount` / `logIn` / `signOut` all go through the store actions.
 - Onboarding writes profile + kit + optional partner link (any **6-character** code).
-- Swap this file for API hooks. Keep the same `AppState` shape as long as you can; screens already speak it.
+- Schema is versioned (`PRAGMA user_version`, currently **v5**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body). `profile.workout_done_today` is a dead column (retained, never written or read).
+- **Workout lifecycle & resume** (`src/lib/db/index.ts`): each session writes a `workout` row (status `in_progress` → `completed`/`abandoned`) plus per-set detail in `workout_set` (position, exercise, reps/seconds, `weight_kg`). Progress (`currentIndex`, set, phase, elapsed, kcal, rest/work seconds, sets logged) is persisted on transitions only, so a killed tab or iOS background resume restores the session where it stopped. Only one `in_progress` workout exists per account — starting a new one abandons the old.
+- **Weights**: reps exercises carry a `weight_kg` plan value (Train stepper) that is stored on the plan row and copied into each logged `workout_set`.
+- **Plans are date-scoped**: the `plan` row writes `for_date` (today). `history` stays the date-rollup source of truth for calendars/streaks; `streak`/`steps`/`calories` are recomputed from history on hydrate so caches cannot drift.
+- Distribution is an **installable PWA** (manifest + service worker via `vite-plugin-pwa`), not a native wrapper. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
+- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. Exports include workouts, history, plan, profile, partner, and the user's custom-exercise library. Schema 4 backups still restore. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
 
 Types: `src/lib/types.ts`.  
-Catalog: `src/data/exercises.ts`.  
-Seed partner **Rae**: `src/data/seed.ts`.
+Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  
+Hashing: `src/lib/password.ts`.  
+Catalog: `src/data/exercises.ts`.
 
 ---
 
@@ -153,11 +159,11 @@ Users log rest from Home (**Log rest day**) only before they have a workout toda
 
 `src/features/workout/SessionPage.tsx`
 
-- **Log set** on the last set of the last move → celebrate → `finishWorkout` → Home.
-- **End** with 0 sets logged → `clearPlan`, back to Train, no history.
+- **Log set** on the last set of the last move → celebrate → `finishWorkout` → Home. Each logged set is written to `workout_set` (reps/seconds + planned `weight_kg`).
+- **End** with 0 sets logged → the `workout` is marked `abandoned`, plan cleared, back to Train, no history row.
 - **End** after ≥1 set → still `finishWorkout` (partial counts as a completed day). Confirm with product if you want a higher bar later.
 
-`workoutInProgress` is set on **Start session**, cleared on finish or 0-set abandon. Visiting Train without starting does **not** mean “continue”.
+`workoutInProgress` starts when a workout row begins (`beginWorkout`), clears on finish or 0-set abandon. Visiting Train without starting does **not** mean “continue”. While a workout is `in_progress`, Train skips auto-regenerating a new plan so the saved session snapshot stays the source of truth.
 
 ---
 
@@ -165,9 +171,9 @@ Users log rest from Home (**Log rest day**) only before they have a workout toda
 
 ### Auth / onboarding
 
-Mock validation only (email has `@`, password ≥ 6). Google is a stub. Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = linked to seed Rae.
+Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = a prototype no-op link (toast only).
 
-**Tester path:** Continue with Google → keep defaults → partner code `EMBER9` → Save. Lands on Train.
+**Tester path:** Create an account (any email + password of ≥6 chars) → keep defaults → Save. Lands on Train.
 
 ### Home
 
@@ -177,11 +183,13 @@ Week strip is the same calendar used on Partner. `WeekStrip` is an alias of `Log
 
 ### Train
 
-`TrainPage.tsx` generates a plan on first visit (`beginTrainerReview`). Chips change body part and rescore via `suggestSession` (`src/lib/trainer.ts`). Custom exercises allowed. Button label: Continue session if `workoutInProgress`, else Start session.
+`TrainPage.tsx` generates a plan on first visit (`beginTrainerReview`), and skips regenerating while a workout is `in_progress` (the saved session snapshot wins). Chips change body part and rescore via `suggestSession` (`src/lib/trainer.ts`). Reps exercises show a **kg** stepper that writes `plan.weight_kg`. Button label: Continue session if `workoutInProgress`, else Start session.
+
+**Custom exercises are a library.** Creating one saves it (per account) to the `custom_exercise` table and it appears in the Add exercise list (keyed by a stable `custom-<uuid>` id — catalog rows keep using their `coachId` poses; custom moves animate the idle loop). Tapping a saved row adds it to the plan; the trash button removes it from the library. Coach previews on Train animate (`playing` defaults on) — there are no GIFs.
 
 ### Session
 
-Work → rest → next set/move. Timed moves auto-log when the countdown hits 0. Coach `phase`: `work` | `rest` | `celebrate`. Calories: `estimateKcal` (MET × kg × hours).
+Work → rest → next set/move. Timed moves auto-log when the countdown hits 0. After a background-kill it **resumes** at the saved exercise/set with elapsed + kcal intact (progress persisted on transitions, not per tick). Coach `phase`: `work` | `rest` | `celebrate`. Calories: `estimateKcal` (MET × kg × hours). Each set writes to `workout_set` with reps/seconds + planned weight.
 
 ### Partner
 
@@ -238,13 +246,15 @@ Chrome: `max-w-[430px]`, bottom nav with `env(safe-area-inset-bottom)`. Buttons:
 
 ## Turning this into a real app (minimal-effort order)
 
-1. **Keep the UI.** Replace `store.tsx` actions with API calls. Same TypeScript types.
-2. **Auth** — real session cookie/JWT; delete mock email uniqueness.
+This is already a real, **installable, offline PWA** — the remaining roadmap is feature work, not re-hosting:
+
+1. **Ship it.** Deploy `dist/` to Netlify/Vercel (HTTPS is automatic) and install from Chrome/Safari. No App Store, no code signing. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
+2. **Auth (server, if you must)** — local accounts already exist (PBKDF2-hashed credentials, session restore, per-account rows). Remaining: real server-side session/JWT, email validation beyond the `@` check, and OAuth if you want Google.
 3. **User + history** — persist `HistoryItem[]`, streak computed server-side from workout dates (exclude rest).
 4. **Partner** — real invite codes, both users’ histories, reminder as push. Twin flame = both have a workout on `today` in the user’s timezone.
 5. **Steps** — Health Connect / HealthKit; prototype `steps` field is fake.
-6. **Session recover** — today, leaving `/train/go` drops live timers. Persist set index if you need crash recovery.
-7. **PWA / Capacitor** — `index.html` already has theme-color and apple web-app meta.
+6. **Actual-vs-planned coaching** — stored `workout_set` rows (reps/seconds/weight) can feed progress-overload and rep-count feedback.
+7. **PWA gaps (iOS)** — background timers throttle, push needs web push (iOS 16.4+), screen-wake. Tracked in the Phase 1 plan's backlog.
 
 Do not rebuild the calendar, coach, or Train chips from scratch unless design changes. Copy the components.
 
@@ -252,32 +262,28 @@ Do not rebuild the calendar, coach, or Train chips from scratch unless design ch
 
 ## Demo script (for your tester)
 
-1. Open the live link. Continue with Google.
-2. Onboarding: partner code `EMBER9` → **Save**. Lands on **Train** (by design).
-3. Home: **Start training** or **Log rest day**. Calendar hearts = Rae’s workouts. Today empty for Rae → **Send reminder**.
+1. Open the live link. Create an account (any email + password, e.g. tester@ember.app / `member9`).
+2. Onboarding: leave partner code empty → **Save**. Lands on **Train** (by design).
+3. Home: empty calendar, streak 0, no partner card. **Start training** or **Log rest day**.
 4. Train → Start session → Log set through (or End after one set). Land on Home: **All fired up**, no extra-session button.
-5. Train again, finish: today’s minutes/kcal go up (`N sessions`).
-6. You → Unlink to see empty Partner; pair again with any 6 characters.
+5. Train again, finish: today's minutes/kcal go up (`N sessions`).
+6. You → profile edits persist; Log out returns to login.
 
-Seed Rae has workouts plus one rest day, and **no session today** (`src/data/seed.ts`). Closing the browser tab clears `sessionStorage`.
+Data persists in on-device SQLite — closing the tab does **not** clear it; use You → **Log out** to end the session and return to the login screen.
 
 ---
 
-## Live prototype
+## Live app & hosting
 
-**Open this:** [https://cobalt-silence-fg96.here.now/](https://cobalt-silence-fg96.here.now/)
+EMBER is an **installable PWA** — no APK, no App Store. Deploy `dist/` (result of `npm run build`) to a static HTTPS host:
 
-Anyone with the link can use it (mock auth only — no real accounts). Phone width is best.
+- **Netlify** — `netlify.toml` is ready: `netlify deploy --prod` (build command `npm run build`, publish dir `dist`, SPA fallback included).
+- **Vercel** — `vercel.json` is ready: `vercel --prod` (rewrites SPA fallback).
 
-This anonymous host **expires 13 Sep 2026 ~08:00 UTC** unless claimed. To keep it:
+Verify after deploy:
 
-1. Open this claim link exactly (do not shorten it): [https://here.now/c/fzSm6NW6r-oejTcu](https://here.now/c/fzSm6NW6r-oejTcu)
-2. Create a here.now account if asked
+1. `dist/` contains `sw.js`, `manifest.webmanifest`, and `icons/*`.
+2. Load the site, install it (Chrome: **Install app**; Safari: **Add to Home Screen**) — it opens standalone.
+3. Go offline (airplane mode) and reload — the app and a workout round-trip still work; data persists in the IndexedDB/OPFS store.
 
-To republish from this repo after `npm run build`:
-
-```bash
-node scripts/publish-here-now.mjs
-```
-
-SPA fallback is configured for Netlify (`netlify.toml`) and Vercel (`vercel.json`) if you move hosting.
+Older short-lived anonymous hosts (here.now) are deprecated and removed.
