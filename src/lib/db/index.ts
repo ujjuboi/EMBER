@@ -4,10 +4,9 @@ import type {
   HistoryItem, Partner, PlannedExercise, PlanSource, TrainerPhase,
 } from '../types'
 import type { BodyPart, Equipment, TrainerGoal } from '../../data/exercises'
-import {
-  normalizeBodyPart, normalizeTrainerGoal, type Exercise,
-} from '../../data/exercises'
+import type { Exercise } from '../../data/exercises'
 import { SEED_HISTORY, SEED_PARTNER } from '../../data/seed'
+import { verify as verifyPassword } from '../password'
 
 const DB_NAME = 'ember_db'
 
@@ -21,6 +20,10 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   const run = _writeQueue.then(fn, fn)
   _writeQueue = run.then(() => {})
   return run
+}
+
+export function isDbReady(): boolean {
+  return _ready
 }
 
 export async function initDb(): Promise<void> {
@@ -42,7 +45,7 @@ export async function initDb(): Promise<void> {
       if (Capacitor.getPlatform() === 'web') {
         await CapacitorSQLite.checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })
       }
-      await createTables()
+      await createSchema()
       _ready = true
     } catch (err) {
       console.error('[DB] Failed to initialize:', err)
@@ -65,17 +68,40 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-async function createTables(): Promise<void> {
+// --- Schema (version 2) ---
+
+const SCHEMA_VERSION = 2
+
+async function createSchema(): Promise<void> {
+  const isCurrent = await hasSchema()
+  if (isCurrent) return
+
+  const drops = ['account', 'session', 'profile', 'history', 'plan', 'partner']
+  for (const table of drops) {
+    await CapacitorSQLite.execute({
+      database: DB_NAME,
+      statements: `DROP TABLE IF EXISTS ${table}`,
+    })
+  }
+
   const TABLES = [
-    `CREATE TABLE IF NOT EXISTS profile (
+    `CREATE TABLE IF NOT EXISTS account (
+      email TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS session (
       id INTEGER PRIMARY KEY DEFAULT 1,
+      active_email TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS profile (
+      account_email TEXT PRIMARY KEY,
       display_name TEXT NOT NULL DEFAULT 'Umair',
       weight_kg REAL NOT NULL DEFAULT 72,
       height_ft INTEGER NOT NULL DEFAULT 5,
       height_in INTEGER NOT NULL DEFAULT 9,
       step_goal INTEGER NOT NULL DEFAULT 8000,
-      signed_in INTEGER NOT NULL DEFAULT 0,
-      account_email TEXT,
       onboarded INTEGER NOT NULL DEFAULT 0,
       equipment TEXT NOT NULL DEFAULT '["bodyweight"]',
       trainer_phase TEXT NOT NULL DEFAULT 'pick',
@@ -93,30 +119,34 @@ async function createTables(): Promise<void> {
       updated_at TEXT NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS history (
-      id TEXT PRIMARY KEY,
+      account_email TEXT NOT NULL,
+      id TEXT NOT NULL,
       name TEXT NOT NULL,
-      date TEXT NOT NULL UNIQUE,
+      date TEXT NOT NULL,
       date_label TEXT NOT NULL,
       duration_min INTEGER NOT NULL,
       calories INTEGER NOT NULL,
       body_part TEXT,
       rest INTEGER,
-      sessions INTEGER
+      sessions INTEGER,
+      PRIMARY KEY (account_email, date)
     )`,
     `CREATE TABLE IF NOT EXISTS plan (
-      uid TEXT PRIMARY KEY,
+      account_email TEXT NOT NULL,
+      uid TEXT NOT NULL,
       exercise TEXT NOT NULL,
       sets INTEGER NOT NULL,
       reps INTEGER,
-      seconds INTEGER
+      seconds INTEGER,
+      PRIMARY KEY (account_email, uid)
     )`,
     `CREATE TABLE IF NOT EXISTS partner (
-      id INTEGER PRIMARY KEY DEFAULT 1,
-      name TEXT NOT NULL,
-      streak INTEGER NOT NULL,
-      steps INTEGER NOT NULL,
-      calories INTEGER NOT NULL,
-      last_workout TEXT NOT NULL,
+      account_email TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT 'Rae',
+      streak INTEGER NOT NULL DEFAULT 0,
+      steps INTEGER NOT NULL DEFAULT 0,
+      calories INTEGER NOT NULL DEFAULT 0,
+      last_workout TEXT NOT NULL DEFAULT '',
       history TEXT NOT NULL DEFAULT '[]',
       partner_linked INTEGER NOT NULL DEFAULT 0,
       partner_since TEXT
@@ -127,27 +157,106 @@ async function createTables(): Promise<void> {
     await CapacitorSQLite.execute({ database: DB_NAME, statements: sql })
   }
 
-  // Seed profile if empty
-  const profileResult = await CapacitorSQLite.query({
+  await CapacitorSQLite.run({
     database: DB_NAME,
-    statement: 'SELECT * FROM profile',
+    statement: 'INSERT OR IGNORE INTO session (id, active_email) VALUES (1, NULL)',
   })
-  const rows = profileResult.values as Record<string, unknown>[] | undefined
-  if (!rows || rows.length === 0) {
-    await seedProfileRow()
-  }
+
+  await CapacitorSQLite.run({
+    database: DB_NAME,
+    statement: `PRAGMA user_version = ${SCHEMA_VERSION}`,
+  })
+}
+
+async function hasSchema(): Promise<boolean> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'account'`,
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  return !!rows && rows.length > 0
+}
+
+// --- Accounts & session ---
+
+export async function accountExists(email: string): Promise<boolean> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT email FROM account WHERE email = ?',
+    values: [email],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  return !!rows && rows.length > 0
+}
+
+export async function createAccountRow(email: string, passwordHash: string, salt: string): Promise<void> {
+  return enqueue(async () => {
+    const now = new Date().toISOString()
+    const statements = [
+      {
+        statement: 'INSERT INTO account (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)',
+        values: [email, passwordHash, salt, now],
+      },
+      profileInsertStatement(email, defaultProfileData()),
+      partnerInsertStatement(email),
+    ]
+    await CapacitorSQLite.executeSet({
+      database: DB_NAME,
+      set: statements,
+      transaction: true,
+    })
+  })
+}
+
+export async function verifyCredentials(email: string, password: string): Promise<boolean> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT password_hash, salt FROM account WHERE email = ?',
+    values: [email],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return false
+  const row = rows[0]
+  return verifyPassword(password, String(row.salt ?? ''), String(row.password_hash ?? ''))
+}
+
+export async function getSession(): Promise<string | null> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT active_email FROM session WHERE id = 1',
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return null
+  return rows[0].active_email ? String(rows[0].active_email) : null
+}
+
+export async function setSession(email: string): Promise<void> {
+  return enqueue(async () => {
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: 'UPDATE session SET active_email = ? WHERE id = 1',
+      values: [email],
+    })
+  })
+}
+
+export async function clearSession(): Promise<void> {
+  return enqueue(async () => {
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: 'UPDATE session SET active_email = NULL WHERE id = 1',
+    })
+  })
 }
 
 // --- Profile ---
 
-export async function loadProfile(): Promise<{
+export type ProfileData = {
   displayName: string
   weightKg: number
   heightFt: number
   heightIn: number
   stepGoal: number
-  signedIn: boolean
-  accountEmail: string | null
   onboarded: boolean
   equipment: Equipment[]
   trainerPhase: TrainerPhase
@@ -162,25 +271,82 @@ export async function loadProfile(): Promise<{
   workoutDoneToday: boolean
   workoutInProgress: boolean
   planSource: PlanSource
-}> {
-  const result = await CapacitorSQLite.query({
-    database: DB_NAME,
-    statement: 'SELECT * FROM profile WHERE id = 1',
-  })
-  const rows = result.values as Record<string, unknown>[] | undefined
-  if (!rows || rows.length === 0) {
-    await seedProfileRow()
-    return loadProfile()
+}
+
+function defaultProfileData(): ProfileData {
+  return {
+    displayName: 'Umair',
+    weightKg: 72,
+    heightFt: 5,
+    heightIn: 9,
+    stepGoal: 8000,
+    onboarded: false,
+    equipment: ['bodyweight'],
+    trainerPhase: 'pick',
+    trainerDay: new Date().getDay(),
+    trainerBodyPart: 'legs',
+    trainerGoal: 'strength',
+    partnerLinked: false,
+    partnerSince: null,
+    streak: 0,
+    steps: 0,
+    calories: 0,
+    workoutDoneToday: false,
+    workoutInProgress: false,
+    planSource: 'trainer',
   }
-  const row = rows[0]
+}
+
+function profileInsertStatement(accountEmail: string, p: ProfileData): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO profile (account_email, display_name, weight_kg, height_ft, height_in, step_goal, onboarded,
+      equipment, trainer_phase, trainer_day, trainer_body_part, trainer_goal,
+      partner_linked, partner_since, streak, steps, calories, workout_done_today, workout_in_progress, plan_source, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      accountEmail,
+      p.displayName,
+      p.weightKg,
+      p.heightFt,
+      p.heightIn,
+      p.stepGoal,
+      p.onboarded ? 1 : 0,
+      JSON.stringify(p.equipment),
+      p.trainerPhase,
+      p.trainerDay,
+      p.trainerBodyPart,
+      p.trainerGoal,
+      p.partnerLinked ? 1 : 0,
+      p.partnerSince,
+      p.streak,
+      p.steps,
+      p.calories,
+      p.workoutDoneToday ? 1 : 0,
+      p.workoutInProgress ? 1 : 0,
+      p.planSource,
+      new Date().toISOString(),
+    ],
+  }
+}
+
+async function seedProfileRow(accountEmail: string): Promise<ProfileData> {
+  const data = defaultProfileData()
+  const insert = profileInsertStatement(accountEmail, data)
+  await CapacitorSQLite.run({
+    database: DB_NAME,
+    statement: insert.statement,
+    values: insert.values,
+  })
+  return data
+}
+
+function rowToProfile(row: Record<string, unknown>): ProfileData {
   return {
     displayName: String(row.display_name || 'Umair'),
     weightKg: Number(row.weight_kg) || 72,
     heightFt: Number(row.height_ft) || 5,
     heightIn: Number(row.height_in) || 9,
     stepGoal: Number(row.step_goal) || 8000,
-    signedIn: !!(row.signed_in as number),
-    accountEmail: row.account_email ? String(row.account_email) : null,
     onboarded: !!(row.onboarded as number),
     equipment: JSON.parse(String(row.equipment || '["bodyweight"]')) as Equipment[],
     trainerPhase: (row.trainer_phase as TrainerPhase) || 'pick',
@@ -198,59 +364,37 @@ export async function loadProfile(): Promise<{
   }
 }
 
-async function seedProfileRow(): Promise<void> {
-  await CapacitorSQLite.run({
+export async function loadProfile(accountEmail: string): Promise<ProfileData> {
+  const result = await CapacitorSQLite.query({
     database: DB_NAME,
-    statement: `INSERT INTO profile (display_name, weight_kg, height_ft, height_in, step_goal, signed_in, onboarded,
-      equipment, trainer_phase, trainer_day, trainer_body_part, trainer_goal,
-      partner_linked, streak, steps, calories, workout_done_today, workout_in_progress, plan_source, updated_at)
-    VALUES (?, ?, ?, ?, ?, 0, 0, ?, 'pick', ?, 'legs', 'strength', 0, 0, 0, 0, 0, 0, 'trainer', ?)`,
-    values: ['Umair', 72, 5, 9, 8000, JSON.stringify(['bodyweight']), new Date().getDay(), new Date().toISOString()],
+    statement: 'SELECT * FROM profile WHERE account_email = ?',
+    values: [accountEmail],
   })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) {
+    return seedProfileRow(accountEmail)
+  }
+  return rowToProfile(rows[0])
 }
 
-export async function saveProfile(profile: {
-  displayName: string
-  weightKg: number
-  heightFt: number
-  heightIn: number
-  stepGoal: number
-  signedIn: boolean
-  accountEmail: string | null
-  onboarded: boolean
-  equipment: Equipment[]
-  trainerPhase: TrainerPhase
-  trainerDay: number
-  trainerBodyPart: BodyPart
-  trainerGoal: TrainerGoal
-  partnerLinked: boolean
-  partnerSince: string | null
-  streak: number
-  steps: number
-  calories: number
-  workoutDoneToday: boolean
-  workoutInProgress: boolean
-  planSource: PlanSource
-}): Promise<void> {
+export async function saveProfile(accountEmail: string, profile: ProfileData): Promise<void> {
   return enqueue(async () => {
     await CapacitorSQLite.run({
       database: DB_NAME,
       statement: `UPDATE profile SET
         display_name = ?, weight_kg = ?, height_ft = ?, height_in = ?, step_goal = ?,
-        signed_in = ?, account_email = ?, onboarded = ?, equipment = ?,
+        onboarded = ?, equipment = ?,
         trainer_phase = ?, trainer_day = ?, trainer_body_part = ?, trainer_goal = ?,
         partner_linked = ?, partner_since = ?,
         streak = ?, steps = ?, calories = ?,
         workout_done_today = ?, workout_in_progress = ?, plan_source = ?, updated_at = ?
-      WHERE id = 1`,
+      WHERE account_email = ?`,
       values: [
         profile.displayName,
         profile.weightKg,
         profile.heightFt,
         profile.heightIn,
         profile.stepGoal,
-        profile.signedIn ? 1 : 0,
-        profile.accountEmail,
         profile.onboarded ? 1 : 0,
         JSON.stringify(profile.equipment),
         profile.trainerPhase,
@@ -266,6 +410,7 @@ export async function saveProfile(profile: {
         profile.workoutInProgress ? 1 : 0,
         profile.planSource,
         new Date().toISOString(),
+        accountEmail,
       ],
     })
   })
@@ -273,13 +418,14 @@ export async function saveProfile(profile: {
 
 // --- History ---
 
-export async function loadHistory(): Promise<HistoryItem[]> {
+export async function loadHistory(accountEmail: string): Promise<HistoryItem[]> {
   const result = await CapacitorSQLite.query({
     database: DB_NAME,
-    statement: 'SELECT * FROM history ORDER BY date DESC',
+    statement: 'SELECT * FROM history WHERE account_email = ? ORDER BY date DESC',
+    values: [accountEmail],
   })
   const rows = result.values as Record<string, unknown>[] | undefined
-  if (!rows) return SEED_HISTORY
+  if (!rows || rows.length === 0) return SEED_HISTORY
   return rows.map((row) => ({
     id: String(row.id),
     name: String(row.name),
@@ -293,15 +439,15 @@ export async function loadHistory(): Promise<HistoryItem[]> {
   }))
 }
 
-export async function saveHistory(history: HistoryItem[]): Promise<void> {
+export async function saveHistory(accountEmail: string, history: HistoryItem[]): Promise<void> {
   return enqueue(async () => {
     const statements = [
-      { statement: 'DELETE FROM history', values: [] as unknown[] },
+      { statement: 'DELETE FROM history WHERE account_email = ?', values: [accountEmail] },
       ...history.map((item) => ({
-        statement: `INSERT INTO history (id, name, date, date_label, duration_min, calories, body_part, rest, sessions)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        statement: `INSERT INTO history (account_email, id, name, date, date_label, duration_min, calories, body_part, rest, sessions)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         values: [
-          item.id, item.name, item.date, item.dateLabel,
+          accountEmail, item.id, item.name, item.date, item.dateLabel,
           item.durationMin, item.calories,
           item.bodyPart || null,
           item.rest ? 1 : 0,
@@ -319,10 +465,11 @@ export async function saveHistory(history: HistoryItem[]): Promise<void> {
 
 // --- Plan ---
 
-export async function loadPlan(): Promise<PlannedExercise[]> {
+export async function loadPlan(accountEmail: string): Promise<PlannedExercise[]> {
   const result = await CapacitorSQLite.query({
     database: DB_NAME,
-    statement: 'SELECT * FROM plan',
+    statement: 'SELECT * FROM plan WHERE account_email = ?',
+    values: [accountEmail],
   })
   const rows = result.values as Record<string, unknown>[] | undefined
   if (!rows) return []
@@ -335,13 +482,14 @@ export async function loadPlan(): Promise<PlannedExercise[]> {
   }))
 }
 
-export async function savePlan(plan: PlannedExercise[]): Promise<void> {
+export async function savePlan(accountEmail: string, plan: PlannedExercise[]): Promise<void> {
   return enqueue(async () => {
     const statements = [
-      { statement: 'DELETE FROM plan', values: [] as unknown[] },
+      { statement: 'DELETE FROM plan WHERE account_email = ?', values: [accountEmail] },
       ...plan.map((item) => ({
-        statement: `INSERT INTO plan (uid, exercise, sets, reps, seconds) VALUES (?, ?, ?, ?, ?)`,
+        statement: `INSERT INTO plan (account_email, uid, exercise, sets, reps, seconds) VALUES (?, ?, ?, ?, ?, ?)`,
         values: [
+          accountEmail,
           item.uid,
           JSON.stringify(item.exercise),
           item.sets,
@@ -360,15 +508,28 @@ export async function savePlan(plan: PlannedExercise[]): Promise<void> {
 
 // --- Partner ---
 
-export async function loadPartner(): Promise<{ partner: Partner; partnerLinked: boolean; partnerSince: string | null }> {
+function partnerInsertStatement(accountEmail: string): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
+     VALUES (?, 'Rae', 9, 7110, 190, 'Legs · yesterday', ?, 0, NULL)`,
+    values: [accountEmail, JSON.stringify(SEED_PARTNER.history)],
+  }
+}
+
+export async function loadPartner(accountEmail: string): Promise<{ partner: Partner; partnerLinked: boolean; partnerSince: string | null }> {
   const result = await CapacitorSQLite.query({
     database: DB_NAME,
-    statement: 'SELECT * FROM partner WHERE id = 1',
+    statement: 'SELECT * FROM partner WHERE account_email = ?',
+    values: [accountEmail],
   })
   const rows = result.values as Record<string, unknown>[] | undefined
   if (!rows || rows.length === 0) {
-    await seedPartnerRow()
-    return loadPartner()
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: partnerInsertStatement(accountEmail).statement,
+      values: partnerInsertStatement(accountEmail).values,
+    })
+    return loadPartner(accountEmail)
   }
   const row = rows[0]
   return {
@@ -385,118 +546,12 @@ export async function loadPartner(): Promise<{ partner: Partner; partnerLinked: 
   }
 }
 
-async function seedPartnerRow(): Promise<void> {
-  await CapacitorSQLite.run({
-    database: DB_NAME,
-    statement: `INSERT INTO partner (id, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
-     VALUES (1, 'Rae', 9, 7110, 190, 'Legs · yesterday', ?, 0, NULL)`,
-    values: [JSON.stringify(SEED_PARTNER.history)],
-  })
-}
-
-export async function savePartner(partner: Partner, linked = false, since: string | null = null): Promise<void> {
-  return enqueue(async () => {
-    const historyJson = JSON.stringify(partner.history)
-    await CapacitorSQLite.executeSet({
-      database: DB_NAME,
-      transaction: true,
-      set: [
-        { statement: 'DELETE FROM partner WHERE id = 1', values: [] },
-        {
-          statement: `INSERT INTO partner (id, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          values: [partner.name, partner.streak, partner.steps, partner.calories, partner.lastWorkout, historyJson, linked ? 1 : 0, since],
-        },
-      ],
-    })
-  })
-}
-
-export async function updatePartnerLinked(linked: boolean, since: string | null): Promise<void> {
+export async function updatePartnerLinked(accountEmail: string, linked: boolean, since: string | null): Promise<void> {
   return enqueue(async () => {
     await CapacitorSQLite.run({
       database: DB_NAME,
-      statement: `UPDATE partner SET partner_linked = ?, partner_since = ? WHERE id = 1`,
-      values: [linked ? 1 : 0, since],
+      statement: 'UPDATE partner SET partner_linked = ?, partner_since = ? WHERE account_email = ?',
+      values: [linked ? 1 : 0, since, accountEmail],
     })
   })
-}
-
-// --- Migration ---
-
-const STORAGE_KEY = 'ember-prototype-v5'
-
-export async function migrateLegacy(): Promise<boolean> {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return false
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    if (!parsed.onboarded) return false
-
-    const history = ((parsed.history as unknown[]) ?? []).map((item: unknown) => {
-      const i = item as Record<string, unknown>
-      return {
-        ...i,
-        name: remapSessionName(String(i.name)),
-        bodyPart: i.bodyPart ? normalizeBodyPart(i.bodyPart) : i.bodyPart,
-      }
-    })
-    const partnerRaw = parsed.partner as Record<string, unknown> | undefined
-    const partner = partnerRaw
-      ? {
-          ...partnerRaw,
-          lastWorkout: remapSessionName(String(partnerRaw.lastWorkout || '')),
-          history: ((partnerRaw.history as unknown[]) ?? []).map((item: unknown) => {
-            const i = item as Record<string, unknown>
-            return { ...i, name: remapSessionName(String(i.name)) }
-          }),
-        }
-      : SEED_PARTNER
-    const plan = (parsed.plan as unknown[]) ?? []
-    const equipment = (parsed.equipment as string[]) ?? ['bodyweight']
-    const trainerGoal = normalizeTrainerGoal(parsed.trainerGoal ?? 'strength')
-    const trainerBodyPart = normalizeBodyPart(parsed.trainerBodyPart ?? 'legs')
-
-    await saveProfile({
-      displayName: String(parsed.displayName || 'Umair'),
-      weightKg: Number(parsed.weightKg) || 72,
-      heightFt: Number(parsed.heightFt) || 5,
-      heightIn: Number(parsed.heightIn) || 9,
-      stepGoal: Number(parsed.stepGoal) || 8000,
-      signedIn: !!parsed.signedIn,
-      accountEmail: parsed.accountEmail ? String(parsed.accountEmail) : null,
-      onboarded: !!parsed.onboarded,
-      equipment: equipment as Equipment[],
-      trainerPhase: String(parsed.trainerPhase || 'pick') as TrainerPhase,
-      trainerDay: Number(parsed.trainerDay) || new Date().getDay(),
-      trainerBodyPart: trainerBodyPart as BodyPart,
-      trainerGoal: trainerGoal as TrainerGoal,
-      partnerLinked: !!parsed.partnerLinked,
-      partnerSince: parsed.partnerSince ? String(parsed.partnerSince) : null,
-      streak: Number(parsed.streak) || 0,
-      steps: Number(parsed.steps) || 0,
-      calories: Number(parsed.calories) || 0,
-      workoutDoneToday: !!parsed.workoutDoneToday,
-      workoutInProgress: !!parsed.workoutInProgress,
-      planSource: String(parsed.planSource || 'trainer') as PlanSource,
-    })
-
-    await saveHistory(history as HistoryItem[])
-    await savePlan(plan as PlannedExercise[])
-    await savePartner(partner as Partner, !!parsed.partnerLinked, parsed.partnerSince ? String(parsed.partnerSince) : null)
-
-    sessionStorage.removeItem(STORAGE_KEY)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function remapSessionName(name: string): string {
-  if (name === 'Push + squat') return 'Chest + squat'
-  if (name === 'Full mix') return 'Leg mix'
-  if (name === 'Push') return 'Chest'
-  if (name === 'Pull') return 'Back'
-  if (name === 'Full body') return 'Legs'
-  return name.replace(/^Push ·/, 'Chest ·').replace(/^Pull ·/, 'Back ·').replace(/^Full body ·/, 'Legs ·')
 }

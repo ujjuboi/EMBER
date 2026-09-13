@@ -6,9 +6,8 @@ export type StoreValue = AppState & {
   ready: boolean
   initError: string | null
   retryInit: () => void
-  createAccount: (email: string, password: string) => { ok: boolean; error?: string }
-  logIn: (email: string, password: string) => { ok: boolean; error?: string; dest?: '/home' | '/onboarding' }
-  continueWithGoogle: () => { dest: '/home' | '/onboarding' }
+  createAccount: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  logIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string; dest?: '/home' | '/onboarding' }>
   completeOnboarding: (input: {
     displayName: string
     weightKg: number
@@ -45,7 +44,7 @@ export type StoreValue = AppState & {
   linkPartner: (code: string) => { ok: boolean; error?: string }
   showToast: (message: string) => void
   clearToast: () => void
-  signOut: () => void
+  signOut: () => Promise<void>
 }
 
 export const StoreContext = createContext<StoreValue | null>(null)

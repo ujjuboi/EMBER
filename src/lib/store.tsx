@@ -2,8 +2,9 @@ import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } fro
 import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
 import { SEED_HISTORY, SEED_PARTNER } from '../data/seed'
 import { dateLabel, daysAgo, isoDate, streakFromDates } from './dates'
+import { generateSalt, hashPassword } from './password'
 import { suggestSession } from './trainer'
-import type { AppState, HistoryItem, PlannedExercise } from './types'
+import type { AppState, HistoryItem } from './types'
 import { StoreContext, type StoreValue } from './store-hooks'
 import * as db from './db'
 
@@ -44,21 +45,26 @@ async function loadInitialState(): Promise<AppState> {
     _initPromise = (async () => {
       try {
         await db.initDb()
-        await db.migrateLegacy()
+
+        const sessionEmail = await db.getSession()
+        if (!sessionEmail) {
+          _initialState = seedState()
+          return
+        }
 
         const [profile, history, plan, partnerData] = await Promise.all([
-          db.loadProfile(),
-          db.loadHistory(),
-          db.loadPlan(),
-          db.loadPartner(),
+          db.loadProfile(sessionEmail),
+          db.loadHistory(sessionEmail),
+          db.loadPlan(sessionEmail),
+          db.loadPartner(sessionEmail),
         ])
 
         const effectiveHistory = history.length > 0 ? history : SEED_HISTORY
         const effectivePartner = partnerData.partner.name ? partnerData.partner : SEED_PARTNER
 
         _initialState = {
-          signedIn: profile.signedIn,
-          accountEmail: profile.accountEmail,
+          signedIn: true,
+          accountEmail: sessionEmail,
           onboarded: profile.onboarded,
           displayName: profile.displayName,
           weightKg: profile.weightKg,
@@ -94,14 +100,13 @@ async function loadInitialState(): Promise<AppState> {
 }
 
 function persistProfile(s: AppState): Promise<void> {
-  return db.saveProfile({
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveProfile(s.accountEmail, {
     displayName: s.displayName,
     weightKg: s.weightKg,
     heightFt: s.heightFt,
     heightIn: s.heightIn,
     stepGoal: s.stepGoal,
-    signedIn: s.signedIn,
-    accountEmail: s.accountEmail,
     onboarded: s.onboarded,
     equipment: s.equipment,
     trainerPhase: s.trainerPhase,
@@ -119,16 +124,19 @@ function persistProfile(s: AppState): Promise<void> {
   })
 }
 
-function persistHistory(history: HistoryItem[]): Promise<void> {
-  return db.saveHistory(history)
+function persistHistory(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveHistory(s.accountEmail, s.history)
 }
 
-function persistPlan(plan: PlannedExercise[]): Promise<void> {
-  return db.savePlan(plan)
+function persistPlan(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.savePlan(s.accountEmail, s.plan)
 }
 
-function persistPartnerLinked(linked: boolean, since: string | null): Promise<void> {
-  return db.updatePartnerLinked(linked, since)
+function persistPartnerLinked(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.updatePartnerLinked(s.accountEmail, s.partnerLinked, s.partnerSince)
 }
 
 function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
@@ -181,9 +189,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!next) return Promise.resolve()
     const flush = Promise.allSettled([
       persistProfile(next),
-      persistHistory(next.history),
-      persistPlan(next.plan),
-      persistPartnerLinked(next.partnerLinked, next.partnerSince),
+      persistHistory(next),
+      persistPlan(next),
+      persistPartnerLinked(next),
     ]).then((results) => {
       const failed = results.some((r) => r.status === 'rejected')
       results.forEach((r, i) => {
@@ -235,39 +243,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready: hydrated,
       initError,
       retryInit: hydrate,
-      createAccount: (email, password) => {
-        const s = current()
+      createAccount: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
         if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
         if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters' }
-        if (s.accountEmail && s.accountEmail !== trimmed) {
+        if (await db.accountExists(trimmed)) {
           return { ok: false, error: 'An account already exists. Log in instead.' }
         }
-        if (s.accountEmail === trimmed && s.onboarded) {
-          return { ok: false, error: 'That email is taken. Log in.' }
-        }
-        commit({ ...s, accountEmail: trimmed, signedIn: true })
+        const salt = generateSalt()
+        const hash = await hashPassword(password, salt)
+        await db.createAccountRow(trimmed, hash, salt)
+        await db.setSession(trimmed)
+        const base = seedState()
+        commit({ ...base, signedIn: true, accountEmail: trimmed, onboarded: false })
         return { ok: true }
       },
-      logIn: (email, password) => {
-        const s = current()
+      logIn: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
         if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
         if (password.length < 6) return { ok: false, error: 'Password must be at least 6 characters' }
-        if (!s.accountEmail) {
-          return { ok: false, error: 'No account yet. Create one to start.' }
+        const verified = await db.verifyCredentials(trimmed, password)
+        if (!verified) {
+          return { ok: false, error: 'No account for that email, or wrong password.' }
         }
-        if (s.accountEmail !== trimmed) {
-          return { ok: false, error: 'No account for that email. Create one.' }
+        await db.setSession(trimmed)
+        const [profile, history, plan, partnerData] = await Promise.all([
+          db.loadProfile(trimmed),
+          db.loadHistory(trimmed),
+          db.loadPlan(trimmed),
+          db.loadPartner(trimmed),
+        ])
+        const effectiveHistory = history.length > 0 ? history : SEED_HISTORY
+        const effectivePartner = partnerData.partner.name ? partnerData.partner : SEED_PARTNER
+        const next: AppState = {
+          signedIn: true,
+          accountEmail: trimmed,
+          onboarded: profile.onboarded,
+          displayName: profile.displayName,
+          weightKg: profile.weightKg,
+          heightFt: profile.heightFt,
+          heightIn: profile.heightIn,
+          stepGoal: profile.stepGoal,
+          streak: profile.streak,
+          steps: profile.steps,
+          calories: profile.calories,
+          workoutDoneToday: profile.workoutDoneToday,
+          workoutInProgress: profile.workoutInProgress,
+          partnerLinked: partnerData.partnerLinked,
+          partnerSince: partnerData.partnerSince,
+          partner: effectivePartner,
+          history: effectiveHistory,
+          equipment: profile.equipment,
+          plan,
+          planSource: profile.planSource,
+          trainerPhase: profile.trainerPhase,
+          trainerDay: profile.trainerDay,
+          trainerBodyPart: profile.trainerBodyPart,
+          trainerGoal: profile.trainerGoal,
+          toast: null,
         }
-        commit({ ...s, signedIn: true })
-        return { ok: true, dest: s.onboarded ? '/home' : '/onboarding' }
-      },
-      continueWithGoogle: () => {
-        const s = current()
-        const email = s.accountEmail ?? 'google@ember.app'
-        commit({ ...s, accountEmail: email, signedIn: true })
-        return { dest: s.onboarded ? '/home' : '/onboarding' }
+        commit(next)
+        return { ok: true, dest: next.onboarded ? '/home' : '/onboarding' }
       },
       completeOnboarding: ({ displayName, weightKg, heightFt, heightIn, stepGoal, partnerCode, equipment, trainerGoal }) => {
         const s = current()
@@ -482,9 +518,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!ref) return
         setState({ ...ref, toast: null })
       },
-      signOut: () => {
-        const s = current()
-        commit({ ...s, signedIn: false, plan: [], trainerPhase: 'pick' })
+      signOut: async () => {
+        try {
+          await db.clearSession()
+        } catch (err) {
+          console.error('[Store] Failed to clear session:', err)
+        }
+        commit({ ...seedState() })
       },
     }
   }, [state, hydrated, initError, hydrate, commit])
