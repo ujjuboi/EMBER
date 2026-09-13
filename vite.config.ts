@@ -10,11 +10,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: [
-        'favicon.svg',
-        'assets/sql-wasm.wasm',
-        'icons/apple-touch-icon.png',
-      ],
       manifest: {
         name: 'EMBER',
         short_name: 'EMBER',
