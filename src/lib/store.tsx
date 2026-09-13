@@ -3,6 +3,7 @@ import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercis
 import { dateLabel, isoDate, streakFromDates } from './dates'
 import { generateSalt, hashPassword } from './password'
 import { suggestSession } from './trainer'
+import { backupFilename, parseBackup, readTextFile, serializeBackup, shareOrDownload } from './backup'
 import type { AppState, HistoryItem, SessionProgress, Workout } from './types'
 import { StoreContext, type StoreValue } from './store-hooks'
 import * as db from './db'
@@ -67,6 +68,11 @@ async function loadInitialState(): Promise<AppState> {
     _initPromise = (async () => {
       try {
         await db.initDb()
+
+        // Dev convenience: provision a test account + session on first load.
+        if (import.meta.env.DEV) {
+          await db.ensureDevSeed()
+        }
 
         const sessionEmail = await db.getSession()
         if (!sessionEmail) {
@@ -390,7 +396,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       addToPlan: (item) => {
         const s = current()
+        const name = item.exercise.name.trim().toLowerCase()
+        // The exercise name is the unique key within a plan: two exercises with
+        // the same name cannot coexist, no matter how they entered the plan.
+        if (s.plan.some((existing) => existing.exercise.name.trim().toLowerCase() === name)) {
+          return false
+        }
         commit({ ...s, plan: [...s.plan, item], planSource: 'custom' })
+        return true
       },
       updatePlan: (uid, patch) => {
         const s = current()
@@ -634,6 +647,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           console.error('[Store] Failed to clear session:', err)
         }
         commit({ ...seedState() })
+      },
+      exportData: async () => {
+        const s = current()
+        if (!s.accountEmail) return { ok: false, error: 'Log in first' }
+        try {
+          const backup = await db.exportAccount(s.accountEmail)
+          const json = serializeBackup(backup)
+          const result = await shareOrDownload(json, backupFilename())
+          const message =
+            result === 'shared'
+              ? 'Backup exported — keep it somewhere safe'
+              : result === 'copied'
+                ? 'Backup copied to clipboard'
+                : 'Backup saved'
+          commit({ ...current(), toast: message })
+          return { ok: true }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not export'
+          commit({ ...current(), toast: message })
+          return { ok: false, error: message }
+        }
+      },
+      importData: async (file, opts) => {
+        let backup
+        try {
+          const text = await readTextFile(file)
+          backup = parseBackup(text)
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not read that backup'
+          return { ok: false, error: message }
+        }
+        const s = current()
+        const matters = s.accountEmail && opts?.intoEmail !== undefined
+        if (!matters && (await db.accountExists(backup.account.email))) {
+          return {
+            ok: false,
+            error: `An account already exists for ${backup.account.email}. Log in instead.`,
+          }
+        }
+        try {
+          await db.importAccount(backup, { newAccount: !matters })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Could not restore that backup'
+          return { ok: false, error: message }
+        }
+        _initialState = null
+        _initPromise = null
+        const fresh = await loadInitialState()
+        commit({ ...fresh, toast: 'Backup restored' })
+        const dest = backup.profile.onboarded ? '/home' : '/onboarding'
+        return { ok: true, dest }
       },
     }
   }, [state, hydrated, initError, hydrate, commit])

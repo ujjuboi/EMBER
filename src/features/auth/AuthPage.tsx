@@ -1,20 +1,38 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
 import { useStore } from '../../lib/store-hooks'
 
 export function AuthPage() {
-  const { signedIn, onboarded, createAccount, logIn } = useStore()
+  const { signedIn, onboarded, createAccount, logIn, importData } = useStore()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [restoring, setRestoring] = useState(false)
+  const restoreInputRef = useRef<HTMLInputElement>(null)
 
   if (signedIn && onboarded) return <Navigate to="/home" replace />
   if (signedIn && !onboarded) return <Navigate to="/onboarding" replace />
+
+  const onRestoreFile = async (file: File) => {
+    if (restoring) return
+    setRestoring(true)
+    try {
+      const result = await importData(file)
+      if (!result.ok) {
+        setError(result.error ?? 'Could not restore that backup')
+        return
+      }
+      setError('')
+      navigate(result.dest ?? '/home')
+    } finally {
+      setRestoring(false)
+    }
+  }
 
   const submit = async () => {
     if (submitting) return
@@ -101,6 +119,28 @@ export function AuthPage() {
             Already have an account? <span className="text-orange">Log in</span>
           </button>
         )}
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => restoreInputRef.current?.click()}
+            disabled={restoring}
+            className="w-full text-center text-sm text-muted"
+          >
+            {restoring ? 'Restoring…' : <span className="text-orange">Restore from backup</span>}
+          </button>
+          <input
+            ref={restoreInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) void onRestoreFile(file)
+              event.target.value = ''
+            }}
+          />
+        </div>
       </div>
     </div>
   )

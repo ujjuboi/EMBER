@@ -88,6 +88,7 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 - **Weights**: reps exercises carry a `weight_kg` plan value (Train stepper) that is stored on the plan row and copied into each logged `workout_set`.
 - **Plans are date-scoped**: the `plan` row writes `for_date` (today). `history` stays the date-rollup source of truth for calendars/streaks; `streak`/`steps`/`calories` are recomputed from history on hydrate so caches cannot drift.
 - Distribution is an **installable PWA** (manifest + service worker via `vite-plugin-pwa`), not a native wrapper. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
+- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
 
 Types: `src/lib/types.ts`.  
 Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  

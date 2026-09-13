@@ -28,6 +28,7 @@ export function TrainPage() {
     applyTrainerPlan,
     beginTrainerReview,
     beginWorkout,
+    showToast,
   } = useStore()
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
@@ -42,7 +43,10 @@ export function TrainPage() {
 
   const kitLabel = equipment.length ? equipment.map(equipmentLabel).join(', ') : 'No kit yet'
   const addable = libraryFor(trainerBodyPart, equipment).filter(
-    (exercise) => !plan.some((item) => item.exercise.id === exercise.id),
+    (exercise) =>
+      !plan.some(
+        (item) => item.exercise.name.trim().toLowerCase() === exercise.name.trim().toLowerCase(),
+      ),
   )
 
   const addLibrary = (exercise: Exercise) => {
@@ -53,7 +57,9 @@ export function TrainPage() {
       reps: exercise.defaultReps,
       seconds: exercise.defaultSeconds,
     }
-    addToPlan(item)
+    if (!addToPlan(item)) {
+      showToast('Already in plan')
+    }
   }
 
   const startLabel = workoutInProgress ? 'Continue session' : 'Start session'
@@ -364,7 +370,7 @@ function CustomForm({ onAdded }: { onAdded: () => void }) {
       setError('Hold at least 5 seconds')
       return
     }
-    addToPlan({
+    if (!addToPlan({
       uid: `custom-${crypto.randomUUID()}`,
       exercise: {
         id: 'custom',
@@ -382,7 +388,10 @@ function CustomForm({ onAdded }: { onAdded: () => void }) {
       sets: setsNum,
       reps: kind === 'reps' ? repsNum : undefined,
       seconds: kind === 'timed' ? secondsNum : undefined,
-    })
+    })) {
+      setError('Exercise already in plan')
+      return
+    }
     onAdded()
   }
 

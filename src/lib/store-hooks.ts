@@ -28,7 +28,7 @@ export type StoreValue = AppState & {
   }) => void
   setEquipment: (id: Equipment) => void
   addEquipment: (id: Equipment) => void
-  addToPlan: (item: PlannedExercise) => void
+  addToPlan: (item: PlannedExercise) => boolean
   updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number; weightKg?: number }) => void
   removeFromPlan: (uid: string) => void
   clearPlan: () => void
@@ -54,6 +54,11 @@ export type StoreValue = AppState & {
   showToast: (message: string) => void
   clearToast: () => void
   signOut: () => Promise<void>
+  exportData: () => Promise<{ ok: boolean; error?: string }>
+  importData: (
+    file: File,
+    opts?: { intoEmail?: string },
+  ) => Promise<{ ok: boolean; error?: string; dest?: '/home' | '/onboarding' }>
 }
 
 export const StoreContext = createContext<StoreValue | null>(null)

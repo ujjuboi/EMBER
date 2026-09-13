@@ -1,4 +1,25 @@
 import type { BodyPart, Equipment, Exercise, TrainerGoal } from '../data/exercises'
+import type { ProfileData } from './db'
+
+export type EmberBackup = {
+  app: 'ember'
+  schema: number
+  exportedAt: string
+  account: {
+    email: string
+    passwordHash: string
+    salt: string
+    createdAt: string
+  }
+  profile: ProfileData
+  history: HistoryItem[]
+  plan: { forDate: string; items: PlannedExercise[] }[]
+  partner: Partner
+  partnerLinked: boolean
+  partnerSince: string | null
+  workouts: Workout[]
+  workoutSets: WorkoutSet[]
+}
 
 export type PlanSource = 'trainer' | 'custom'
 export type TrainerPhase = 'pick' | 'review'

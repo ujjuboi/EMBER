@@ -1,25 +1,35 @@
 import { Capacitor } from '@capacitor/core'
 import { CapacitorSQLite } from '@capacitor-community/sqlite'
 import type {
-  HistoryItem, Partner, PlannedExercise, PlanSource, SessionProgress, TrainerPhase,
+  EmberBackup, HistoryItem, Partner, PlannedExercise, PlanSource, SessionProgress, TrainerPhase,
   Workout, WorkoutSet,
 } from '../types'
 import type { BodyPart, Equipment, TrainerGoal } from '../../data/exercises'
 import type { Exercise } from '../../data/exercises'
 import { isoDate } from '../dates'
-import { verify as verifyPassword } from '../password'
+import { generateSalt, hashPassword, verify as verifyPassword } from '../password'
 
 const DB_NAME = 'ember_db'
+
+// Dev-only convenience account, provisioned by ensureDevSeed().
+const DEV_ACCOUNT_EMAIL = 'dev@ember.app'
+const DEV_ACCOUNT_PASSWORD = 'dev1234'
 
 let _ready = false
 let _initPromise: Promise<void> | null = null
 
-// Serializes all DB writes so overlapping callers never interleave
+// Serializes all DB writes so overlapping callers never interleave.
+// On web the SQLite engine runs in-memory (sql.js); after each write the
+// database is saved back to the IndexedDB web store so a reload restores it.
 let _writeQueue: Promise<void> = Promise.resolve()
 
 function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   const run = _writeQueue.then(fn, fn)
-  _writeQueue = run.then(() => {})
+  _writeQueue = run.then(() =>
+    Capacitor.getPlatform() === 'web'
+      ? CapacitorSQLite.saveToStore({ database: DB_NAME })
+      : undefined,
+  )
   return run
 }
 
@@ -47,6 +57,9 @@ export async function initDb(): Promise<void> {
         await CapacitorSQLite.checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })
       }
       await createSchema()
+      if (Capacitor.getPlatform() === 'web') {
+        await CapacitorSQLite.saveToStore({ database: DB_NAME })
+      }
       _ready = true
     } catch (err) {
       console.error('[DB] Failed to initialize:', err)
@@ -374,6 +387,19 @@ export async function clearSession(): Promise<void> {
   })
 }
 
+// Dev-only: on first launch, provision a test account (onboarded, so it skips
+// onboarding) and sign in to it. Once the account exists this is a no-op, so a
+// manual logout stays logged out and real sessions are never overridden.
+export async function ensureDevSeed(): Promise<void> {
+  if (await accountExists(DEV_ACCOUNT_EMAIL)) return
+  const salt = await generateSalt()
+  const hash = await hashPassword(DEV_ACCOUNT_PASSWORD, salt)
+  await createAccountRow(DEV_ACCOUNT_EMAIL, hash, salt)
+  const profile = await loadProfile(DEV_ACCOUNT_EMAIL)
+  await saveProfile(DEV_ACCOUNT_EMAIL, { ...profile, onboarded: true })
+  await setSession(DEV_ACCOUNT_EMAIL)
+}
+
 // --- Profile ---
 
 export type ProfileData = {
@@ -452,14 +478,16 @@ function profileInsertStatement(accountEmail: string, p: ProfileData): { stateme
 }
 
 async function seedProfileRow(accountEmail: string): Promise<ProfileData> {
-  const data = defaultProfileData()
-  const insert = profileInsertStatement(accountEmail, data)
-  await CapacitorSQLite.run({
-    database: DB_NAME,
-    statement: insert.statement,
-    values: insert.values,
+  return enqueue(async () => {
+    const data = defaultProfileData()
+    const insert = profileInsertStatement(accountEmail, data)
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: insert.statement,
+      values: insert.values,
+    })
+    return data
   })
-  return data
 }
 
 function rowToProfile(row: Record<string, unknown>): ProfileData {
@@ -622,16 +650,8 @@ export async function loadWorkoutInProgress(accountEmail: string): Promise<Worko
   return rowToWorkout(rows[0])
 }
 
-export async function loadWorkoutSets(workoutId: string): Promise<WorkoutSet[]> {
-  const result = await CapacitorSQLite.query({
-    database: DB_NAME,
-    statement: `SELECT id, workout_id, position, exercise_id, exercise_name, kind, set_no,
-      reps, seconds, weight_kg, done FROM workout_set WHERE workout_id = ? ORDER BY position, set_no`,
-    values: [workoutId],
-  })
-  const rows = result.values as Record<string, unknown>[] | undefined
-  if (!rows) return []
-  return rows.map((row) => ({
+function mapWorkoutSetRow(row: Record<string, unknown>): WorkoutSet {
+  return {
     id: String(row.id),
     workoutId: String(row.workout_id),
     position: Number(row.position) || 0,
@@ -643,7 +663,19 @@ export async function loadWorkoutSets(workoutId: string): Promise<WorkoutSet[]> 
     seconds: row.seconds != null ? Number(row.seconds) : undefined,
     weightKg: row.weight_kg != null ? Number(row.weight_kg) : undefined,
     done: !!row.done,
-  }))
+  }
+}
+
+export async function loadWorkoutSets(workoutId: string): Promise<WorkoutSet[]> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: `SELECT id, workout_id, position, exercise_id, exercise_name, kind, set_no,
+      reps, seconds, weight_kg, done FROM workout_set WHERE workout_id = ? ORDER BY position, set_no`,
+    values: [workoutId],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows) return []
+  return rows.map(mapWorkoutSetRow)
 }
 
 export async function saveWorkout(workout: Workout): Promise<void> {
@@ -836,10 +868,13 @@ export async function loadPartner(accountEmail: string): Promise<{ partner: Part
   })
   const rows = result.values as Record<string, unknown>[] | undefined
   if (!rows || rows.length === 0) {
-    await CapacitorSQLite.run({
-      database: DB_NAME,
-      statement: partnerInsertStatement(accountEmail).statement,
-      values: partnerInsertStatement(accountEmail).values,
+    await enqueue(async () => {
+      const insert = partnerInsertStatement(accountEmail)
+      await CapacitorSQLite.run({
+        database: DB_NAME,
+        statement: insert.statement,
+        values: insert.values,
+      })
     })
     return loadPartner(accountEmail)
   }
@@ -864,6 +899,224 @@ export async function updatePartnerLinked(accountEmail: string, linked: boolean,
       database: DB_NAME,
       statement: 'UPDATE partner SET partner_linked = ?, partner_since = ? WHERE account_email = ?',
       values: [linked ? 1 : 0, since, accountEmail],
+    })
+  })
+}
+
+// --- Backup / restore ---
+
+function workoutInsertStatement(w: Workout): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO workout (
+      id, account_email, date, status, started_at, finished_at, title, duration_min,
+      calories, body_part, plan_for_date, current_index, current_set, phase, elapsed,
+      kcal, rest_seconds, work_seconds, sets_logged, exercises_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      w.id,
+      w.accountEmail,
+      w.date,
+      w.status,
+      w.startedAt,
+      w.finishedAt,
+      w.title,
+      w.durationMin,
+      w.calories,
+      w.bodyPart,
+      w.planForDate,
+      w.currentIndex,
+      w.currentSet,
+      w.phase,
+      w.elapsed,
+      w.kcal,
+      w.restSeconds,
+      w.workSeconds,
+      w.setsLogged,
+      w.exercises ? JSON.stringify(w.exercises) : null,
+    ],
+  }
+}
+
+function workoutSetInsertStatement(ws: WorkoutSet): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO workout_set (
+      id, workout_id, position, exercise_id, exercise_name, kind,
+      set_no, reps, seconds, weight_kg, done
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      ws.id,
+      ws.workoutId,
+      ws.position,
+      ws.exerciseId,
+      ws.exerciseName,
+      ws.kind,
+      ws.setNo,
+      ws.reps ?? null,
+      ws.seconds ?? null,
+      ws.weightKg ?? null,
+      ws.done ? 1 : 0,
+    ],
+  }
+}
+
+function planInsertStatement(accountEmail: string, item: PlannedExercise, forDate: string): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO plan (account_email, uid, exercise, sets, reps, seconds, for_date, weight_kg)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      accountEmail,
+      item.uid,
+      JSON.stringify(item.exercise),
+      item.sets,
+      item.reps || null,
+      item.seconds || null,
+      forDate,
+      item.weightKg ?? null,
+    ],
+  }
+}
+
+function historyInsertStatement(accountEmail: string, item: HistoryItem): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO history (account_email, id, name, date, date_label, duration_min, calories, body_part, rest, sessions)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      accountEmail, item.id, item.name, item.date, item.dateLabel,
+      item.durationMin, item.calories,
+      item.bodyPart || null,
+      item.rest ? 1 : 0,
+      item.sessions || null,
+    ],
+  }
+}
+
+function partnerInsertFullStatement(accountEmail: string, p: Partner, linked: boolean, since: string | null): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [accountEmail, p.name, p.streak, p.steps, p.calories, p.lastWorkout, JSON.stringify(p.history), linked ? 1 : 0, since],
+  }
+}
+
+export async function exportAccount(accountEmail: string): Promise<EmberBackup> {
+  const accountResult = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT email, password_hash, salt, created_at FROM account WHERE email = ?',
+    values: [accountEmail],
+  })
+  const accountRows = accountResult.values as Record<string, unknown>[] | undefined
+  const accountRow = accountRows?.[0]
+  if (!accountRow) throw new Error('Account not found')
+
+  const workoutResult = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT * FROM workout WHERE account_email = ? ORDER BY started_at',
+    values: [accountEmail],
+  })
+  const workoutRows = workoutResult.values as Record<string, unknown>[] | undefined ?? []
+  const workouts = workoutRows.map(rowToWorkout)
+
+  let workoutSets: WorkoutSet[] = []
+  if (workouts.length > 0) {
+    const workoutIds = workouts.map((w) => w.id)
+    const placeholders = workoutIds.map(() => '?').join(', ')
+    const setResult = await CapacitorSQLite.query({
+      database: DB_NAME,
+      statement: `SELECT id, workout_id, position, exercise_id, exercise_name, kind, set_no,
+        reps, seconds, weight_kg, done FROM workout_set
+        WHERE workout_id IN (${placeholders}) ORDER BY workout_id, position, set_no`,
+      values: workoutIds,
+    })
+    workoutSets = (setResult.values as Record<string, unknown>[] | undefined ?? []).map(mapWorkoutSetRow)
+  }
+
+  const planResult = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT * FROM plan WHERE account_email = ? ORDER BY for_date',
+    values: [accountEmail],
+  })
+  const planRows = planResult.values as Record<string, unknown>[] | undefined ?? []
+  const planByDate = new Map<string, PlannedExercise[]>()
+  for (const row of planRows) {
+    const forDate = String(row.for_date ?? isoDate())
+    const items = planByDate.get(forDate) ?? []
+    items.push({
+      uid: String(row.uid),
+      exercise: JSON.parse(String(row.exercise)) as Exercise,
+      sets: Number(row.sets) || 1,
+      reps: row.reps ? Number(row.reps) : undefined,
+      seconds: row.seconds ? Number(row.seconds) : undefined,
+      weightKg: row.weight_kg != null ? Number(row.weight_kg) : undefined,
+    })
+    planByDate.set(forDate, items)
+  }
+
+  const [profile, history, partnerData] = await Promise.all([
+    loadProfile(accountEmail),
+    loadHistory(accountEmail),
+    loadPartner(accountEmail),
+  ])
+
+  return {
+    app: 'ember',
+    schema: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    account: {
+      email: String(accountRow.email),
+      passwordHash: String(accountRow.password_hash),
+      salt: String(accountRow.salt),
+      createdAt: String(accountRow.created_at),
+    },
+    profile,
+    history,
+    plan: Array.from(planByDate.entries()).map(([forDate, items]) => ({ forDate, items })),
+    partner: partnerData.partner,
+    partnerLinked: partnerData.partnerLinked,
+    partnerSince: partnerData.partnerSince,
+    workouts,
+    workoutSets,
+  }
+}
+
+function replaceAccountStatements(backup: EmberBackup): { statement: string; values: unknown[] }[] {
+  const email = backup.account.email
+  const planStatements = backup.plan.flatMap(({ forDate, items }) =>
+    items.map((item) => planInsertStatement(email, item, forDate)),
+  )
+  return [
+    {
+      statement: `DELETE FROM workout_set WHERE workout_id IN (SELECT id FROM workout WHERE account_email = ?)`,
+      values: [email],
+    },
+    { statement: 'DELETE FROM workout WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM plan WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM history WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM partner WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM profile WHERE account_email = ?', values: [email] },
+    profileInsertStatement(email, backup.profile),
+    partnerInsertFullStatement(email, backup.partner, backup.partnerLinked, backup.partnerSince),
+    ...backup.history.map((item) => historyInsertStatement(email, item)),
+    ...planStatements,
+    ...backup.workouts.map(workoutInsertStatement),
+    ...backup.workoutSets.map(workoutSetInsertStatement),
+  ]
+}
+
+export async function importAccount(backup: EmberBackup, opts: { newAccount: boolean }): Promise<void> {
+  const email = backup.account.email
+  return enqueue(async () => {
+    const set = replaceAccountStatements(backup)
+    if (opts.newAccount) {
+      set.unshift({
+        statement: 'INSERT OR IGNORE INTO account (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)',
+        values: [email, backup.account.passwordHash, backup.account.salt, backup.account.createdAt],
+      })
+      set.push({ statement: 'UPDATE session SET active_email = ? WHERE id = 1', values: [email] })
+    }
+    await CapacitorSQLite.executeSet({
+      database: DB_NAME,
+      set,
+      transaction: true,
     })
   })
 }

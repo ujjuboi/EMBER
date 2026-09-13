@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Confirm } from '../../components/ui/Confirm'
@@ -7,6 +7,7 @@ import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
+import { parseBackup, readTextFile } from '../../lib/backup'
 import { partnersSinceLabel } from '../../lib/dates'
 import { useStore } from '../../lib/store-hooks'
 import { KitChips } from '../trainer/KitChips'
@@ -18,6 +19,7 @@ function sameKit(a: Equipment[], b: Equipment[]) {
 export function YouPage() {
   const navigate = useNavigate()
   const {
+    accountEmail,
     displayName,
     weightKg,
     heightFt,
@@ -31,6 +33,9 @@ export function YouPage() {
     updateProfile,
     unlinkPartner,
     signOut,
+    exportData,
+    importData,
+    showToast,
   } = useStore()
   const [weight, setWeight] = useState(String(weightKg))
   const [feet, setFeet] = useState(String(heightFt))
@@ -40,6 +45,26 @@ export function YouPage() {
   const [kit, setKit] = useState<Equipment[]>(equipment)
   const [error, setError] = useState('')
   const [unlinkOpen, setUnlinkOpen] = useState(false)
+  const [restorePick, setRestorePick] = useState<{ file: File; email: string } | null>(null)
+  const restoreInputRef = useRef<HTMLInputElement>(null)
+
+  const onRestoreFile = async (file: File) => {
+    try {
+      const text = await readTextFile(file)
+      const backup = parseBackup(text)
+      setRestorePick({ file, email: backup.account.email })
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Not a valid backup')
+    }
+  }
+
+  const runRestore = async () => {
+    const pending = restorePick
+    if (!pending) return
+    setRestorePick(null)
+    const result = await importData(pending.file, { intoEmail: accountEmail ?? undefined })
+    if (!result.ok && result.error) showToast(result.error)
+  }
 
   const dirty =
     weight !== String(weightKg) ||
@@ -143,6 +168,36 @@ export function YouPage() {
       ) : null}
 
       <section className="mt-10 space-y-3">
+        <div className="w-full">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Back up your data</p>
+          <p className="mt-2 text-sm text-muted">
+            Export your data as a file and keep it safe — iCloud Drive, Drive or email. Restoring replaces this
+            account's data with the backup's.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Button variant="line" block onClick={() => void exportData()}>
+              Export
+            </Button>
+            <Button variant="line" block onClick={() => restoreInputRef.current?.click()}>
+              Restore
+            </Button>
+          </div>
+        </div>
+
+        <input
+          ref={restoreInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) void onRestoreFile(file)
+            event.target.value = ''
+          }}
+        />
+      </section>
+
+      <section className="mt-4 space-y-3">
         <Button
           variant="line"
           block
@@ -154,6 +209,20 @@ export function YouPage() {
           Log out
         </Button>
       </section>
+
+      {restorePick ? (
+        <Confirm
+          title={restorePick.email === accountEmail ? 'Replace your data?' : `Replace ${accountEmail} with ${restorePick.email}?`}
+          body={
+            restorePick.email === accountEmail
+              ? 'This backup is for the current account. Restoring will replace its profile, history, plans and workouts with the backup contents.'
+              : `This backup is for ${restorePick.email} but will restore into ${accountEmail}. Every row in this account is replaced by the backup's contents.`
+          }
+          confirm="Restore"
+          onCancel={() => setRestorePick(null)}
+          onConfirm={() => void runRestore()}
+        />
+      ) : null}
 
       {unlinkOpen ? (
         <Confirm
