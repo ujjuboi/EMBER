@@ -97,6 +97,7 @@ function prescribe(exercise: Exercise, goal: TrainerGoal): PlannedExercise {
     sets: clone.defaultSets,
     reps: clone.kind === 'reps' ? clone.defaultReps : undefined,
     seconds: clone.kind === 'timed' ? clone.defaultSeconds : undefined,
+    weightKg: clone.kind === 'reps' ? 5 : undefined,
   }
 }
 

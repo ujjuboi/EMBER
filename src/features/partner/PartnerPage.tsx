@@ -11,7 +11,7 @@ export function PartnerPage() {
   const { partner, partnerLinked, streak, steps, calories, history, showToast } = useStore()
   const [selected, setSelected] = useState(isoDate)
 
-  if (!partnerLinked) {
+  if (!partnerLinked || !partner.name) {
     return (
       <div className="px-5 pb-28 pt-8">
         <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Partner</p>

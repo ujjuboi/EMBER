@@ -33,8 +33,10 @@ export function TrainPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (workoutInProgress) return
     if (trainerPhase === 'pick') beginTrainerReview()
-    // Generate once on first visit; continue-session keeps the current plan.
+    // Generate once when no session is in progress; an in-progress workout
+    // keeps its own saved plan snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -107,7 +109,7 @@ export function TrainPage() {
                       <X size={16} />
                     </button>
                   </div>
-                  <div className="mt-1.5 flex gap-4">
+                  <div className="mt-1.5 flex gap-4 overflow-x-auto">
                     <Stepper
                       label="Sets"
                       value={item.sets}
@@ -122,11 +124,20 @@ export function TrainPage() {
                         onChange={(seconds) => updatePlan(item.uid, { seconds })}
                       />
                     ) : (
-                      <Stepper
-                        label="Reps"
-                        value={item.reps ?? 1}
-                        onChange={(reps) => updatePlan(item.uid, { reps })}
-                      />
+                      <>
+                        <Stepper
+                          label="Reps"
+                          value={item.reps ?? 1}
+                          onChange={(reps) => updatePlan(item.uid, { reps })}
+                        />
+                        <Stepper
+                          label="kg"
+                          value={item.weightKg ?? 0}
+                          step={2.5}
+                          min={0}
+                          onChange={(weightKg) => updatePlan(item.uid, { weightKg })}
+                        />
+                      </>
                     )}
                   </div>
                 </div>

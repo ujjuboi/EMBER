@@ -125,7 +125,7 @@ export function YouPage() {
         </div>
       ) : null}
 
-      {partnerLinked ? (
+      {partnerLinked && partner.name ? (
         <section className="mt-10">
           <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Partner</p>
           <div className="mt-2 flex items-start justify-between gap-3">

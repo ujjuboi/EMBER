@@ -6,28 +6,52 @@ import { Timer } from '../../components/ui/Timer'
 import { estimateKcal } from '../../lib/calories'
 import { formatClock } from '../../lib/format'
 import { useStore } from '../../lib/store-hooks'
-import type { PlannedExercise } from '../../lib/types'
+import type { Workout, WorkoutSet } from '../../lib/types'
 
 type Phase = 'work' | 'rest' | 'done'
 
+function resumeDefaults(workout: Workout | null) {
+  return {
+    index: workout?.currentIndex ?? 0,
+    setNo: workout?.currentSet ?? 0,
+    phase: (workout && workout.phase !== 'done' ? workout.phase : 'work') as Phase,
+    elapsed: workout?.elapsed ?? 0,
+    kcal: workout?.kcal ?? 0,
+  }
+}
+
 export function SessionPage() {
   const navigate = useNavigate()
-  const { plan: storePlan, weightKg, trainerBodyPart, finishWorkout, clearPlan } = useStore()
-  const [session] = useState<PlannedExercise[]>(() => storePlan)
-  const [index, setIndex] = useState(0)
-  const [setNo, setSetNo] = useState(0)
-  const [phase, setPhase] = useState<Phase>('work')
-  const [restLeft, setRestLeft] = useState(0)
+  const {
+    plan: storePlan,
+    weightKg,
+    trainerBodyPart,
+    workingWorkout,
+    finishWorkout,
+    abandonWorkout,
+    persistSessionProgress,
+  } = useStore()
+
+  const workoutId = workingWorkout?.status === 'in_progress' ? workingWorkout.id : null
+
+  const init = resumeDefaults(workoutId ? workingWorkout : null)
+  const snapshot = (workoutId ? workingWorkout?.exercises : null) ?? storePlan
+  const [session] = useState(() => snapshot)
+  const [index, setIndex] = useState(init.index)
+  const [setNo, setSetNo] = useState(init.setNo)
+  const [phase, setPhase] = useState<Phase>(init.phase)
+  const [restLeft, setRestLeft] = useState(init.phase === 'rest' ? (workingWorkout?.restSeconds ?? 0) : 0)
   const [workLeft, setWorkLeft] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-  const [kcal, setKcal] = useState(0)
+  const [elapsed, setElapsed] = useState(init.elapsed)
+  const [kcal, setKcal] = useState(init.kcal)
   const [pulse, setPulse] = useState(false)
   const finishing = useRef(false)
   const busy = useRef(false)
   const pendingAdvance = useRef(false)
   const loggedRef = useRef(0)
-  const kcalRef = useRef(0)
-  const elapsedRef = useRef(0)
+  const kcalRef = useRef(init.kcal)
+  const elapsedRef = useRef(init.elapsed)
+  const loggedSetsRef = useRef<WorkoutSet[]>([])
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logSetRef = useRef<() => void>(() => {})
   const startNextWorkRef = useRef<() => void>(() => {})
@@ -53,12 +77,16 @@ export function SessionPage() {
   }, [phase])
 
   const startNextWork = () => {
-    if (pendingAdvance.current) {
+    const pending = pendingAdvance.current
+    const resolvedIndex = pending ? index + 1 : index
+    const resolvedSet = pending ? 0 : setNo + 1
+    persist({ currentIndex: resolvedIndex, currentSet: resolvedSet, phase: 'work', restSeconds: 0 })
+    if (pending) {
       pendingAdvance.current = false
-      setIndex((n) => n + 1)
+      setIndex(resolvedIndex)
       setSetNo(0)
     } else {
-      setSetNo((n) => n + 1)
+      setSetNo(resolvedSet)
     }
     setPhase('work')
   }
@@ -93,15 +121,53 @@ export function SessionPage() {
     return () => window.clearInterval(id)
   }, [phase, index, setNo, item])
 
-  const finish = (calories: number) => {
-    if (finishing.current || !item) return
+  // Write the resume row once at mount so even a fresh session has a row to resume.
+  useEffect(() => {
+    if (!workoutId || session.length === 0) return
+    persist({ restSeconds: phase === 'rest' ? restLeft : 0, workSeconds: workLeft })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const persist = (overrides?: Partial<{
+    restSeconds: number
+    workSeconds: number
+    currentSet?: number
+    currentIndex?: number
+    phase?: Phase
+  }>) => {
+    const resolvedSet = overrides?.currentSet ?? setNo
+    const resolvedIndex = overrides?.currentIndex ?? index
+    const resolvedPhase = overrides?.phase ?? phase
+    const currentExercise = session[resolvedIndex]
+    if (!currentExercise) return
+    persistSessionProgress({
+      currentIndex: resolvedIndex,
+      currentSet: resolvedSet,
+      phase: resolvedPhase,
+      elapsed: elapsedRef.current,
+      kcal: kcalRef.current,
+      restSeconds: overrides?.restSeconds ?? (resolvedPhase === 'rest' ? restLeft : 0),
+      workSeconds: overrides?.workSeconds ?? workLeft,
+      setsLogged: loggedRef.current,
+    })
+  }
+
+  const finish = () => {
+    if (finishing.current || !item || !workoutId) return
     finishing.current = true
     setPhase('done')
-    const firstName = session[0]?.exercise.name ?? item.exercise.name
-    const title = session.length === 1 ? item.exercise.name : `${firstName} mix`
+    const firstItem = session[0] ?? item
+    const title = session.length === 1 ? firstItem.exercise.name : `${firstItem.exercise.name} mix`
     const durationMin = Math.max(1, Math.round(elapsedRef.current / 60))
     finishTimeoutRef.current = window.setTimeout(() => {
-      finishWorkout({ title, durationMin, calories, bodyPart: trainerBodyPart })
+      finishWorkout({
+        workoutId,
+        title,
+        durationMin,
+        calories: kcalRef.current,
+        bodyPart: trainerBodyPart,
+        workoutSets: loggedSetsRef.current,
+      })
       navigate('/home')
     }, 1400)
   }
@@ -118,18 +184,36 @@ export function SessionPage() {
     })
     const nextKcal = kcalRef.current + gained
     kcalRef.current = nextKcal
+    const setNoNow = setNo
+    loggedSetsRef.current = [
+      ...loggedSetsRef.current,
+      {
+        id: crypto.randomUUID(),
+        workoutId: '',
+        position: index,
+        exerciseId: item.exercise.id,
+        exerciseName: item.exercise.name,
+        kind: item.exercise.kind,
+        setNo: setNoNow + 1,
+        reps: item.exercise.kind === 'reps' ? item.reps : undefined,
+        seconds: item.exercise.kind === 'timed' ? item.seconds : undefined,
+        weightKg: item.weightKg,
+        done: true,
+      },
+    ]
     loggedRef.current += 1
     setKcal(nextKcal)
 
-    const lastSet = setNo + 1 >= item.sets
+    const lastSet = setNoNow + 1 >= item.sets
     const lastMove = index + 1 >= session.length
     if (lastSet && lastMove) {
-      finish(nextKcal)
+      finish()
       return
     }
     pendingAdvance.current = lastSet
     setRestLeft(item.exercise.restSeconds)
     setPhase('rest')
+    persist({ restSeconds: item.exercise.restSeconds, workSeconds: workLeft, currentSet: setNoNow })
   }
 
   logSetRef.current = logSet
@@ -138,11 +222,11 @@ export function SessionPage() {
 
   const endEarly = () => {
     if (loggedRef.current === 0) {
-      clearPlan()
+      if (workoutId) abandonWorkout(workoutId)
       navigate('/train')
       return
     }
-    finish(kcalRef.current)
+    finish()
   }
 
   const coachPhase = phase === 'done' ? 'celebrate' : phase === 'rest' ? 'rest' : 'work'

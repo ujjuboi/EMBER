@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { BodyPart, Equipment, TrainerGoal } from '../data/exercises'
-import type { AppState, PlannedExercise } from './types'
+import type { AppState, PlannedExercise, SessionProgress, WorkoutSet } from './types'
 
 export type StoreValue = AppState & {
   ready: boolean
@@ -29,16 +29,25 @@ export type StoreValue = AppState & {
   setEquipment: (id: Equipment) => void
   addEquipment: (id: Equipment) => void
   addToPlan: (item: PlannedExercise) => void
-  updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number }) => void
+  updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number; weightKg?: number }) => void
   removeFromPlan: (uid: string) => void
   clearPlan: () => void
   beginWorkout: () => void
+  persistSessionProgress: (progress: SessionProgress) => void
+  abandonWorkout: (workoutId: string) => void
   setTrainerFocus: (input: { bodyPart: BodyPart; goal: TrainerGoal }) => void
   setTrainerDay: (day: number) => void
   applyTrainerPlan: () => void
   beginTrainerReview: () => void
   backToTrainerPick: () => void
-  finishWorkout: (input: { title: string; durationMin: number; calories: number; bodyPart?: BodyPart }) => void
+  finishWorkout: (input: {
+    workoutId: string
+    title: string
+    durationMin: number
+    calories: number
+    bodyPart?: BodyPart
+    workoutSets: WorkoutSet[]
+  }) => void
   logRestDay: () => void
   unlinkPartner: () => void
   linkPartner: (code: string) => { ok: boolean; error?: string }

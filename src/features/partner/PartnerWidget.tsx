@@ -63,7 +63,7 @@ export function PartnerWidget() {
   const raeToday = partner.history.find((item) => item.date === today)
   const canRemind = !raeToday
 
-  if (!partnerLinked) {
+  if (!partnerLinked || !partner.name) {
     return <HomePairTeaser />
   }
 

@@ -1,131 +1,208 @@
-# Phase 1 — Real persistence via Capacitor + SQLite/Drizzle
+# Phase 1 — Local persistence, accounts, and PWA delivery
+
+## Status
+
+**Shipped.** Implemented across commits `e881a75`, `9a0c323`, `4823141`,
+`77fcfb5`, `af979d6`, `7f0dd4b`. The remaining open item is on-device install
+verification (Android + iOS PWA install and offline round-trip — tracked in
+GitHub issue #4).
 
 ## Goal
 
-Turn EMBER into a real mobile app where all data lives on-device in an
-encrypted-capable SQLite DB, survives app restarts, and the UI keeps the exact
-same `AppState` shape + action names (per HANDOFF.md) so screens stay
-untouched.
+Turn EMBER into a real app where:
 
-## Steps
+1. All data lives on-device in SQLite (IndexedDB/OPFS on web via jeep-sqlite),
+   survives app restarts.
+2. Real local accounts with PBKDF2 password hashing — each account's data is
+   fully isolated.
+3. Installable as a PWA on Android and iOS — no App Store, no code signing.
+4. The UI keeps the exact `AppState` shape and action names (per HANDOFF.md)
+   so screens stay untouched.
 
-### 1. Wrap the app in Capacitor
+No backend exists; there are zero network calls in `src/`. All user data stays
+in the browser's storage sandbox. Netlify/Vercel only serve static files.
 
-- Add `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/ios`
-- Add `capacitor.config.ts` (`webDir: 'dist'`)
-- `npx cap add android` && `npx cap add ios`, then `npx cap sync`
-- Vite build output stays `dist/`; web dev (`npm run dev`) keeps working as the fast test loop
+---
 
-### 2. SQLite data layer (`src/lib/db/`)
+## Steps (as implemented)
 
-- Install `@capacitor-community/sqlite` (`jeep-sqlite` as a direct dependency for
-  the web target)
-- Hand-written typed SQL (no ORM — see "Plan deviations") mapping the entities in
-  `types.ts`:
-  - `profile` (single row: displayName, weightKg, heightFt/In, stepGoal,
-    signedIn, accountEmail, onboarded, trainerPhase/Day/Goal, equipment set)
-  - `history` (`HistoryItem[]` — keyed by ISO date, keeping the 1-row-per-day rule)
-  - `plan` (`PlannedExercise[]` — ordered rows with uid)
-  - `partner` (Partner object + partnerLinked, partnerSince)
-  - Scalar counters (`steps`, `calories`, etc.) live in the `profile` row
-- Schema is created idempotently (`CREATE TABLE IF NOT EXISTS`) on first launch;
-  no migration framework needed for Phase 1
+### 1. SQLite data layer (`src/lib/db/index.ts`)
 
-### 3. Rework `store.tsx` backend (keep every action name & signature)
+- `@capacitor-community/sqlite` with hand-written typed SQL (no ORM).
+- **Schema v2** — version-gated via `PRAGMA user_version` (drop-recreate on
+  upgrade, wiping demo/prototype data):
+  - `account` — email (PK), password_hash, salt, created_at
+  - `session` — singleton row holding the active_email (NULL = logged out)
+  - `profile` — one row per account (displayName, weightKg, heightFt/In,
+    stepGoal, onboarded, trainerPhase/Day/BodyPart/Goal, equipment, partnerLinked,
+    partnerSince, streak, steps, calories, workoutDoneToday, workoutInProgress,
+    planSource, updated_at)
+  - `history` — keyed by `(account_email, date)`, 1 row per day
+  - `plan` — keyed by `(account_email, uid)`, ordered rows
+  - `partner` — one row per account (name, streak, steps, calories,
+    lastWorkout, history, partnerLinked, partnerSince)
+- Schema is created idempotently on first launch; `CREATE TABLE IF NOT EXISTS`
+  handles normal startup; the PRAGMA path handles v1→v2 upgrades.
 
-- Replace the `sessionStorage` load/persist funnel (`ember-prototype-v5`) with
-  SQLite read/write
-- `loadState` becomes async → reconstruct the exact `AppState` from tables
-- `commit` becomes write-through per entity (profile/history/plan/partner
-  scattered into their tables), debounced (400 ms) to avoid write storms during
-  timers, with writes serialized through a queue and atomic via `executeSet`
-  transactions
-- Gate app mount on a `ready` flag (the existing `Shell` gate pattern) so
-  screens render only after the DB loads; DB failures surface a retry UI
-- One-time migration: if the legacy `ember-prototype-v5` key exists, import it
-  into SQLite then drop it
+### 2. Password hashing (`src/lib/password.ts`)
 
-### 4. Web fallback
+- `crypto.subtle.pbkdf2` (built-in, no dependency), SHA-256.
+- Per-user 16-byte salt (`crypto.getRandomValues`), hex-encoded.
+- 100k iterations, 256-bit output, hex-encoded.
+- Exports: `generateSalt()`, `hashPassword(password, salt)`,
+  `verify(password, salt, hash)`.
+- `verify` performs constant-time hex comparison.
 
-- `@capacitor-community/sqlite` supports a web target (IndexedDB-backed), so
-  `npm run dev` / `npm run build` + browser testing still work without a device
+### 3. Store backend (`src/lib/store.tsx` + `src/lib/store-hooks.ts`)
 
-### 5. Verify
+- `hydrate` reads `db.getSession()` → loads that account's profile/history/plan/
+  partner → composes `AppState` (signedIn: true). No session → `seedState`
+  (signedIn: false, seeded defaults).
+- **`createAccount`** (async): validates email + password, hashes, inserts
+  account+seeded profile+seeded partner, sets session, commits with
+  `signedIn: true`.
+- **`logIn`** (async): verifies credentials, sets session, loads all data,
+  commits full `AppState`, returns dest (`/home` or `/onboarding`).
+- **`signOut`** (async): clears session, commits `signedIn: false`. Account
+  data stays in DB.
+- All `persist*` helpers pass `state.accountEmail` into db calls (no-op when
+  null, which only happens in unsigned-in state).
+- `commit` writes to pending stateRef + React state, then flushes to DB:
+  - Default path: debounced (400 ms) to avoid write storms during timers.
+  - `opts.immediate: true` for session-critical transitions (`beginWorkout`,
+    `finishWorkout`, `clearPlan`, `logRestDay`) so `workoutInProgress` and
+    workout results persist instantly — survives app kill mid-session.
+- `flushWrites` is awaitable; failed writes are logged and restored to
+  `pendingStateRef` for a retry on a 4 s delay (gated to avoid clobbering
+  newer writes).
+- Init failure tears down the partial connection (`CapacitorSQLite.close()`)
+  before clearing `_initPromise`, so "Try again" is idempotent and never
+  hits "connection already exists".
 
-- `npm run lint` + `npm run build` (tsc strict) green
-- `npx cap open <platform>` → confirm: sign up, onboard, log a workout,
-  restart the app → data persists
-- Confirm timers/session flow unaffected since live-session state stays
-  component-local
+### 4. Web store + checked-in WASM
 
-## Non-goals (Phase 2+ backlog)
+- `<jeep-sqlite>` element in `index.html`, `initWebStore()` in `main.tsx`.
+- `sql-wasm.wasm` vendored from `sql.js@1.12.0` at `public/assets/sql-wasm.wasm`
+  — newer sql.js is ABI-incompatible with jeep-sqlite and causes infinite
+  "Loading…" on web.
+- On web, `checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })`
+  keeps the connection open (omitting `openModes` would close it).
 
-- P2P WebSocket server/client sync, 6-char pairing, `partner_snapshot` tables
-  when a partner's data arrives as read-only replicas
-- Share-config UI (which fields to expose) and sync trigger (manual + on
-  partner page open)
-- BLE fallback transport, background sync, multi-partner
-- SQLCipher on-disk encryption — designed for later via a config flag, not
-  enabled now
+### 5. PWA build (`vite.config.ts`)
 
-## Key risk
+- `vite-plugin-pwa` (`registerType: autoUpdate`, `injectRegister: auto`):
+  - Manifest: EMBER, `display: standalone`, portrait, black/orange theme.
+  - Icons 192/512/maskable-512 + apple-touch-icon, generated from
+    `favicon.svg` via `scripts/generate-icons.mjs` (`sharp` devDependency).
+  - Workbox precaches the shell + `assets/sql-wasm.wasm` via glob
+    (`**/*.{js,css,html,wasm,svg,png,webmanifest}`); runtime **CacheFirst**
+    for Google Fonts.
+- Native removed: `android/`, `ios/`, `capacitor.config.ts` deleted;
+  `@capacitor/android`, `@capacitor/ios`, `@capgo/capacitor-updater` dropped.
+- **Kept** (web persistence bridge, not native scaffolding): `@capacitor/core`,
+  `@capacitor-community/sqlite`, `jeep-sqlite`.
 
-`store.tsx` is currently synchronous; moving to async persistence touches its
-callers. Mitigation is the `ready` gate + preserving action signatures, so
-screen-level code changes only where unavoidable. If touching `Shell.tsx`
-should be avoided, hydration can stay transparent via a
-`useSyncExternalStore`-style hook instead.
+### 6. Docs
+
+- **README.md** — Persistence rewritten to SQLite/OPFS; new "Install as an app"
+  section; Tech Stack + Scripts table updated.
+- **HANDOFF.md** — "How state works" rewritten; live-prototype section
+  replaced; "Turning this into a real app" points at PWA.
+- **AGENTS.md** — Persistence described as SQLite-backed, offline-capable PWA.
+- **This file** — single source of truth for Phase 1 decisions and steps.
+
+### 7. Verify
+
+```bash
+npm run lint
+npm run build
+npm run preview
+```
+
+- `dist/` contains `sw.js`, `manifest.webmanifest`, `icons/*`.
+- Preview: offline reload works; Lighthouse reports "Installable".
+- On-device: Android Chrome install prompt; iOS Safari Add-to-Home-Screen;
+  account sign-up → onboard → workout → kill → relaunch → data persists;
+  sign out → sign in as a different account → isolated data.
+- Confirm timers/session flow unaffected (live-session state stays
+  component-local).
+
+---
+
+## Plan deviations (decided during Phase 1)
+
+- **Drizzle dropped.** Originally planned as `@capawesome/capacitor-sqlite-
+  drizzle` + `drizzle-orm`. The adapter requires the license-gated
+  `@capawesome-team/capacitor-sqlite` plugin; `@capacitor-community/sqlite`
+  has no official Drizzle driver. Shipped as hand-written typed SQL instead.
+  `drizzle-kit`, `drizzle-orm`, `better-sqlite3`, and `src/lib/db/schema.ts`
+  were removed.
+- **`workoutInProgress` is persisted** (not strictly component-local) so an
+  app kill mid-session shows "Continue session" on relaunch. Timers remain
+  component-local.
+- **Fresh install starts partner unlinked** (`partnerLinked = 0`) — the DB
+  seed does not auto-link Rae; the pairing panel is the first-run experience.
+- **Session-critical transitions flush immediately** (`beginWorkout`,
+  `finishWorkout`, `clearPlan`, `logRestDay`) to avoid data loss within the
+  400 ms debounce window.
+- **Native Capacitor dropped.** `android/` and `ios/` were built during early
+  Phase 1 but replaced by an installable PWA once it became clear that iOS
+  cannot be distributed via GitHub APKs and App Store distribution was out of
+  scope.
+
+---
 
 ## Decisions locked
 
-- Packaging: Capacitor (native shell around the existing React app)
-- Local DB: SQLite via the free `@capacitor-community/sqlite` plugin, hand-written
-  typed SQL in `src/lib/db/` (see "Plan deviations" below — Drizzle was dropped)
-- Pairing/discovery: 6-char code (reuse EMBER9-style UX; code embeds host
-  address + token) — Phase 2
-- Sync trigger: manual + on partner page open — Phase 2
-- Conflict model: none needed — each phone owns its own rows; partner data is
-  a read-only snapshot
+| Area | Decision |
+|------|----------|
+| Distribution | Installable PWA over HTTPS (Netlify or Vercel) |
+| Local DB | SQLite via `@capacitor-community/sqlite`, hand-written typed SQL |
+| Auth | Local PBKDF2 accounts; single active session; no server component |
+| Pairing/sync | 6-char code — Phase 2 (manual + on partner page open) |
+| Conflict model | None; each device owns its own rows; partner data is read-only snapshot |
+| Fonts | Google Fonts remote load (self-hosting rejected this phase) |
+| Icons | Derived from `public/favicon.svg` (black tile + orange triangle) |
+| Encryption | At-rest unencrypted on web (SQLCipher is native-only, not enabled) |
 
-## Plan deviations (decided during Phase 1 review)
+---
 
-- **Drizzle dropped.** The plan originally locked "SQLite via Drizzle ORM" using
-  `@capawesome/capacitor-sqlite-drizzle`. That adapter only works with the
-  license-gated `@capawesome-team/capacitor-sqlite` plugin, and
-  `@capacitor-community/sqlite` has no official Drizzle driver. Decision: stay on
-  the free community plugin with hand-written typed SQL. `drizzle-kit`,
-  `drizzle-orm`, `better-sqlite3`, `@types/better-sqlite3` were removed and
-  `src/lib/db/schema.ts` (dead Drizzle schema) deleted.
-- **`workoutInProgress` is persisted** into the profile table (not strictly
-  component-local as the plan assumed) so an app kill mid-session shows
-  "Continue session" on relaunch. Timers themselves remain component-local.
-- **Fresh install starts partner unlinked** (`partner_linked = 0`) — the DB seed
-  does not auto-link Rae; the pairing panel is the first-run experience.
-- **Web fallback** uses `jeep-sqlite` + `CapacitorSQLite.initWebStore()` wired in
-  `src/main.tsx` and `<jeep-sqlite>` in `index.html`, so `npm run dev` persists
-  to IndexedDB/OPFS like a real device.
-- **SQLite WASM is checked in.** jeep-sqlite fetches `sql-wasm.wasm` from
-  `/assets/sql-wasm.wasm` (its default `wasmPath`). That file must come from
-  `sql.js@1.12.0` — jeep-sqlite's bundled Emscripten glue is ABI-incompatible
-  with sql.js ≥ 1.13 (`Import #34 "I": function import requires a callable`
-  → infinite "Loading…"). The wasm is committed at
-  `public/assets/sql-wasm.wasm`; do **not** regenerate it from a newer
-  `node_modules/sql.js`. On web, `CapacitorSQLite.initDb()` also calls
-  `checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })`
-  (omitting `openModes` would make jeep-sqlite close the just-opened
-  connection and fail every following query).
+## Threat model / privacy
 
-## Superseded by the PWA decision
+- **Data never leaves the device.** There is no backend; hosting can never
+  leak user data.
+- **Auth is local UI gating, not server-grade security.** Anyone with access
+  to the device's browser storage (DevTools, backups) can read data. Password
+  hashes are PBKDF2-salted on-device.
+- **At-rest storage is unencrypted** in the browser's storage sandbox.
+- The only outbound requests are Google Fonts (`fonts.googleapis.com` /
+  `fonts.gstatic.com`), which carry no user data.
+- `crypto.subtle` requires a secure (HTTPS) context — satisfied by the
+  production PWA host and `localhost` dev; plain `http://` LAN phone testing
+  fails auth.
 
-The **Capacitor native wrapper** steps in this plan (section 1: `android/`,
-`ios/`, `capacitor.config.ts`) are **obsolete**. `plans/pwa-distribution.md`
-replaced native packaging with an **installable, offline-capable PWA** served
-over HTTPS (Netlify/Vercel). The `android/` and `ios/` folders and
-`@capacitor/android` / `@capacitor/ios` / `@capgo/capacitor-updater` /
-`@capacitor/cli` were removed.
+---
 
-Do **not** re-run `npx cap add android|ios` or add a native wrapper back
-without revisiting that decision. Everything else here — the SQLite data layer
-(`src/lib/db/`), the web fallback via `jeep-sqlite` +
-`CapacitorSQLite.initWebStore()`, and the checked-in WASM — is **still current**
-and is exactly what the PWA relies on for offline persistence.
+## Non-goals (Phase 2+ backlog)
+
+- P2P WebSocket server/client sync, `partner_snapshot` tables
+- Share-config UI and sync trigger (manual + on partner page open)
+- BLE fallback transport, background sync, multi-partner
+- Encryption at rest on web (WASM-SQLCipher or encrypted columns)
+- iOS PWA gaps: background timers, web push (iOS 16.4+), screen wake
+- Privacy / threat-model promoted to a formal user-facing doc
+
+---
+
+## Risks
+
+- **Async persistence touches callers.** Mitigated by the `ready` gate and
+  unchanged action signatures; screen-level code was untouched.
+- **Vite 8 (Rolldown) + vite-plugin-pwa.** Confirmed working with v1.3.0.
+  Fallback (dependency-free hand-written SW + manifest) is documented if a
+  future plugin upgrade breaks.
+- **sql.js ABI pinning.** `sql-wasm.wasm` from `sql.js@1.12.0` is checked in.
+  Must not be regenerated from a newer version.
+- **Schema upgrade wipes data.** The v1→v2 PRAGMA path drops all tables.
+  Acceptable for prototype data; a column-ALTER migration would be needed if
+  user data ever needs preserving across schema bumps.

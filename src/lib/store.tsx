@@ -1,10 +1,9 @@
 import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from 'react'
 import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
-import { SEED_HISTORY, SEED_PARTNER } from '../data/seed'
-import { dateLabel, daysAgo, isoDate, streakFromDates } from './dates'
+import { dateLabel, isoDate, streakFromDates } from './dates'
 import { generateSalt, hashPassword } from './password'
 import { suggestSession } from './trainer'
-import type { AppState, HistoryItem } from './types'
+import type { AppState, HistoryItem, SessionProgress, Workout } from './types'
 import { StoreContext, type StoreValue } from './store-hooks'
 import * as db from './db'
 
@@ -12,20 +11,27 @@ const seedState = (): AppState => ({
   signedIn: false,
   accountEmail: null,
   onboarded: false,
-  displayName: 'Umair',
+  displayName: '',
   weightKg: 72,
   heightFt: 5,
   heightIn: 9,
   stepGoal: 8000,
-  streak: streakFromDates(SEED_HISTORY.map((item) => item.date)),
-  steps: 6420,
-  calories: 284,
-  workoutDoneToday: false,
+  streak: 0,
+  steps: 0,
+  calories: 0,
   workoutInProgress: false,
-  partnerLinked: true,
-  partnerSince: daysAgo(42),
-  partner: SEED_PARTNER,
-  history: SEED_HISTORY,
+  workingWorkout: null,
+  partnerLinked: false,
+  partnerSince: null,
+  partner: {
+    name: '',
+    streak: 0,
+    steps: 0,
+    calories: 0,
+    lastWorkout: '',
+    history: [],
+  },
+  history: [],
   equipment: ['bodyweight'],
   plan: [],
   planSource: 'trainer',
@@ -35,6 +41,22 @@ const seedState = (): AppState => ({
   trainerGoal: 'strength',
   toast: null,
 })
+
+function workoutTotalsFromHistory(history: HistoryItem[]): { streak: number; steps: number; calories: number; doneToday: boolean } {
+  const workouts = history.filter((item) => !item.rest)
+  return {
+    streak: streakFromDates(workouts.map((item) => item.date)),
+    steps: workouts.length * 120,
+    calories: workouts.reduce((sum, item) => sum + (item.calories || 0), 0),
+    doneToday: workouts.some((item) => item.date === isoDate()),
+  }
+}
+
+function workoutTitle(plan: AppState['plan']): string {
+  if (plan.length === 0) return 'Workout'
+  if (plan.length === 1) return plan[0].exercise.name
+  return `${plan[0].exercise.name} mix`
+}
 
 let _initialState: AppState | null = null
 let _initPromise: Promise<void> | null = null
@@ -52,15 +74,15 @@ async function loadInitialState(): Promise<AppState> {
           return
         }
 
-        const [profile, history, plan, partnerData] = await Promise.all([
+        const [profile, history, plan, partnerData, activeWorkout] = await Promise.all([
           db.loadProfile(sessionEmail),
           db.loadHistory(sessionEmail),
           db.loadPlan(sessionEmail),
           db.loadPartner(sessionEmail),
+          db.loadWorkoutInProgress(sessionEmail),
         ])
 
-        const effectiveHistory = history.length > 0 ? history : SEED_HISTORY
-        const effectivePartner = partnerData.partner.name ? partnerData.partner : SEED_PARTNER
+        const totals = workoutTotalsFromHistory(history)
 
         _initialState = {
           signedIn: true,
@@ -71,15 +93,15 @@ async function loadInitialState(): Promise<AppState> {
           heightFt: profile.heightFt,
           heightIn: profile.heightIn,
           stepGoal: profile.stepGoal,
-          streak: profile.streak,
-          steps: profile.steps,
-          calories: profile.calories,
-          workoutDoneToday: profile.workoutDoneToday,
-          workoutInProgress: profile.workoutInProgress,
+          streak: totals.streak,
+          steps: totals.steps,
+          calories: totals.calories,
+          workoutInProgress: !!activeWorkout,
+          workingWorkout: activeWorkout,
           partnerLinked: partnerData.partnerLinked,
           partnerSince: partnerData.partnerSince,
-          partner: effectivePartner,
-          history: effectiveHistory,
+          partner: partnerData.partner,
+          history,
           equipment: profile.equipment,
           plan,
           planSource: profile.planSource,
@@ -118,7 +140,6 @@ function persistProfile(s: AppState): Promise<void> {
     streak: s.streak,
     steps: s.steps,
     calories: s.calories,
-    workoutDoneToday: s.workoutDoneToday,
     workoutInProgress: s.workoutInProgress,
     planSource: s.planSource,
   })
@@ -137,6 +158,20 @@ function persistPlan(s: AppState): Promise<void> {
 function persistPartnerLinked(s: AppState): Promise<void> {
   if (!s.accountEmail) return Promise.resolve()
   return db.updatePartnerLinked(s.accountEmail, s.partnerLinked, s.partnerSince)
+}
+
+function persistWorkout(s: AppState): Promise<void> {
+  if (!s.accountEmail || !s.workingWorkout) return Promise.resolve()
+  return db.updateWorkoutProgress(s.workingWorkout.id, {
+    currentIndex: s.workingWorkout.currentIndex,
+    currentSet: s.workingWorkout.currentSet,
+    phase: s.workingWorkout.phase,
+    elapsed: s.workingWorkout.elapsed,
+    kcal: s.workingWorkout.kcal,
+    restSeconds: s.workingWorkout.restSeconds,
+    workSeconds: s.workingWorkout.workSeconds,
+    setsLogged: s.workingWorkout.setsLogged,
+  })
 }
 
 function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
@@ -192,6 +227,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       persistHistory(next),
       persistPlan(next),
       persistPartnerLinked(next),
+      persistWorkout(next),
     ]).then((results) => {
       const failed = results.some((r) => r.status === 'rejected')
       results.forEach((r, i) => {
@@ -267,14 +303,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: 'No account for that email, or wrong password.' }
         }
         await db.setSession(trimmed)
-        const [profile, history, plan, partnerData] = await Promise.all([
+        const [profile, history, plan, partnerData, activeWorkout] = await Promise.all([
           db.loadProfile(trimmed),
           db.loadHistory(trimmed),
           db.loadPlan(trimmed),
           db.loadPartner(trimmed),
+          db.loadWorkoutInProgress(trimmed),
         ])
-        const effectiveHistory = history.length > 0 ? history : SEED_HISTORY
-        const effectivePartner = partnerData.partner.name ? partnerData.partner : SEED_PARTNER
+        const totals = workoutTotalsFromHistory(history)
         const next: AppState = {
           signedIn: true,
           accountEmail: trimmed,
@@ -284,15 +320,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           heightFt: profile.heightFt,
           heightIn: profile.heightIn,
           stepGoal: profile.stepGoal,
-          streak: profile.streak,
-          steps: profile.steps,
-          calories: profile.calories,
-          workoutDoneToday: profile.workoutDoneToday,
-          workoutInProgress: profile.workoutInProgress,
+          streak: totals.streak,
+          steps: totals.steps,
+          calories: totals.calories,
+          workoutInProgress: !!activeWorkout,
+          workingWorkout: activeWorkout,
           partnerLinked: partnerData.partnerLinked,
           partnerSince: partnerData.partnerSince,
-          partner: effectivePartner,
-          history: effectiveHistory,
+          partner: partnerData.partner,
+          history,
           equipment: profile.equipment,
           plan,
           planSource: profile.planSource,
@@ -312,7 +348,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s,
           onboarded: true,
           signedIn: true,
-          displayName: displayName.trim() || 'Umair',
+          displayName: displayName.trim(),
           weightKg,
           heightFt,
           heightIn,
@@ -370,6 +406,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               sets: Math.max(1, sets),
               reps: reps !== undefined ? Math.max(1, reps) : undefined,
               seconds: seconds !== undefined ? Math.max(5, seconds) : undefined,
+              weightKg: patch.weightKg !== undefined ? Math.max(0, patch.weightKg) : item.weightKg,
             }
           }),
         })
@@ -384,11 +421,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       clearPlan: () => {
         const s = current()
-        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false }, { immediate: true })
+        commit({ ...s, plan: [], planSource: 'custom', workoutInProgress: false, workingWorkout: null }, { immediate: true })
       },
       beginWorkout: () => {
         const s = current()
-        commit({ ...s, workoutInProgress: true }, { immediate: true })
+        if (!s.accountEmail || s.plan.length === 0) return
+        const workout: Workout = {
+          id: crypto.randomUUID(),
+          accountEmail: s.accountEmail,
+          date: isoDate(),
+          status: 'in_progress',
+          startedAt: new Date().toISOString(),
+          finishedAt: null,
+          title: workoutTitle(s.plan),
+          durationMin: null,
+          calories: null,
+          bodyPart: s.trainerBodyPart,
+          planForDate: isoDate(),
+          currentIndex: 0,
+          currentSet: 0,
+          phase: 'work',
+          elapsed: 0,
+          kcal: 0,
+          restSeconds: 0,
+          workSeconds: 0,
+          setsLogged: 0,
+          exercises: s.plan,
+        }
+        const workingWorkout = workout
+        commit({ ...s, workingWorkout, workoutInProgress: true }, { immediate: true })
+        void (async () => {
+          try {
+            await db.abandonWorkouts(workout.accountEmail)
+            await db.saveWorkout(workout)
+            await db.savePlan(workout.accountEmail, workout.exercises ?? [], workout.planForDate ?? isoDate())
+            // Re-read so rapid progress made during the await is not overwritten.
+            const persisted = await db.loadWorkoutInProgress(workout.accountEmail)
+            const latest = current()
+            if (latest.workingWorkout?.id === workout.id && persisted?.id === workout.id) {
+              commit(
+                { ...latest, workingWorkout: { ...workout, ...persisted, exercises: persisted.exercises ?? workout.exercises } },
+                { immediate: true },
+              )
+            }
+          } catch (err) {
+            console.error('[Store] beginWorkout persist failed:', err)
+          }
+        })()
+      },
+      persistSessionProgress: (progress: SessionProgress) => {
+        const s = current()
+        if (!s.workingWorkout || !s.accountEmail) return
+        const workingWorkout: Workout = { ...s.workingWorkout, ...progress }
+        commit(
+          { ...s, workingWorkout, workoutInProgress: true },
+          { immediate: true },
+        )
+      },
+      abandonWorkout: (workoutId: string) => {
+        const s = current()
+        void db.abandonWorkout(workoutId).catch((err) => {
+          console.error('[Store] abandonWorkout failed:', err)
+        })
+        commit({ ...s, workingWorkout: null, workoutInProgress: false })
       },
       setTrainerFocus: ({ bodyPart, goal }) => {
         const s = current()
@@ -435,8 +530,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const s = current()
         commit({ ...s, trainerPhase: 'pick' })
       },
-      finishWorkout: ({ title, durationMin, calories, bodyPart }) => {
+      finishWorkout: ({ workoutId, title, durationMin, calories, bodyPart, workoutSets }) => {
         const s = current()
+        if (!s.accountEmail) return
         const date = isoDate()
         const existing = s.history.find((item) => item.date === date)
         const merge = existing && !existing.rest
@@ -459,13 +555,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               bodyPart: bodyPart ?? s.trainerBodyPart,
             }
         const history = [historyItem, ...s.history.filter((item) => item.date !== date)]
+        const totals = workoutTotalsFromHistory(history)
+        void (async () => {
+          try {
+            await db.abandonWorkouts(s.accountEmail!)
+            await db.finalizeWorkout(workoutId, { title, durationMin, calories, bodyPart: bodyPart ?? s.trainerBodyPart })
+            if (workoutSets.length > 0) {
+              await db.insertWorkoutSets(workoutId, workoutSets)
+            }
+          } catch (err) {
+            console.error('[Store] finishWorkout persist failed:', err)
+          }
+        })()
         commit({
           ...s,
-          calories: s.calories + calories,
-          steps: s.steps + 120,
-          streak: streakFromDates(history.filter((item) => !item.rest).map((item) => item.date)),
-          workoutDoneToday: true,
+          calories: totals.calories,
+          steps: totals.steps,
+          streak: totals.streak,
           workoutInProgress: false,
+          workingWorkout: null,
           history,
           plan: [],
           planSource: 'trainer',
@@ -490,6 +598,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...s,
           history: [historyItem, ...s.history.filter((item) => item.date !== date)],
           workoutInProgress: false,
+          workingWorkout: null,
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
