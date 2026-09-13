@@ -1,11 +1,11 @@
-import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
-import { bodyPartForDay, normalizeBodyPart, normalizeTrainerGoal, toggleEquipment, type BodyPart, type Equipment, type TrainerGoal } from '../data/exercises'
+import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from 'react'
+import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
 import { SEED_HISTORY, SEED_PARTNER } from '../data/seed'
 import { dateLabel, daysAgo, isoDate, streakFromDates } from './dates'
 import { suggestSession } from './trainer'
 import type { AppState, HistoryItem, PlannedExercise } from './types'
-
-const STORAGE_KEY = 'ember-prototype-v5'
+import { StoreContext, type StoreValue } from './store-hooks'
+import * as db from './db'
 
 const seedState = (): AppState => ({
   signedIn: false,
@@ -19,7 +19,7 @@ const seedState = (): AppState => ({
   streak: streakFromDates(SEED_HISTORY.map((item) => item.date)),
   steps: 6420,
   calories: 284,
-  workoutDoneToday: false, // unused; kept for HANDOFF shape compatibility
+  workoutDoneToday: false,
   workoutInProgress: false,
   partnerLinked: true,
   partnerSince: daysAgo(42),
@@ -35,119 +35,186 @@ const seedState = (): AppState => ({
   toast: null,
 })
 
-function remapSessionName(name: string): string {
-  if (name === 'Push + squat') return 'Chest + squat'
-  if (name === 'Full mix') return 'Leg mix'
-  if (name === 'Push') return 'Chest'
-  if (name === 'Pull') return 'Back'
-  if (name === 'Full body') return 'Legs'
-  return name.replace(/^Push ·/, 'Chest ·').replace(/^Pull ·/, 'Back ·').replace(/^Full body ·/, 'Legs ·')
-}
+let _initialState: AppState | null = null
+let _initPromise: Promise<void> | null = null
 
-function loadState(): AppState {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedState()
-    const parsed = JSON.parse(raw) as Partial<AppState>
-    const history = (parsed.history ?? seedState().history).map((item) => ({
-      ...item,
-      name: remapSessionName(item.name),
-      bodyPart: item.bodyPart ? normalizeBodyPart(item.bodyPart) : item.bodyPart,
-    }))
-    const partner = parsed.partner
-      ? {
-          ...parsed.partner,
-          lastWorkout: remapSessionName(parsed.partner.lastWorkout ?? ''),
-          history: (parsed.partner.history ?? []).map((item) => ({ ...item, name: remapSessionName(item.name) })),
+async function loadInitialState(): Promise<AppState> {
+  if (_initialState) return _initialState
+  if (!_initPromise) {
+    _initPromise = (async () => {
+      try {
+        await db.initDb()
+        await db.migrateLegacy()
+
+        const [profile, history, plan, partnerData] = await Promise.all([
+          db.loadProfile(),
+          db.loadHistory(),
+          db.loadPlan(),
+          db.loadPartner(),
+        ])
+
+        const effectiveHistory = history.length > 0 ? history : SEED_HISTORY
+        const effectivePartner = partnerData.partner.name ? partnerData.partner : SEED_PARTNER
+
+        _initialState = {
+          signedIn: profile.signedIn,
+          accountEmail: profile.accountEmail,
+          onboarded: profile.onboarded,
+          displayName: profile.displayName,
+          weightKg: profile.weightKg,
+          heightFt: profile.heightFt,
+          heightIn: profile.heightIn,
+          stepGoal: profile.stepGoal,
+          streak: profile.streak,
+          steps: profile.steps,
+          calories: profile.calories,
+          workoutDoneToday: profile.workoutDoneToday,
+          workoutInProgress: profile.workoutInProgress,
+          partnerLinked: partnerData.partnerLinked,
+          partnerSince: partnerData.partnerSince,
+          partner: effectivePartner,
+          history: effectiveHistory,
+          equipment: profile.equipment,
+          plan,
+          planSource: profile.planSource,
+          trainerPhase: profile.trainerPhase,
+          trainerDay: profile.trainerDay,
+          trainerBodyPart: profile.trainerBodyPart,
+          trainerGoal: profile.trainerGoal,
+          toast: null,
         }
-      : seedState().partner
-    return {
-      ...seedState(),
-      ...parsed,
-      history,
-      partner,
-      trainerGoal: normalizeTrainerGoal(parsed.trainerGoal),
-      trainerBodyPart: normalizeBodyPart(parsed.trainerBodyPart ?? seedState().trainerBodyPart),
-      toast: null,
-    }
-  } catch {
-    return seedState()
+      } catch (err) {
+        _initPromise = null
+        throw err
+      }
+    })()
   }
+  await _initPromise
+  return _initialState ?? seedState()
 }
 
-function persist(state: AppState) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, toast: null }))
+function persistProfile(s: AppState): void {
+  void db.saveProfile({
+    displayName: s.displayName,
+    weightKg: s.weightKg,
+    heightFt: s.heightFt,
+    heightIn: s.heightIn,
+    stepGoal: s.stepGoal,
+    signedIn: s.signedIn,
+    accountEmail: s.accountEmail,
+    onboarded: s.onboarded,
+    equipment: s.equipment,
+    trainerPhase: s.trainerPhase,
+    trainerDay: s.trainerDay,
+    trainerBodyPart: s.trainerBodyPart,
+    trainerGoal: s.trainerGoal,
+    partnerLinked: s.partnerLinked,
+    partnerSince: s.partnerSince,
+    streak: s.streak,
+    steps: s.steps,
+    calories: s.calories,
+    workoutDoneToday: s.workoutDoneToday,
+    workoutInProgress: s.workoutInProgress,
+    planSource: s.planSource,
+  })
 }
 
-function applyEquipment(s: AppState, equipment: Equipment[], commit: (next: AppState) => void) {
+function persistHistory(history: HistoryItem[]): void {
+  void db.saveHistory(history)
+}
+
+function persistPlan(plan: PlannedExercise[]): void {
+  void db.savePlan(plan)
+}
+
+function persistPartnerLinked(linked: boolean, since: string | null): void {
+  void db.updatePartnerLinked(linked, since)
+}
+
+function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
   const next: AppState = { ...s, equipment }
   if (s.trainerPhase === 'review') {
     next.plan = suggestSession(s.trainerBodyPart, s.trainerGoal, equipment)
     next.planSource = 'trainer'
   }
-  commit(next)
+  return next
 }
 
-type StoreValue = AppState & {
-  createAccount: (email: string, password: string) => { ok: boolean; error?: string }
-  logIn: (email: string, password: string) => { ok: boolean; error?: string; dest?: '/home' | '/onboarding' }
-  continueWithGoogle: () => { dest: '/home' | '/onboarding' }
-  completeOnboarding: (input: {
-    displayName: string
-    weightKg: number
-    heightFt: number
-    heightIn: number
-    stepGoal: number
-    partnerCode: string
-    equipment: Equipment[]
-    trainerGoal: TrainerGoal
-  }) => void
-  updateProfile: (input: {
-    weightKg: number
-    heightFt: number
-    heightIn: number
-    stepGoal: number
-    equipment?: Equipment[]
-    trainerGoal?: TrainerGoal
-  }) => void
-  setEquipment: (id: Equipment) => void
-  addEquipment: (id: Equipment) => void
-  addToPlan: (item: PlannedExercise) => void
-  updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number }) => void
-  removeFromPlan: (uid: string) => void
-  clearPlan: () => void
-  beginWorkout: () => void
-  setTrainerFocus: (input: { bodyPart: BodyPart; goal: TrainerGoal }) => void
-  setTrainerDay: (day: number) => void
-  applyTrainerPlan: () => void
-  beginTrainerReview: () => void
-  backToTrainerPick: () => void
-  finishWorkout: (input: { title: string; durationMin: number; calories: number; bodyPart?: BodyPart }) => void
-  logRestDay: () => void
-  unlinkPartner: () => void
-  linkPartner: (code: string) => { ok: boolean; error?: string }
-  showToast: (message: string) => void
-  clearToast: () => void
-  signOut: () => void
-}
-
-const StoreContext = createContext<StoreValue | null>(null)
+const COMMIT_DEBOUNCE_MS = 400
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(loadState)
+  const [state, setState] = useState<AppState | null>(null)
+  const [hydrated, setHydrated] = useState(false)
+  const [initError, setInitError] = useState<string | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
-  const commit = (next: AppState) => {
-    persist(next)
+  const pendingStateRef = useRef<AppState | null>(null)
+  const flushTimerRef = useRef<number | null>(null)
+
+  const hydrate = useCallback(() => {
+    void loadInitialState()
+      .then((s) => {
+        setState(s)
+        stateRef.current = s
+        setInitError(null)
+        setHydrated(true)
+      })
+      .catch((err) => {
+        console.error('[Store] Hydration failed:', err)
+        setInitError(err instanceof Error ? err.message : String(err))
+      })
+  }, [])
+
+  useEffect(() => {
+    hydrate()
+  }, [hydrate])
+
+  const flushWrites = useCallback(() => {
+    if (flushTimerRef.current !== null) {
+      window.clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    const next = pendingStateRef.current
+    pendingStateRef.current = null
+    if (!next) return
+    persistProfile(next)
+    persistHistory(next.history)
+    persistPlan(next.plan)
+    persistPartnerLinked(next.partnerLinked, next.partnerSince)
+  }, [])
+
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flushWrites()
+    }
+    window.addEventListener('pagehide', flushWrites)
+    window.addEventListener('beforeunload', flushWrites)
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      window.removeEventListener('pagehide', flushWrites)
+      window.removeEventListener('beforeunload', flushWrites)
+      document.removeEventListener('visibilitychange', onHide)
+      flushWrites()
+    }
+  }, [flushWrites])
+
+  const commit = useCallback((next: AppState) => {
+    pendingStateRef.current = next
     stateRef.current = next
     setState(next)
-  }
+    if (flushTimerRef.current !== null) window.clearTimeout(flushTimerRef.current)
+    flushTimerRef.current = window.setTimeout(flushWrites, COMMIT_DEBOUNCE_MS)
+  }, [flushWrites])
 
   const value = useMemo<StoreValue>(() => {
-    const current = () => stateRef.current
+    const base = state ?? seedState()
+    const current = () => stateRef.current ?? seedState()
     return {
-      ...state,
+      ...base,
+      ready: hydrated,
+      initError,
+      retryInit: hydrate,
       createAccount: (email, password) => {
         const s = current()
         const trimmed = email.trim().toLowerCase()
@@ -222,12 +289,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       setEquipment: (id) => {
         const s = current()
-        applyEquipment(s, toggleEquipment(s.equipment, id), commit)
+        commit(applyEquipment(s, toggleEquipment(s.equipment, id)))
       },
       addEquipment: (id) => {
         const s = current()
         if (s.equipment.includes(id)) return
-        applyEquipment(s, [...s.equipment, id], commit)
+        commit(applyEquipment(s, [...s.equipment, id]))
       },
       addToPlan: (item) => {
         const s = current()
@@ -341,7 +408,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           calories: s.calories + calories,
           steps: s.steps + 120,
           streak: streakFromDates(history.filter((item) => !item.rest).map((item) => item.date)),
-          workoutDoneToday: true, // dead state; no consumer
+          workoutDoneToday: true,
           workoutInProgress: false,
           history,
           plan: [],
@@ -386,23 +453,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true }
       },
       showToast: (message) => {
-        setState({ ...stateRef.current, toast: message })
+        const ref = stateRef.current
+        if (!ref) return
+        setState({ ...ref, toast: message })
       },
       clearToast: () => {
-        setState({ ...stateRef.current, toast: null })
+        const ref = stateRef.current
+        if (!ref) return
+        setState({ ...ref, toast: null })
       },
       signOut: () => {
         const s = current()
         commit({ ...s, signedIn: false, plan: [], trainerPhase: 'pick' })
       },
     }
-  }, [state])
+  }, [state, hydrated, initError, hydrate, commit])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
-}
-
-export function useStore(): StoreValue {
-  const ctx = useContext(StoreContext)
-  if (!ctx) throw new Error('useStore must be used inside StoreProvider')
-  return ctx
 }

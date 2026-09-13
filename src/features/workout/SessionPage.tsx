@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { Timer } from '../../components/ui/Timer'
 import { estimateKcal } from '../../lib/calories'
 import { formatClock } from '../../lib/format'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import type { PlannedExercise } from '../../lib/types'
 
 type Phase = 'work' | 'rest' | 'done'

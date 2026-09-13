@@ -16,19 +16,20 @@ untouched.
 - `npx cap add android` && `npx cap add ios`, then `npx cap sync`
 - Vite build output stays `dist/`; web dev (`npm run dev`) keeps working as the fast test loop
 
-### 2. SQLite + Drizzle data layer (`src/lib/db/`)
+### 2. SQLite data layer (`src/lib/db/`)
 
-- Install `@capacitor-community/sqlite` + `@capawesome/capacitor-sqlite-drizzle`
-  (Drizzle driver) + `drizzle-orm`
-- Define typed tables mapping the existing entities in `types.ts`:
+- Install `@capacitor-community/sqlite` (`jeep-sqlite` as a direct dependency for
+  the web target)
+- Hand-written typed SQL (no ORM — see "Plan deviations") mapping the entities in
+  `types.ts`:
   - `profile` (single row: displayName, weightKg, heightFt/In, stepGoal,
     signedIn, accountEmail, onboarded, trainerPhase/Day/Goal, equipment set)
   - `history` (`HistoryItem[]` — keyed by ISO date, keeping the 1-row-per-day rule)
   - `plan` (`PlannedExercise[]` — ordered rows with uid)
   - `partner` (Partner object + partnerLinked, partnerSince)
-  - `partner_history` (`PartnerActivity[]`)
-  - Scalar counters (`steps`, `calories`, etc.) in a small `kv` table
-- Drizzle schema + `drizzle-kit` migrations tracked in `drizzle/`
+  - Scalar counters (`steps`, `calories`, etc.) live in the `profile` row
+- Schema is created idempotently (`CREATE TABLE IF NOT EXISTS`) on first launch;
+  no migration framework needed for Phase 1
 
 ### 3. Rework `store.tsx` backend (keep every action name & signature)
 
@@ -36,9 +37,11 @@ untouched.
   SQLite read/write
 - `loadState` becomes async → reconstruct the exact `AppState` from tables
 - `commit` becomes write-through per entity (profile/history/plan/partner
-  scattered into their tables), debounced to avoid write storms during timers
+  scattered into their tables), debounced (400 ms) to avoid write storms during
+  timers, with writes serialized through a queue and atomic via `executeSet`
+  transactions
 - Gate app mount on a `ready` flag (the existing `Shell` gate pattern) so
-  screens render only after the DB loads
+  screens render only after the DB loads; DB failures surface a retry UI
 - One-time migration: if the legacy `ember-prototype-v5` key exists, import it
   into SQLite then drop it
 
@@ -76,9 +79,38 @@ should be avoided, hydration can stay transparent via a
 ## Decisions locked
 
 - Packaging: Capacitor (native shell around the existing React app)
-- Local DB: SQLite via Drizzle ORM
+- Local DB: SQLite via the free `@capacitor-community/sqlite` plugin, hand-written
+  typed SQL in `src/lib/db/` (see "Plan deviations" below — Drizzle was dropped)
 - Pairing/discovery: 6-char code (reuse EMBER9-style UX; code embeds host
   address + token) — Phase 2
 - Sync trigger: manual + on partner page open — Phase 2
 - Conflict model: none needed — each phone owns its own rows; partner data is
   a read-only snapshot
+
+## Plan deviations (decided during Phase 1 review)
+
+- **Drizzle dropped.** The plan originally locked "SQLite via Drizzle ORM" using
+  `@capawesome/capacitor-sqlite-drizzle`. That adapter only works with the
+  license-gated `@capawesome-team/capacitor-sqlite` plugin, and
+  `@capacitor-community/sqlite` has no official Drizzle driver. Decision: stay on
+  the free community plugin with hand-written typed SQL. `drizzle-kit`,
+  `drizzle-orm`, `better-sqlite3`, `@types/better-sqlite3` were removed and
+  `src/lib/db/schema.ts` (dead Drizzle schema) deleted.
+- **`workoutInProgress` is persisted** into the profile table (not strictly
+  component-local as the plan assumed) so an app kill mid-session shows
+  "Continue session" on relaunch. Timers themselves remain component-local.
+- **Fresh install starts partner unlinked** (`partner_linked = 0`) — the DB seed
+  does not auto-link Rae; the pairing panel is the first-run experience.
+- **Web fallback** uses `jeep-sqlite` + `CapacitorSQLite.initWebStore()` wired in
+  `src/main.tsx` and `<jeep-sqlite>` in `index.html`, so `npm run dev` persists
+  to IndexedDB/OPFS like a real device.
+- **SQLite WASM is checked in.** jeep-sqlite fetches `sql-wasm.wasm` from
+  `/assets/sql-wasm.wasm` (its default `wasmPath`). That file must come from
+  `sql.js@1.12.0` — jeep-sqlite's bundled Emscripten glue is ABI-incompatible
+  with sql.js ≥ 1.13 (`Import #34 "I": function import requires a callable`
+  → infinite "Loading…"). The wasm is committed at
+  `public/assets/sql-wasm.wasm`; do **not** regenerate it from a newer
+  `node_modules/sql.js`. On web, `CapacitorSQLite.initDb()` also calls
+  `checkConnectionsConsistency({ dbNames: [DB_NAME], openModes: ['RW'] })`
+  (omitting `openModes` would make jeep-sqlite close the just-opened
+  connection and fail every following query).

@@ -8,7 +8,7 @@ import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
 import { partnersSinceLabel } from '../../lib/dates'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { KitChips } from '../trainer/KitChips'
 
 function sameKit(a: Equipment[], b: Equipment[]) {

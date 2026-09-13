@@ -6,7 +6,7 @@ import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { KitChips } from '../trainer/KitChips'
 
 export function OnboardingPage() {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 
 export function AuthPage() {
   const { signedIn, onboarded, createAccount, logIn, continueWithGoogle } = useStore()

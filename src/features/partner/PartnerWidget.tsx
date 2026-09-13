@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
 import { isoDate } from '../../lib/dates'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { WhoSwatch } from '../home/MonthCalendar'
 
 export const INVITE_CODE = 'EMBER9'

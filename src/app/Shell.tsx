@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Toast } from '../components/ui/Toast'
-import { useStore } from '../lib/store'
+import { useStore } from '../lib/store-hooks'
 import { BottomNav } from './BottomNav'
 
 export function Shell() {

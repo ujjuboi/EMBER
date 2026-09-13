@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/Button'
 import { Stat } from '../../components/ui/Stat'
 import { isoDate } from '../../lib/dates'
 import { fmt } from '../../lib/format'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { LogCalendar, WhoSwatch } from '../home/MonthCalendar'
 import { PairPanel } from './PartnerWidget'
 

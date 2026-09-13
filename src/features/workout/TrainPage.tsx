@@ -7,7 +7,7 @@ import { Chip } from '../../components/ui/Chip'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
 import { BODY_PARTS, equipmentLabel, goalLabel, type BodyPart, type Exercise } from '../../data/exercises'
-import { useStore } from '../../lib/store'
+import { useStore } from '../../lib/store-hooks'
 import { libraryFor } from '../../lib/trainer'
 import type { PlannedExercise } from '../../lib/types'
 
