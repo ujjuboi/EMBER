@@ -204,7 +204,6 @@ async function createSchema(): Promise<void> {
       streak INTEGER NOT NULL DEFAULT 0,
       steps INTEGER NOT NULL DEFAULT 0,
       calories INTEGER NOT NULL DEFAULT 0,
-      workout_done_today INTEGER NOT NULL DEFAULT 0,
       workout_in_progress INTEGER NOT NULL DEFAULT 0,
       plan_source TEXT NOT NULL DEFAULT 'trainer',
       updated_at TEXT NOT NULL
