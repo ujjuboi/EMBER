@@ -45,7 +45,7 @@ src/
   app/             Shell, bottom nav, route gate
   coach/           Stick-figure coach (SVG pose loops)
   components/ui/   Shared primitives (buttons, chips, fields, toast, timer)
-  data/            Exercise catalog + seed data
+  data/            Exercise catalog
   features/
     auth/          Login, signup, onboarding (local accounts)
     home/          Home, streak, month calendar

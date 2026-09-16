@@ -24,7 +24,6 @@ Read this after [HANDOFF.md](../HANDOFF.md). Every screen is already implemented
 | `workout/SessionPage.tsx` | `/train/go` | Work/rest/celebrate, coach, kcal, End vs finish |
 | `partner/PartnerPage.tsx` | `/partner` | Compare stats + calendar, or pair empty state |
 | `partner/PartnerWidget.tsx` | Home + Partner | Linked card vs pair form vs remind |
-| `partner/PartnerSpark.tsx` | **unused** | Old pixel duo. Safe to delete |
 | `profile/YouPage.tsx` | `/you` | Profile, kit, unlink, log out |
 | `trainer/KitChips.tsx` | Onboarding + You | Equipment toggles |
 | `trainer/TrainerFocus.tsx` | Train | Goal chips |
@@ -49,14 +48,13 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | `Toast.tsx` | Remind + pairing feedback |
 | `Timer.tsx` | Session countdown |
 | `Stat.tsx` `Section.tsx` | Layout bits |
-| `Ring.tsx` | **unused** old streak ring |
 
 ## Domain (`src/lib` + `src/data`)
 
 | File | Job |
 | --- | --- |
 | `lib/store.tsx` | App state. React context over on-device SQLite (`lib/db/index.ts`), per-account rows + session restore |
-| `lib/db/index.ts` | Schema v2 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner`), all load/save, `createAccountRow` / `verifyCredentials` |
+| `lib/db/index.ts` | Schema v5 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner` · `workout` · `workout_set` · `custom_exercise`), version-gated migrations, all load/save, `createAccountRow` / `verifyCredentials` / backup export+import |
 | `lib/password.ts` | PBKDF2-SHA256 hashing (per-user salt, 100k iterations) |
 | `lib/types.ts` | `AppState`, `HistoryItem`, `Partner`, `PlannedExercise` |
 | `lib/dates.ts` | ISO days, calendar grids, `nextMidnightMs`, `streakFromDates` |
@@ -65,7 +63,6 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | `lib/calories.ts` | MET × kg × hours |
 | `lib/format.ts` | Times, numbers, `formatSpan` |
 | `data/exercises.ts` | Catalog (`coachId`, body parts, kit, goals) |
-| `data/seed.ts` | Demo user history + partner **Rae** |
 
 ## Store actions
 

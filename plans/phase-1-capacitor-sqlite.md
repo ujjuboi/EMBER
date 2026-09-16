@@ -2,10 +2,14 @@
 
 ## Status
 
-**Shipped.** Implemented across commits `e881a75`, `9a0c323`, `4823141`,
-`77fcfb5`, `af979d6`, `7f0dd4b`. The remaining open item is on-device install
-verification (Android + iOS PWA install and offline round-trip — tracked in
-GitHub issue #4).
+**Shipped and closed.** Implemented across commits `e881a75`, `9a0c323`,
+`4823141`, `77fcfb5`, `af979d6`, `7f0dd4b`. The last open item — on-device
+install verification (Android + iOS PWA install and offline round-trip,
+GitHub issue #4, "Verify persistence integration end-to-end") — is now
+**closed**, along with the follow-up cleanup of Phase 1 loose ends (dead
+`PartnerSpark.tsx`/`Ring.tsx` removed, stale docs updated, unused `daysAgo`
+dropped). See [phase-2-partner-sync.md](./phase-2-partner-sync.md) for what
+comes next.
 
 ## Goal
 

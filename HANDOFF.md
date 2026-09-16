@@ -70,8 +70,7 @@ src/
 
 Unused leftovers (safe to delete when you wire the real app, or reuse):
 
-- `src/features/partner/PartnerSpark.tsx` — pixel-art duo, not mounted
-- `src/components/ui/Ring.tsx` — old streak ring, not mounted
+- (none — `PartnerSpark.tsx` pixel duo and `Ring.tsx` streak ring were removed)
 
 ---
 
