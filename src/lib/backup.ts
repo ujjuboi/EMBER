@@ -1,8 +1,8 @@
 import type { EmberBackup } from './types'
 
-export const BACKUP_SCHEMA = 5
+export const BACKUP_SCHEMA = 6
 
-export const SUPPORTED_BACKUP_SCHEMAS = [4, 5]
+export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6]
 
 export function backupFilename(): string {
   const now = new Date()
@@ -31,6 +31,12 @@ export function parseBackup(text: string): EmberBackup {
   if (typeof backup?.account?.email !== 'string') {
     throw new Error('That backup is missing its account email.')
   }
+  // Schema 4/5 backups have no recovery-code fields; default them to NULL so a
+  // restore round-trips cleanly (the account just can't be recovered by code
+  // until one is generated).
+  const account = backup.account as EmberBackup['account']
+  account.recoverySalt ??= null
+  account.recoveryHash ??= null
   backup.customExercises ??= []
   backup.workouts ??= []
   backup.workoutSets ??= []

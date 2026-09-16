@@ -6,8 +6,14 @@ export type StoreValue = AppState & {
   ready: boolean
   initError: string | null
   retryInit: () => void
-  createAccount: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  createAccount: (email: string, password: string) => Promise<{ ok: boolean; error?: string; recoveryCode?: string }>
   logIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string; dest?: '/home' | '/onboarding' }>
+  resetPassword: (
+    email: string,
+    recoveryCode: string,
+    newPassword: string,
+  ) => Promise<{ ok: boolean; error?: string }>
+  generateRecoveryCode: () => Promise<string | null>
   completeOnboarding: (input: {
     displayName: string
     weightKg: number
@@ -61,7 +67,7 @@ export type StoreValue = AppState & {
   exportData: () => Promise<{ ok: boolean; error?: string }>
   importData: (
     file: File,
-    opts?: { intoEmail?: string },
+    opts?: { intoEmail?: string; newPassword?: string },
   ) => Promise<{ ok: boolean; error?: string; dest?: '/home' | '/onboarding' }>
 }
 

@@ -5,6 +5,7 @@ import { Confirm } from '../../components/ui/Confirm'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
+import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
 import { parseBackup, readTextFile } from '../../lib/backup'
@@ -35,6 +36,7 @@ export function YouPage() {
     signOut,
     exportData,
     importData,
+    generateRecoveryCode,
     showToast,
   } = useStore()
   const [weight, setWeight] = useState(String(weightKg))
@@ -46,6 +48,9 @@ export function YouPage() {
   const [error, setError] = useState('')
   const [unlinkOpen, setUnlinkOpen] = useState(false)
   const [restorePick, setRestorePick] = useState<{ file: File; email: string } | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [recoveryConfirmOpen, setRecoveryConfirmOpen] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
   const restoreInputRef = useRef<HTMLInputElement>(null)
 
   const onRestoreFile = async (file: File) => {
@@ -62,8 +67,18 @@ export function YouPage() {
     const pending = restorePick
     if (!pending) return
     setRestorePick(null)
-    const result = await importData(pending.file, { intoEmail: accountEmail ?? undefined })
+    const result = await importData(pending.file, {
+      intoEmail: accountEmail ?? undefined,
+      newPassword: newPassword.trim() || undefined,
+    })
     if (!result.ok && result.error) showToast(result.error)
+    setNewPassword('')
+  }
+
+  const genRecoveryCode = async () => {
+    setRecoveryConfirmOpen(false)
+    const code = await generateRecoveryCode()
+    if (code) setRecoveryCode(code)
   }
 
   const dirty =
@@ -197,6 +212,21 @@ export function YouPage() {
         />
       </section>
 
+      <section className="mt-10 space-y-3">
+        <div className="w-full">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Recovery code</p>
+          <p className="mt-2 text-sm text-muted">
+            Forgot your password? This one-time code plus your email restores access. Generating a new code replaces
+            the old one — keep it safe, it's only shown once.
+          </p>
+          <div className="mt-3">
+            <Button variant="line" block onClick={() => setRecoveryConfirmOpen(true)}>
+              Generate new code
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="mt-4 space-y-3">
         <Button
           variant="line"
@@ -219,9 +249,34 @@ export function YouPage() {
               : `This backup is for ${restorePick.email} but will restore into ${accountEmail}. Every row in this account is replaced by the backup's contents.`
           }
           confirm="Restore"
-          onCancel={() => setRestorePick(null)}
+          onCancel={() => {
+            setRestorePick(null)
+            setNewPassword('')
+          }}
           onConfirm={() => void runRestore()}
+        >
+          <Field
+            label="New password (optional)"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Leave blank to keep the backup password"
+          />
+        </Confirm>
+      ) : null}
+
+      {recoveryConfirmOpen ? (
+        <Confirm
+          title="Generate a new recovery code?"
+          body="This replaces your current code. Regenerating invalidates the old code — if you saved it anywhere, update it now."
+          confirm="Generate"
+          onCancel={() => setRecoveryConfirmOpen(false)}
+          onConfirm={() => void genRecoveryCode()}
         />
+      ) : null}
+
+      {recoveryCode ? (
+        <RecoveryCodeModal code={recoveryCode} onDone={() => setRecoveryCode(null)} />
       ) : null}
 
       {unlinkOpen ? (

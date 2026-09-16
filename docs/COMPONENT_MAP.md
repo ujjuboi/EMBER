@@ -16,8 +16,9 @@ Read this after [HANDOFF.md](../HANDOFF.md). Every screen is already implemented
 
 | File | Route | Job |
 | --- | --- | --- |
-| `auth/AuthPage.tsx` | `/` | Login / signup (local accounts) |
+| `auth/AuthPage.tsx` | `/` | Login / signup (local accounts), one-time recovery-code modal, restore-from-backup |
 | `auth/OnboardingPage.tsx` | `/onboarding` | Name, body, kit, optional 6-char partner code |
+| `auth/ResetPasswordPage.tsx` | `/forgot` | Email + recovery code + new password reset |
 | `home/HomePage.tsx` | `/home` | Greeting, week calendar, streak copy, Home CTAs |
 | `home/MonthCalendar.tsx` | used on Home + Partner | Day cells, you=square, partner=heart, remind, range select |
 | `workout/TrainPage.tsx` | `/train` | Body-part chips, scored plan, custom moves, Start/Continue |
@@ -54,8 +55,8 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | File | Job |
 | --- | --- |
 | `lib/store.tsx` | App state. React context over on-device SQLite (`lib/db/index.ts`), per-account rows + session restore |
-| `lib/db/index.ts` | Schema v5 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner` · `workout` · `workout_set` · `custom_exercise`), version-gated migrations, all load/save, `createAccountRow` / `verifyCredentials` / backup export+import |
-| `lib/password.ts` | PBKDF2-SHA256 hashing (per-user salt, 100k iterations) |
+| `lib/db/index.ts` | Schema v6 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner` · `workout` · `workout_set` · `custom_exercise`), version-gated migrations, all load/save, `createAccountRow` / `verifyCredentials` / `setRecoveryCode` / `verifyRecoveryCode` / `resetPassword` / backup export+import |
+| `lib/password.ts` | PBKDF2-SHA256 hashing (per-user salt, 100k iterations); recovery codes reuse the same verify |
 | `lib/types.ts` | `AppState`, `HistoryItem`, `Partner`, `PlannedExercise` |
 | `lib/dates.ts` | ISO days, calendar grids, `nextMidnightMs`, `streakFromDates` |
 | `lib/activity.ts` | `isRestLog` / `isWorkoutLog` |
@@ -66,6 +67,6 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 
 ## Store actions
 
-`createAccount` · `logIn` · `signOut` · `completeOnboarding` · `updateProfile` · `setEquipment` · `addEquipment` · `addToPlan` · `updatePlan` · `removeFromPlan` · `clearPlan` · `beginWorkout` · `setTrainerFocus` · `setTrainerDay` · `applyTrainerPlan` · `beginTrainerReview` · `backToTrainerPick` · `finishWorkout` · `logRestDay` · `linkPartner` · `unlinkPartner` · `showToast` · `clearToast`
+`createAccount` · `logIn` · `resetPassword` · `generateRecoveryCode` · `signOut` · `completeOnboarding` · `updateProfile` · `setEquipment` · `addEquipment` · `addToPlan` · `updatePlan` · `removeFromPlan` · `clearPlan` · `beginWorkout` · `setTrainerFocus` · `setTrainerDay` · `applyTrainerPlan` · `beginTrainerReview` · `backToTrainerPick` · `finishWorkout` · `logRestDay` · `linkPartner` · `unlinkPartner` · `showToast` · `clearToast`
 
-`createAccount` / `logIn` / `signOut` are async and hit `lib/db/index.ts`. Keep the same names if you want screens to stay untouched.
+`createAccount` / `logIn` / `resetPassword` / `signOut` are async and hit `lib/db/index.ts`. Keep the same names if you want screens to stay untouched. `createAccount` returns the plaintext recovery code once; `importData` accepts an optional `newPassword` to take ownership of a restored account.

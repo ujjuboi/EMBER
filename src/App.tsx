@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Shell } from './app/Shell'
 import { AuthPage } from './features/auth/AuthPage'
 import { OnboardingPage } from './features/auth/OnboardingPage'
+import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
 import { HomePage } from './features/home/HomePage'
 import { PartnerPage } from './features/partner/PartnerPage'
 import { YouPage } from './features/profile/YouPage'
@@ -43,6 +44,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AuthPage />} />
+            <Route path="/forgot" element={<ResetPasswordPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route element={<Shell />}>
               <Route path="/home" element={<HomePage />} />

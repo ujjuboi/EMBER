@@ -7,6 +7,8 @@ type Props = {
   suffix?: string
   error?: string
   autoFocus?: boolean
+  autoCapitalize?: string
+  autoComplete?: string
 }
 
 export function Field({
@@ -18,6 +20,8 @@ export function Field({
   suffix,
   error,
   autoFocus,
+  autoCapitalize,
+  autoComplete,
 }: Props) {
   const input = (
     <input
@@ -26,6 +30,8 @@ export function Field({
       placeholder={placeholder}
       aria-label={label ?? placeholder}
       autoFocus={autoFocus}
+      autoCapitalize={autoCapitalize}
+      autoComplete={autoComplete}
       onChange={(e) => onChange(e.target.value)}
       className={
         suffix

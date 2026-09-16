@@ -82,9 +82,9 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-// --- Schema (version 5) ---
+// --- Schema (version 6) ---
 
-const SCHEMA_VERSION = 5
+const SCHEMA_VERSION = 6
 
 const WORKOUT_TABLE = `CREATE TABLE IF NOT EXISTS workout (
   id TEXT PRIMARY KEY,
@@ -180,7 +180,9 @@ async function createSchema(): Promise<void> {
       email TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
       salt TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      recovery_salt TEXT,
+      recovery_hash TEXT
     )`,
       `CREATE TABLE IF NOT EXISTS session (
       id INTEGER PRIMARY KEY DEFAULT 1,
@@ -276,6 +278,10 @@ async function createSchema(): Promise<void> {
   // (e.g. by an intermediate build) must still get custom_exercise created.
   await migrateV4toV5()
 
+  if (version < 6) {
+    await migrateV5toV6()
+  }
+
   await setSchemaVersion(SCHEMA_VERSION)
 }
 
@@ -335,6 +341,22 @@ async function migrateV4toV5(): Promise<void> {
   await CapacitorSQLite.execute({ database: DB_NAME, statements: CUSTOM_EXERCISE_TABLE })
 }
 
+// v5 -> v6. Adds per-account recovery-code fields (hashed at rest). Data-preserving.
+async function migrateV5toV6(): Promise<void> {
+  if (!(await columnExists('account', 'recovery_salt'))) {
+    await CapacitorSQLite.execute({
+      database: DB_NAME,
+      statements: 'ALTER TABLE account ADD COLUMN recovery_salt TEXT',
+    })
+  }
+  if (!(await columnExists('account', 'recovery_hash'))) {
+    await CapacitorSQLite.execute({
+      database: DB_NAME,
+      statements: 'ALTER TABLE account ADD COLUMN recovery_hash TEXT',
+    })
+  }
+}
+
 export async function accountExists(email: string): Promise<boolean> {
   const result = await CapacitorSQLite.query({
     database: DB_NAME,
@@ -374,6 +396,51 @@ export async function verifyCredentials(email: string, password: string): Promis
   if (!rows || rows.length === 0) return false
   const row = rows[0]
   return verifyPassword(password, String(row.salt ?? ''), String(row.password_hash ?? ''))
+}
+
+export async function setRecoveryCode(email: string, code: string | null): Promise<void> {
+  return enqueue(async () => {
+    if (code) {
+      const salt = generateSalt()
+      const recoveryHash = await hashPassword(code, salt)
+      await CapacitorSQLite.run({
+        database: DB_NAME,
+        statement: 'UPDATE account SET recovery_salt = ?, recovery_hash = ? WHERE email = ?',
+        values: [salt, recoveryHash, email],
+      })
+    } else {
+      await CapacitorSQLite.run({
+        database: DB_NAME,
+        statement: 'UPDATE account SET recovery_salt = NULL, recovery_hash = NULL WHERE email = ?',
+        values: [email],
+      })
+    }
+  })
+}
+
+export async function verifyRecoveryCode(email: string, code: string): Promise<boolean> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT recovery_salt, recovery_hash FROM account WHERE email = ?',
+    values: [email],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return false
+  const row = rows[0]
+  if (!row.recovery_salt || !row.recovery_hash) return false
+  return verifyPassword(code, String(row.recovery_salt), String(row.recovery_hash))
+}
+
+export async function resetPassword(email: string, newPassword: string): Promise<void> {
+  return enqueue(async () => {
+    const salt = generateSalt()
+    const passwordHash = await hashPassword(newPassword, salt)
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: 'UPDATE account SET password_hash = ?, salt = ? WHERE email = ?',
+      values: [passwordHash, salt, email],
+    })
+  })
 }
 
 export async function getSession(): Promise<string | null> {
@@ -1059,7 +1126,7 @@ function partnerInsertFullStatement(accountEmail: string, p: Partner, linked: bo
 export async function exportAccount(accountEmail: string): Promise<EmberBackup> {
   const accountResult = await CapacitorSQLite.query({
     database: DB_NAME,
-    statement: 'SELECT email, password_hash, salt, created_at FROM account WHERE email = ?',
+    statement: 'SELECT email, password_hash, salt, created_at, recovery_salt, recovery_hash FROM account WHERE email = ?',
     values: [accountEmail],
   })
   const accountRows = accountResult.values as Record<string, unknown>[] | undefined
@@ -1125,6 +1192,8 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
       passwordHash: String(accountRow.password_hash),
       salt: String(accountRow.salt),
       createdAt: String(accountRow.created_at),
+      recoverySalt: accountRow.recovery_salt ? String(accountRow.recovery_salt) : null,
+      recoveryHash: accountRow.recovery_hash ? String(accountRow.recovery_hash) : null,
     },
     profile,
     history,
@@ -1170,8 +1239,8 @@ export async function importAccount(backup: EmberBackup, opts: { newAccount: boo
     const set = replaceAccountStatements(backup, email)
     if (opts.newAccount) {
       set.unshift({
-        statement: 'INSERT OR IGNORE INTO account (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)',
-        values: [backup.account.email, backup.account.passwordHash, backup.account.salt, backup.account.createdAt],
+        statement: 'INSERT OR IGNORE INTO account (email, password_hash, salt, created_at, recovery_salt, recovery_hash) VALUES (?, ?, ?, ?, ?, ?)',
+        values: [backup.account.email, backup.account.passwordHash, backup.account.salt, backup.account.createdAt, backup.account.recoverySalt, backup.account.recoveryHash],
       })
       set.push({ statement: 'UPDATE session SET active_email = ? WHERE id = 1', values: [backup.account.email] })
     }
