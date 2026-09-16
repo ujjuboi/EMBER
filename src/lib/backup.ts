@@ -1,8 +1,8 @@
 import type { EmberBackup } from './types'
 
-export const BACKUP_SCHEMA = 6
+export const BACKUP_SCHEMA = 7
 
-export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6]
+export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6, 7]
 
 export function backupFilename(): string {
   const now = new Date()
@@ -37,6 +37,10 @@ export function parseBackup(text: string): EmberBackup {
   const account = backup.account as EmberBackup['account']
   account.recoverySalt ??= null
   account.recoveryHash ??= null
+  // Schema <=6 backups have no P2P pairing identity; a fresh one is minted on
+  // first pair. The derived lastSyncedAt field defaults to null too.
+  backup.pairing ??= null
+  if (backup.partner) backup.partner.lastSyncedAt ??= null
   backup.customExercises ??= []
   backup.workouts ??= []
   backup.workoutSets ??= []

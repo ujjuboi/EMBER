@@ -21,13 +21,13 @@ Also read [docs/COACH.md](./docs/COACH.md) — there are **no GIF files**. Motio
 
 | This prototype **is** | This prototype **is not** |
 | --- | --- |
-| Phone-first React UI (390–430px) | Server auth / OAuth, payments, or sync |
+| Live P2P partner sync (WebRTC + signaling relay) | Server auth / OAuth, multi-device, cloud accounts |
 | An installable, offline-capable PWA | A native App Store / Play Store build |
 | All main screens, empty/error states, motion | Native pedometer / Health Connect |
 | A scored session suggester + full exercise catalog | A gym-machine catalog or trainer AI |
 | SVG wireframe coach that performs each move | GIFs, Lottie, or video clips |
-| Pairing UX (no-op prototype) | Live multiplayer or push notifications |
-| Local SQLite accounts + per-account rows | Server/API, sync, or cloud accounts |
+| Pairing UX (real codes + signed DataChannel sync) | Push notifications / background sync |
+| Local SQLite accounts + per-account rows | Server/API, cloud sync, or groups |
 
 Stack: **Vite 8 + React 19 + TypeScript + Tailwind v4 + React Router 7 + lucide-react + Framer Motion** (toast only).
 
@@ -79,10 +79,11 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 `src/lib/store.tsx` is a React context over **on-device SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA service worker precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so persistence **survives offline** after first load.
 
 - **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user. `crypto.subtle` requires HTTPS — `localhost` and Netlify/Vercel are fine, plain `http://` on a LAN phone is not.
-- **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner` / `workout` / `workout_set`), so multiple accounts on one install never see each other's data.
-- There is **no server**. Auth is local-only — no OAuth, no sync. **Password recovery is offline**: every account gets a one-time 12-char recovery code (shown once at signup, hashed at rest via the same PBKDF2 machinery); `/forgot` confirms the new password then returns the user to login (reset never signs in silently). Restoring a backup can optionally set a fresh password (the backup's hash is otherwise unknown).
-- Onboarding writes profile + kit + optional partner link (any **6-character** code).
-- Schema is versioned (`PRAGMA user_version`, currently **v6**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body); the v5 → v6 migration adds `account.recovery_salt`/`account.recovery_hash` (per-account recovery code, NULL until generated).
+- **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner` / `pairing` / `workout` / `workout_set`), so multiple accounts on one install never see each other's data.
+- There is **no app server**. Auth is local-only — no OAuth. **Password recovery is offline**: every account gets a one-time 12-char recovery code (shown once at signup, hashed at rest via the same PBKDF2 machinery); `/forgot` confirms the new password then returns the user to login (reset never signs in silently). Restoring a backup can optionally set a fresh password (the backup's hash is otherwise unknown). The only server piece is the **partner-sync signaling relay** (Cloudflare Worker Durable Object or local `npm run relay`), which forwards SDP/ICE only.
+- Onboarding writes profile + kit + an **optional real partner code** (pairing now completes when both users are online and Accept — no more no-op toast).
+- Schema is versioned (`PRAGMA user_version`, currently **v7**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body); the v5 → v6 migration adds `account.recovery_salt`/`account.recovery_hash` (per-account recovery code, NULL until generated); the v6 → v7 migration adds the `pairing` table (per-account Ed25519 identity + code + peer info) and `partner.last_synced_at`.
+- **Partner sync** (`src/lib/sync/session.ts` + `src/lib/pairing.ts`): each account owns an Ed25519 keypair (pure-JS, works on Safari/iOS); the **public-key fingerprint** is the verified identity. Pairing uses a **single-use 6-char code** that names the relay room and is rotated on pair/unpair. The handshake runs over the signaling relay (the client appends `?room=` to the WebSocket URL — required by both the Worker and local relay), then a **WebRTC DataChannel** (DTLS-encrypted) carries **Ed25519-signed** pushes (`identify` / `pair-accept` / `push` / `ack` / `ping` / `remind` / `unpair`). Unlink sends `unpair` so a mutual pair unwinds on both devices and the peer stops trying to reconnect. Devices reconnect through a stable room `hash(myPub + peerPub)` with a heartbeat + outbox (reminders queue offline and flush on reconnect). Partner `streak`/`calories`/`lastWorkout` are **derived locally** from synced history (`src/lib/partner.ts`); `steps` and `lastSyncedAt` are synced scalars (the cached `lastSyncedAt` records receipt time). `VITE_SYNC_MODE=mock` feeds scripted events for UI work without a relay.
 - **Workout lifecycle & resume** (`src/lib/db/index.ts`): each session writes a `workout` row (status `in_progress` → `completed`/`abandoned`) plus per-set detail in `workout_set` (position, exercise, reps/seconds, `weight_kg`). Progress (`currentIndex`, set, phase, elapsed, kcal, rest/work seconds, sets logged) is persisted on transitions only, so a killed tab or iOS background resume restores the session where it stopped. Only one `in_progress` workout exists per account — starting a new one abandons the old.
 - **Weights**: reps exercises carry a `weight_kg` plan value (Train stepper) that is stored on the plan row and copied into each logged `workout_set`.
 - **Plans are date-scoped**: the `plan` row writes `for_date` (today). `history` stays the date-rollup source of truth for calendars/streaks; `streak`/`steps`/`calories` are recomputed from history on hydrate so caches cannot drift.
@@ -171,7 +172,7 @@ Users log rest from Home (**Log rest day**) only before they have a workout toda
 
 ### Auth / onboarding
 
-Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. Signup mints a one-time 12-char **recovery code** (shown once via modal before onboarding); `/forgot` accepts email + code + new password, confirms the reset, and returns to log in. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = a prototype no-op link (toast only).
+Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. Signup mints a one-time 12-char **recovery code** (shown once via modal before onboarding); `/forgot` accepts email + code + new password, confirms the reset, and returns to log in. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. An optional **real partner code** starts pairing; with no relay configured (`VITE_RELAY_URL`) or in mock mode the app hands back to the Partner page where pairing continues when both users are online.
 
 **Tester path:** Create an account (any email + password of ≥6 chars) → keep defaults → Save. Lands on Train.
 
@@ -193,7 +194,7 @@ Work → rest → next set/move. Timed moves auto-log when the countdown hits 0.
 
 ### Partner
 
-Linked: compare columns + calendar. Unlinked: pair panel (`PartnerWidget.tsx`). Remind is a toast today; replace with a real push/in-app ping.
+Linked: compare columns + calendar + Refresh (with a last-synced label) + real reminder over the DataChannel. Unlinked: pair panel (`PartnerWidget.tsx`) shows the account's **own code** with copy, an enter-code field, a waiting spinner, and an inline **Accept/Decline** card when the peer identifies. The whole flow lives in `src/lib/sync/session.ts` (`SyncSession` real, `MockSyncSession` for `VITE_SYNC_MODE=mock`); the relay is `relay/index.ts` (Worker) + `scripts/relay.mjs` (local). Reminder while offline queues in an outbox and flushes on reconnect.
 
 ### You
 
@@ -251,7 +252,7 @@ This is already a real, **installable, offline PWA** — the remaining roadmap i
 1. **Ship it.** Deploy `dist/` to Netlify/Vercel (HTTPS is automatic) and install from Chrome/Safari. No App Store, no code signing. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
 2. **Auth (server, if you must)** — local accounts already exist (PBKDF2-hashed credentials, session restore, per-account rows). Remaining: real server-side session/JWT, email validation beyond the `@` check, and OAuth if you want Google.
 3. **User + history** — persist `HistoryItem[]`, streak computed server-side from workout dates (exclude rest).
-4. **Partner** — real invite codes, both users’ histories, reminder as push. Twin flame = both have a workout on `today` in the user’s timezone.
+4. **Partner (done in this session)** — real invite codes, a signaling relay (`npm run relay`), P2P WebRTC DataChannel sync, and reminder-as-push are live. Twin flame = both have a workout on `today` in the user’s timezone. Remaining if wanted: relay deploy on Cloudflare + push notifications.
 5. **Steps** — Health Connect / HealthKit; prototype `steps` field is fake.
 6. **Actual-vs-planned coaching** — stored `workout_set` rows (reps/seconds/weight) can feed progress-overload and rep-count feedback.
 7. **PWA gaps (iOS)** — background timers throttle, push needs web push (iOS 16.4+), screen-wake. Tracked in the Phase 1 plan's backlog.

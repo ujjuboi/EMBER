@@ -5,7 +5,9 @@
 Close the persistence gaps found in the full-app DB analysis. Today the DB
 (`src/lib/db/index.ts`, schema v2) stores `account`, `session`, `profile`,
 `history` (one aggregated row per date), `plan` (a single current plan), and
-`partner` (JSON snapshot). It does **not** store:
+`partner` (originally a JSON snapshot; **since Phase 2 it is a signed synced
+cache** of the peer's history/steps/lastSyncedAt, with streak/calories derived
+locally). It does **not** store:
 
 1. **Live in-progress session state** — `SessionPage.tsx` keeps `index`,
    `setNo`, `phase`, timers, `elapsed`, `kcal` and sets-logged in component
@@ -164,8 +166,8 @@ Manual:
 
 ## Non-goals (backlog)
 
-- Real partner sync (partner tables, live `partner.history`) — still the
-  prototype snapshot.
+- Real partner sync — **done, superseded by Phase 2** (WebRTC DataChannel +
+  signaling relay; see `plans/phase-2-partner-sync.md`).
 - Scheduled-future-plan UI (only the schema supports `for_date > today`).
 - Actual-reps-vs-planned feedback / coaching from stored sets.
 - Per-set weight entry during the session UI (uses planned weight this phase).

@@ -1,12 +1,19 @@
 import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from 'react'
 import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
 import { dateLabel, isoDate, streakFromDates } from './dates'
+import { derivePartner } from './partner'
 import { generateSalt, hashPassword } from './password'
 import { suggestSession } from './trainer'
 import { backupFilename, parseBackup, readTextFile, serializeBackup, shareOrDownload } from './backup'
-import type { AppState, HistoryItem, SessionProgress, Workout } from './types'
+import type { AppState, HistoryItem, Partner, SessionProgress, Workout } from './types'
+import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
+import { normalizePairingCode } from './pairing'
 import { StoreContext, type StoreValue } from './store-hooks'
 import * as db from './db'
+
+function blankPartner(): Partner {
+  return { name: '', streak: 0, steps: 0, calories: 0, lastWorkout: '', history: [], lastSyncedAt: null }
+}
 
 const seedState = (): AppState => ({
   signedIn: false,
@@ -24,14 +31,11 @@ const seedState = (): AppState => ({
   workingWorkout: null,
   partnerLinked: false,
   partnerSince: null,
-  partner: {
-    name: '',
-    streak: 0,
-    steps: 0,
-    calories: 0,
-    lastWorkout: '',
-    history: [],
-  },
+  partner: blankPartner(),
+  pairCode: null,
+  pairState: 'idle',
+  pendingPeer: null,
+  syncError: null,
   history: [],
   equipment: ['bodyweight'],
   plan: [],
@@ -77,13 +81,14 @@ function generateRecoveryCode(): string {
 }
 
 async function signInState(email: string): Promise<AppState> {
-  const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
+  const [profile, history, plan, partnerData, activeWorkout, customExercises, pairing] = await Promise.all([
     db.loadProfile(email),
     db.loadHistory(email),
     db.loadPlan(email),
     db.loadPartner(email),
     db.loadWorkoutInProgress(email),
     db.loadCustomExercises(email),
+    db.loadPairing(email),
   ])
   const totals = workoutTotalsFromHistory(history)
   return {
@@ -103,6 +108,10 @@ async function signInState(email: string): Promise<AppState> {
     partnerLinked: partnerData.partnerLinked,
     partnerSince: partnerData.partnerSince,
     partner: partnerData.partner,
+    pairCode: pairing?.code ?? null,
+    pairState: pairing?.mutual ? 'linked' : 'idle',
+    pendingPeer: null,
+    syncError: null,
     history,
     equipment: profile.equipment,
     plan,
@@ -189,6 +198,11 @@ function persistPartnerLinked(s: AppState): Promise<void> {
   return db.updatePartnerLinked(s.accountEmail, s.partnerLinked, s.partnerSince)
 }
 
+function persistPartnerData(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.savePartner(s.accountEmail, s.partner, s.partnerLinked, s.partnerSince)
+}
+
 function persistWorkout(s: AppState): Promise<void> {
   if (!s.accountEmail || !s.workingWorkout) return Promise.resolve()
   return db.updateWorkoutProgress(s.workingWorkout.id, {
@@ -221,6 +235,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [initError, setInitError] = useState<string | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
+
+  const current = () => stateRef.current ?? seedState()
 
   const pendingStateRef = useRef<AppState | null>(null)
   const flushTimerRef = useRef<number | null>(null)
@@ -257,6 +273,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       persistPlan(next),
       persistCustomExercises(next),
       persistPartnerLinked(next),
+      persistPartnerData(next),
       persistWorkout(next),
     ]).then((results) => {
       const failed = results.some((r) => r.status === 'rejected')
@@ -301,9 +318,97 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [flushWrites])
 
+  const sessionRef = useRef<SyncSessionLike | null>(null)
+
+  const sessionHooks = useMemo<SessionHooks>(
+    () => ({
+      getOwnSnapshot: () => {
+        const s = current()
+        return {
+          name: s.displayName,
+          history: s.history
+            .filter((item) => item && typeof item.date === 'string')
+            .map((item) => ({
+              date: item.date,
+              name: item.name,
+              durationMin: item.durationMin,
+              calories: item.calories ?? 0,
+              rest: item.rest,
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date)),
+          steps: s.steps,
+          lastSyncedAt: new Date().toISOString(),
+        }
+      },
+      onPairPatch: (patch) => commit({ ...current(), ...patch }),
+      onPairLinked: (peer) => {
+        const s = current()
+        commit(
+          {
+            ...s,
+            partnerLinked: true,
+            partnerSince: s.partnerSince ?? isoDate(),
+            partner: { ...blankPartner(), name: peer.name },
+          },
+          { immediate: true },
+        )
+      },
+      applyPartnerPush: (push) => {
+        const s = current()
+        const partner = derivePartner({
+          name: push.name,
+          steps: push.steps,
+          history: push.history,
+          lastSyncedAt: new Date().toISOString(),
+        })
+        commit(
+          {
+            ...s,
+            partnerLinked: true,
+            partnerSince: s.partnerSince ?? isoDate(),
+            partner,
+          },
+          { immediate: true },
+        )
+      },
+      onReminder: (fromName) => commit({ ...current(), toast: `Reminder from ${fromName} — let's go` }),
+      onUnpaired: (message) => {
+        const s = current()
+        commit({
+          ...s,
+          partnerLinked: false,
+          partnerSince: null,
+          partner: blankPartner(),
+          toast: message,
+        })
+      },
+      notify: (message) => commit({ ...current(), toast: message }),
+    }),
+    [commit],
+  )
+
+  useEffect(() => {
+    if (!hydrated) return
+    const email = state?.accountEmail
+    if (!email) return
+    sessionRef.current?.stop()
+    const session = createSyncSession()
+    sessionRef.current = session
+    void session.configure(email, sessionHooks)
+    return () => {
+      if (sessionRef.current === session) {
+        session.stop()
+        sessionRef.current = null
+      }
+    }
+  }, [hydrated, state?.accountEmail, sessionHooks])
+
+  const notifySyncChanged = useCallback(() => {
+    sessionRef.current?.notifyChanged()
+  }, [])
+
   const value = useMemo<StoreValue>(() => {
     const base = state ?? seedState()
-    const current = () => stateRef.current ?? seedState()
     return {
       ...base,
       ready: hydrated,
@@ -361,7 +466,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       completeOnboarding: ({ displayName, weightKg, heightFt, heightIn, stepGoal, partnerCode, equipment, trainerGoal }) => {
         const s = current()
-        const linked = partnerCode.trim().length === 6
         commit({
           ...s,
           onboarded: true,
@@ -373,12 +477,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           stepGoal,
           equipment,
           trainerGoal,
-          partnerLinked: linked,
-          partnerSince: linked ? isoDate() : null,
+          partnerLinked: false,
+          partnerSince: null,
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
         })
+        const linkCode = normalizePairingCode(partnerCode)
+        if (linkCode.length === 6 && s.accountEmail) {
+          storePendingPairCode(linkCode)
+          void sessionRef.current?.configure(s.accountEmail, sessionHooks)
+        }
       },
       updateProfile: ({ weightKg, heightFt, heightIn, stepGoal, equipment, trainerGoal }) => {
         const s = current()
@@ -396,6 +505,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           next.planSource = 'trainer'
         }
         commit(next)
+        notifySyncChanged()
       },
       setEquipment: (id) => {
         const s = current()
@@ -627,6 +737,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           planSource: 'trainer',
           trainerPhase: 'pick',
         }, { immediate: true })
+        notifySyncChanged()
       },
       logRestDay: () => {
         const s = current()
@@ -651,19 +762,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           planSource: 'trainer',
           trainerPhase: 'pick',
         }, { immediate: true })
+        notifySyncChanged()
       },
       unlinkPartner: () => {
         const s = current()
-        commit({ ...s, partnerLinked: false, partnerSince: null })
+        commit({
+          ...s,
+          partnerLinked: false,
+          partnerSince: null,
+          partner: blankPartner(),
+        }, { immediate: true })
+        sessionRef.current?.unlink()
       },
-      linkPartner: (code) => {
-        const s = current()
-        const trimmed = code.trim().toUpperCase()
-        if (trimmed.length !== 6) {
-          return { ok: false, error: 'Enter a 6-character code' }
-        }
-        commit({ ...s, partnerLinked: true, partnerSince: s.partnerSince ?? isoDate() })
-        return { ok: true }
+      startPairing: (code) => {
+        sessionRef.current?.startPairing(code)
+      },
+      acceptPair: () => {
+        sessionRef.current?.acceptPeer()
+      },
+      declinePair: () => {
+        sessionRef.current?.declinePeer()
+      },
+      refreshPartner: () => {
+        sessionRef.current?.refreshPartner()
+      },
+      remindPartner: () => {
+        sessionRef.current?.remindPartner()
       },
       showToast: (message) => {
         const ref = stateRef.current
@@ -739,7 +863,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true, dest }
       },
     }
-  }, [state, hydrated, initError, hydrate, commit])
+  }, [state, hydrated, initError, hydrate, commit, sessionHooks, notifySyncChanged])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

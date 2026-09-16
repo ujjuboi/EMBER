@@ -163,24 +163,27 @@ npm run preview
 | Distribution | Installable PWA over HTTPS (Netlify or Vercel) |
 | Local DB | SQLite via `@capacitor-community/sqlite`, hand-written typed SQL |
 | Auth | Local PBKDF2 accounts; single active session; no server component |
-| Pairing/sync | 6-char code — Phase 2 (manual + on partner page open) |
-| Conflict model | None; each device owns its own rows; partner data is read-only snapshot |
+| Pairing/sync | Real 6-char code + WebRTC DataChannel sync — see Phase 2 plan |
+| Conflict model | Last-writer-wins per field; partner data is signed (Ed25519) |
 | Fonts | Google Fonts remote load (self-hosting rejected this phase) |
 | Icons | Derived from `public/favicon.svg` (black tile + orange triangle) |
 | Encryption | At-rest unencrypted on web (SQLCipher is native-only, not enabled) |
+| Relay role | Signaling only (SDP/ICE); never sees workout data |
 
 ---
 
 ## Threat model / privacy
 
-- **Data never leaves the device.** There is no backend; hosting can never
-  leak user data.
+- **Workout data never leaves the device** — except WebRTC partner sync, which
+  travels device-to-device over an encrypted DataChannel; the signaling relay
+  only forwards SDP/ICE (no app data).
 - **Auth is local UI gating, not server-grade security.** Anyone with access
   to the device's browser storage (DevTools, backups) can read data. Password
   hashes are PBKDF2-salted on-device.
 - **At-rest storage is unencrypted** in the browser's storage sandbox.
-- The only outbound requests are Google Fonts (`fonts.googleapis.com` /
-  `fonts.gstatic.com`), which carry no user data.
+- Outbound requests: Google Fonts (`fonts.googleapis.com` /
+  `fonts.gstatic.com`), the configured `VITE_RELAY_URL` (signaling only), and
+  `stun:` servers for NAT traversal.
 - `crypto.subtle` requires a secure (HTTPS) context — satisfied by the
   production PWA host and `localhost` dev; plain `http://` LAN phone testing
   fails auth.
@@ -189,12 +192,10 @@ npm run preview
 
 ## Non-goals (Phase 2+ backlog)
 
-- P2P WebSocket server/client sync, `partner_snapshot` tables
-- Share-config UI and sync trigger (manual + on partner page open)
-- BLE fallback transport, background sync, multi-partner
 - Encryption at rest on web (WASM-SQLCipher or encrypted columns)
 - iOS PWA gaps: background timers, web push (iOS 16.4+), screen wake
 - Privacy / threat-model promoted to a formal user-facing doc
+- Multi-partner/groups, native pedometer/Health Connect steps (cross-Phase 2)
 
 ---
 
