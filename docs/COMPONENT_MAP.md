@@ -1,6 +1,6 @@
 # File map
 
-Read this after [HANDOFF.md](../HANDOFF.md). Every screen is already implemented. Start from the row you need.
+Read this after [README.md](../README.md). Every screen is already implemented. Start from the row you need.
 
 ## App chrome
 

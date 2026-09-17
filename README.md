@@ -1,187 +1,207 @@
 # EMBER
 
-Phone-first workout tracker — a clickable UI prototype with a black/orange theme, SVG coach, and partner sharing.
+Phone-first workout tracker: a home trainer in your pocket. Black/orange theme,
+an animated SVG stick-figure coach, on-device persistence, offline-first PWA,
+and real peer-to-peer partner accountability.
+
+EMBER stores everything **on your device** (SQLite), works **fully offline**,
+and pairs you with a partner over an encrypted P2P link — no account servers, no
+cloud, no subscription.
 
 <img width="720" height="397" alt="emberDemo" src="https://github.com/user-attachments/assets/33e08dc9-bea3-4102-a043-42a221f739f9" />
 
-**Taking this to production?** Start at **[HANDOFF.md](./HANDOFF.md)**.
+## Features
 
-## Quick Start
+- **Local accounts** — signup/log in with PBKDF2-hashed passwords stored on-device; data scoped per account across profiles, plans, history, workouts, and partner.
+- **Offline password recovery** — every account gets a one-time 12-char recovery code (hashed at rest) so a forgotten password is recoverable with no backend.
+- **Smart session suggester** — pick a body part, goal, and your kit; the trainer scores the catalog and prescribes sets/reps/rest.
+- **Live guided sessions** — work/rest/celebrate phases, timed sets auto-log, calorie estimates (MET × kg × hours), and full resume after a tab kill or background drop.
+- **SVG coach** — a stick figure that actually performs each move via pose loops (no GIFs, no video).
+- **Streaks & calendars** — calendar days with a completed workout; your mark is a square, your partner's is a heart.
+- **Twin flame** — when you and your partner both train today, the flame becomes a heart.
+- **Partner P2P sync** — 6-char pairing codes, Ed25519-signed identity, WebRTC DataChannel push sync, offline reminder outbox.
+- **Rest-day logging** — make rest explicit; empty days and rest days are different things.
+- **Custom exercise library** — add your own moves forked off existing coach poses.
+- **Backup & restore** — export/import your account (workouts, history, plan, profile, partner, customs) as JSON, optionally taking ownership with a fresh password.
+- **Installable PWA** — standalone on Android and iOS, works offline after first load.
+
+## Live app
+
+WIP / self-hosted: the app deploys to **Netlify** from `main` (see
+[docs/deployment.md](./docs/deployment.md)) and installs on any phone from
+Chrome or Safari.
+
+## Tech stack
+
+| Layer | Tech |
+| --- | --- |
+| Build | Vite 8 + React 19 + TypeScript |
+| Styling | Tailwind CSS v4 (Space Grotesk) |
+| Routing | React Router 7 |
+| Animation | Framer Motion (toast), rAF stick-figure coach |
+| Icons | Lucide React |
+| Persistence | On-device SQLite (`@capacitor-community/sqlite`, jeep-sqlite on web) |
+| Auth | Local PBKDF2-SHA256 accounts (`crypto.subtle`) |
+| Partner sync | Ed25519 (`@noble/curves`) + WebRTC DataChannel + Node `ws` signaling relay |
+| PWA | `vite-plugin-pwa` (manifest + service worker) |
+| Lint | oxlint |
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the Vite URL at ~390px width (phone viewport) or use the LAN address on a real device.
+Open `http://127.0.0.1:5173/` at ~390px width (phone viewport) or use the LAN
+URL Vite prints on a real device. Create an account (any email + password ≥ 6
+chars), finish onboarding, and you land on **Train**.
 
-## Tech Stack
-
-- **Build:** Vite 8 + React 19 + TypeScript
-- **Styling:** Tailwind CSS v4 (Space Grotesk font)
-- **Routing:** React Router v7
-- **Animations:** Framer Motion
-- **Icons:** Lucide React
-- **PWA:** vite-plugin-pwa (installable, offline-capable service worker)
-- **Linting:** oxlint
-
-## Design Tokens
-
-| Token    | Value    |
-|----------|----------|
-| bg       | `#050505` |
-| surface  | `#111111` |
-| line     | `#1f1f1f` |
-| ink      | `#f5f5f5` |
-| muted    | `#8a8a8a` |
-| orange   | `#FF5A1F` |
-
-Shell max width: **430px**.
-
-## Project Structure
-
-```
-src/
-  app/             Shell, bottom nav, route gate
-  coach/           Stick-figure coach (SVG pose loops)
-  components/ui/   Shared primitives (buttons, chips, fields, toast, timer)
-  data/            Exercise catalog
-  features/
-    auth/          Login, signup, onboarding (local accounts)
-    home/          Home, streak, month calendar
-    workout/       Train planner + live session
-    partner/       Partner compare + pairing
-    profile/       You (profile, kit, unlink)
-    trainer/       Goal/kit chips
-  lib/             Store, types, dates, scoring
-```
-
-## Features (Prototype)
-
-- Local accounts with PBKDF2-hashed passwords (SQLite) + offline password recovery via a one-time recovery code
-- Onboarding with body kit selection and partner pairing
-- Streak tracking (calendar days with completed workouts)
-- Auto-generated workout plans by body part, goal, and equipment
-- Live session with timed sets and rest periods
-- SVG coach that animates through each exercise
-- Partner comparison with calendar sync
-- Real P2P partner sync: per-account pairing codes, WebRTC DataChannel (end-to-end, relay only signals), signed pushes, offline reminders
-- Twin flame status when both partners train on the same day
-- Rest day logging
-
-## Persistence & privacy
-
-State lives in on-device **SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so the store keeps working **fully offline** after first load. Accounts are stored locally with PBKDF2-hashed passwords (`src/lib/password.ts`), and all data (`profile` / `history` / `plan` / `partner` / `pairing` / `workout` / `workout_set`) is scoped per account with a `session` row restoring the last logged-in user. Password recovery is fully offline too: each account mints a one-time 12-char **recovery code** (hashed at rest, shown once at signup or from You) that — with the account email — resets the password on `/forgot`. Finished workouts keep full per-set detail (reps/seconds + weight), and an in-progress session **resumes** where you left off after a reload or background-kill. See `src/lib/store.tsx` for the shape and actions.
-
-#### Partner sync
-
-Two accounts pair with **6-char per-account codes**. Each account owns an
-Ed25519 keypair (`src/lib/pairing.ts`, pure-JS via `@noble/curves` so it works
-on Safari/iOS too); the **public-key fingerprint** is the verified identity,
-the code only names a relay room and is rotated on pair/unpair. The handshake
-runs over a **signaling relay** (Tailscale-hosted Node `ws` server —
-`relay/server.mjs`, local `npm run relay`) that only ever forwards SDP/ICE,
-never workout data. Once the WebRTC DataChannel opens, both sides exchange **signed**
-identity + stats pushes, derive partner streak/calories locally from the synced
-history (mirroring the "your" side), and reconnect via a stable room
-`hash(myPub + peerPub)` whenever either device comes back online. Reminders
-travel over the channel and queue in an outbox when the partner is offline;
-unlinking sends a signed `unpair` so the peer stops reconnecting and clears the
-pair on its side too.
-Reads always use the last-known cached partner state, so nothing breaks when
-the network drops. See `src/lib/sync/session.ts` for the state machine and
-`plans/phase-2-partner-sync.md` for the full protocol.
-
-Private notes:
-
-- **Data never leaves your device** except relay-transit WebRTC signaling.
-  There is no app backend; hosting (Netlify) serves static files only.
-  The signaling relay (Tailscale-hosted Node `ws` server, or local
-  `npm run relay`) only forwards SDP offers/answers and ICE candidates — it
-  never sees workout data, which travels device-to-device over an encrypted
-  DataChannel.
-- **Auth is local UI gating, not server-grade security.** Anyone with access to the device's browser storage (DevTools, backups) can read the data. Password hashes are PBKDF2-salted on-device.
-- **At-rest storage is unencrypted** in the browser's storage sandbox (jeep-sqlite has no web encryption).
-- **Pairing keys are plaintext seeds** in SQLite, exported inside backups —
-  consistent with the at-rest model. The pairing code itself is single-use.
-- Outbound requests: Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`), the configured `VITE_RELAY_URL` (signaling only), and `stun:` servers for NAT traversal.
-
-## Install as an app
-
-EMBER is an installable **Progressive Web App** — no app store, no APK.
-
-- **Android:** open the site in Chrome → the browser prompts to **Install app** (or use menu → **Add to Home screen**). It launches full-screen standalone and works offline.
-- **iPhone / iPad:** open the site in Safari → share sheet → **Add to Home Screen** → **Add**. It opens standalone, offline-capable.
-
-## Preview & Deploy
-
-```bash
-npm run build
-```
-
-SPA fallback is preconfigured for **Netlify** (`netlify.toml`). HTTPS is required for the local password hash (`crypto.subtle`) and for the service worker — Netlify provides it automatically.
-
-## Partner sync — local setup & dev simulation
+### Partner sync locally
 
 ```bash
 # one terminal: local signaling relay
 npm run relay                 # ws://127.0.0.1:8787
 
 # app in dev
-cp .env.example .env          # VITE_RELAY_URL=ws://127.0.0.1:8787 (or use VITE_SYNC_MODE=mock for UI-only)
+cp .env.example .env          # VITE_RELAY_URL=ws://127.0.0.1:8787
 npm run dev
 ```
 
-Two-user smoke test without code changes: open the dev URL in a normal window
-and a private/incognito window, log in as two different accounts, then on the
-Partner page each device types the other's code and both tap **Accept**. Verify
-live Refresh, twin-flame, reminder-as-push, and that unlink rotates the code.
+Two-user smoke test: normal window + private/incognito window, two accounts,
+each device enters the other's code on the Partner page and both tap **Accept**.
+No relay needed for UI work: set `VITE_SYNC_MODE=mock` (scripted partner events).
+Full protocol details: [docs/partner-sync.md](./docs/partner-sync.md) and
+`relay/README.md`.
 
-To deploy a real relay on a Tailscale node (Node ≥ 18, Tailscale ≥ 1.38.3):
+## Environment variables
 
-1. Copy the server to an always-on node and install `ws`:
-   ```sh
-   scp relay/server.mjs <node>:~/relay/server.mjs
-   ssh <node>
-   npm init -y && npm install ws@8
-   ```
-2. Run persistently — Linux:
-   ```sh
-   # /etc/systemd/system/ember-relay.service
-   [Unit]
-   Description=EMBER signaling relay
-   After=network-online.target
-   [Service]
-   Restart=on-failure
-   ExecStart=/usr/bin/node /home/<user>/relay/server.mjs
-   Environment=RELAY_PORT=8787
-   [Install]
-   WantedBy=multi-user.target
+| Var | Purpose | Default |
+| --- | --- | --- |
+| `VITE_RELAY_URL` | Signaling relay base URL (the client appends `?room=`). `wss://` in production. | `ws://127.0.0.1:8787` |
+| `VITE_SYNC_MODE` | `mock` feeds scripted partner events (UI-only, no network). | unset |
+| `VITE_STUN_URL` | STUN server for the WebRTC handshake. | Google STUN |
 
-   sudo systemctl enable --now ember-relay
-   ```
-   macOS: a `~/Library/LaunchAgents` plist with `KeepAlive` and the same `ExecStart`.
-3. Expose tailnet-only:
-   ```sh
-   tailscale serve --bg 8787
-   ```
-4. Set `VITE_RELAY_URL=wss://<node>.<tailnet>.ts.net` in the Netlify build env — scheme **must** be `wss://` (`ws://` is blocked as mixed content on the HTTPS site).
+## Project structure
 
-Full details in `relay/README.md`. To make the relay public later, swap `tailscale serve` for `tailscale funnel --bg --https=443 8787` (one CLI command, no code change).
+```
+src/
+  app/                 Shell (430px frame + gate), bottom nav, route guard
+  coach/               Stick-figure coach: pose loops + rAF SVG renderer
+  components/ui/       Buttons, chips, fields, confirm, toast, timer
+  data/                Exercise catalog (+ posed coach mapping)
+  features/
+    auth/              Login/signup, onboarding, password reset
+    home/              Home, streak, week/month calendar
+    workout/           Train planner + live session
+    partner/           Partner compare + pairing widget
+    profile/           You (profile, kit, unlink, recovery code)
+    trainer/           Goal/kit chips
+  lib/                 Store, SQLite db layer, hashing, pairing, sync, dates, scoring, calories
+relay/                 Signaling relay server (Node ws) + deploy docs
+plans/                 Future feature plans (roadmap)
+docs/                  Architecture, auth, sync, and deployment references
+```
+
+## Architecture
+
+The app is **local-first**: no app server, no cloud account, no database backend.
+Hosting serves static files only.
+
+- **Persistence & PWA** — on-device SQLite schema v7 (`account`, `session`,
+  `profile`, `history`, `plan`, `partner`, `pairing`, `workout`, `workout_set`,
+  `custom_exercise`), data-preserving migrations, session resume, backup/restore.
+  → [docs/persistence.md](./docs/persistence.md)
+- **Accounts & recovery** — local PBKDF2 accounts, per-account data isolation,
+  offline recovery codes, reset flow, restore-with-fresh-password.
+  → [docs/auth-and-recovery.md](./docs/auth-and-recovery.md)
+- **Partner sync** — Ed25519 identity, 6-char pairing codes, signaling relay,
+  signed WebRTC DataChannel pushes, offline outbox, locally-derived partner stats.
+  → [docs/partner-sync.md](./docs/partner-sync.md)
+- **Deployment** — Netlify Git-connected build, `VITE_RELAY_URL` wiring, deploy
+  verification, Tailscale relay hosting.
+  → [docs/deployment.md](./docs/deployment.md)
+
+Key files: types `src/lib/types.ts` · store → DB `src/lib/store.tsx` →
+`src/lib/db/index.ts` · hashing `src/lib/password.ts` · catalog
+`src/data/exercises.ts`. A full file map with store actions:
+[docs/COMPONENT_MAP.md](./docs/COMPONENT_MAP.md).
+
+### Product rules
+
+The streak, twin-flame, rest-vs-missing, and Home-CTA rules are **locked** product
+behavior — do not "simplify" them. → [docs/PRODUCT_RULES.md](./docs/PRODUCT_RULES.md)
+
+### Design tokens
+
+| Token | Value |
+| --- | --- |
+| bg | `#050505` |
+| surface | `#111111` |
+| line | `#1f1f1f` |
+| ink | `#f5f5f5` |
+| muted | `#8a8a8a` |
+| orange | `#FF5A1F` |
+| font | Space Grotesk |
+
+Shell max width: **430px**, bottom nav respects `env(safe-area-inset-bottom)`.
+The coach is SVG pose loops in `src/coach/` — there are **no GIF files**
+([docs/COACH.md](./docs/COACH.md)).
+
+## Routes
+
+| Path | Screen | Nav |
+| --- | --- | --- |
+| `/` | Auth (login/signup, restore) | none |
+| `/forgot` | Reset password | none |
+| `/onboarding` | Profile + kit + partner code | none |
+| `/home` | Today, streak, partner card | Home |
+| `/train` | Body-part chips + suggested plan | Train |
+| `/train/go` | Live session (hides tab bar) | — |
+| `/partner` | Compare + calendar, or pair | Partner |
+| `/you` | Profile, kit, unlink, recovery code | You |
 
 ## Scripts
 
-| Command        | Description           |
-|----------------|-----------------------|
-| `npm run dev`  | Start dev server      |
-| `npm run build`| Production build (generates the service worker + manifest) |
-| `npm run lint` | Run oxlint            |
-| `npm run preview` | Preview production build |
-| `npm run icons`| Regenerate `public/icons/*.png` from `public/favicon.svg` |
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start dev server (`http://127.0.0.1:5173/`) |
+| `npm run build` | `tsc -b && vite build` (generates service worker + manifest) |
+| `npm run preview` | Preview the production build |
+| `npm run lint` | Run oxlint |
+| `npm run relay` | Run the local signaling relay (`ws://127.0.0.1:8787`) |
+| `npm run icons` | Regenerate `public/icons/*.png` from `public/favicon.svg` |
 
-## Code Standards
+## Install as an app
 
-- Keep screens in `src/features/*`, shared chrome in `src/app`, primitives in `src/components/ui`, and domain logic in `src/lib`.
+EMBER is an installable **Progressive Web App** — no app store, no APK.
+
+- **Android:** Chrome → **Install app** (or menu → **Add to Home screen**). Opens
+  standalone and works offline.
+- **iPhone/iPad:** Safari → share sheet → **Add to Home Screen**. Opens
+  standalone, offline-capable.
+
+## Developing
+
+- Keep screens in `src/features/*`, shared chrome in `src/app`, primitives in
+  `src/components/ui`, domain logic in `src/lib`.
 - Extend `HistoryItem` / store actions over new global state.
-- Product copy is locked — don't invent new streak language without checking Home.
-- See **[.cursor/rules/ember.mdc](.cursor/rules/ember.mdc)** for full rules.
+- Copy is product — don't invent new streak language without checking Home.
+- `src/lib/db/index.ts` requires a real `PRAGMA user_version` bump + additive,
+  data-preserving migration for schema changes. The vendored `sql-wasm.wasm`
+  (from `sql.js@1.12.0`) must not be regenerated from a newer version.
+
+## Roadmap
+
+Backlog lives as plans in `plans/`:
+
+- **Dataset ingest** — browse the 1,324-exercise public library + auto-extract
+  SVG coach poses (`plans/dataset-ingest.md`)
+- **Workout programs** — 12-week periodized programs + custom split builder
+  (`plans/workout-programs.md`)
+- **Progress photos → weekly GIF** — photo capture after workouts and an
+  auto-generated weekly progress wave (`plans/progress-photo-weekly-gif.md`)
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
