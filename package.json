@@ -10,6 +10,7 @@
     "ingest": "node scripts/ingest-exercises.mjs",
     "poses": "node scripts/extract-poses.mjs",
     "prune": "node scripts/prune-no-poses.mjs",
+    "categorize": "node scripts/annotate-stretches.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "relay": "node relay/server.mjs",
     "preview": "vite preview"

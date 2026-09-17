@@ -12,6 +12,7 @@ import {
   allExercises,
   equipmentLabel,
   goalLabel,
+  isStretch,
   type BodyPart,
   type Equipment,
   type Exercise,
@@ -223,27 +224,6 @@ export function TrainPage() {
   )
 }
 
-function useSheetMaxHeight() {
-  const [maxHeight, setMaxHeight] = useState('80dvh')
-
-  useEffect(() => {
-    const update = () => {
-      const viewport = window.visualViewport
-      const height = viewport ? viewport.height : window.innerHeight
-      setMaxHeight(`${Math.max(240, Math.round(height - 16))}px`)
-    }
-    update()
-    window.visualViewport?.addEventListener('resize', update)
-    window.visualViewport?.addEventListener('scroll', update)
-    return () => {
-      window.visualViewport?.removeEventListener('resize', update)
-      window.visualViewport?.removeEventListener('scroll', update)
-    }
-  }, [])
-
-  return maxHeight
-}
-
 function AddSheet({
   exercises,
   ready,
@@ -261,10 +241,9 @@ function AddSheet({
 }) {
   const [customOpen, setCustomOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [bodyPart, setBodyPart] = useState<BodyPart | 'all'>(defaultBodyPart)
+  const [bodyPart, setBodyPart] = useState<BodyPart | 'all' | 'stretch'>(defaultBodyPart)
   const [equipment, setEquipment] = useState<Equipment | 'all'>('all')
   const formRef = useRef<HTMLDivElement>(null)
-  const maxHeight = useSheetMaxHeight()
 
   const equipmentOptions = useMemo(() => {
     const seen = new Set(exercises.flatMap((item) => item.equipment ?? []))
@@ -276,7 +255,10 @@ function AddSheet({
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase()
     return exercises.filter((exercise) => {
-      if (bodyPart !== 'all' && !(exercise.bodyParts ?? []).includes(bodyPart)) return false
+      if (bodyPart === 'stretch' && !isStretch(exercise)) return false
+      if (bodyPart !== 'all' && bodyPart !== 'stretch') {
+        if (isStretch(exercise) || !(exercise.bodyParts ?? []).includes(bodyPart)) return false
+      }
       if (equipment !== 'all' && !(exercise.equipment ?? []).includes(equipment)) return false
       return !term || exercise.name.toLowerCase().includes(term)
     })
@@ -288,12 +270,10 @@ function AddSheet({
   }, [customOpen])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70">
-      <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex justify-center bg-bg">
       <div
-        className="relative z-10 flex w-full max-w-[430px] flex-col rounded-t-lg border-t border-line bg-bg px-5 pt-5"
-        style={{ maxHeight, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-        onClick={(event) => event.stopPropagation()}
+        className="relative flex h-full w-full max-w-[430px] min-h-0 flex-col bg-bg px-5 pt-5"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex items-center justify-between">
           <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Add exercise</p>
@@ -328,8 +308,8 @@ function AddSheet({
         </div>
 
         <div className="mt-2">
-          <ChipRow<BodyPart | 'all'>
-            options={[{ id: 'all', label: 'All' }, ...BODY_PARTS]}
+          <ChipRow<BodyPart | 'all' | 'stretch'>
+            options={[{ id: 'all', label: 'All' }, ...BODY_PARTS, { id: 'stretch', label: 'Stretch' }]}
             value={bodyPart}
             onSelect={setBodyPart}
           />

@@ -18,7 +18,6 @@
 
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import path from 'node:path'
 
 const INGESTED = fileURLToPath(new URL('../src/data/ingested/exercises.json', import.meta.url))
 const GENERATED_DIR = fileURLToPath(new URL('../src/coach/poses/generated', import.meta.url))

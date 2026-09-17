@@ -11,7 +11,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EXERCISES } from '../src/data/exercises.ts'
+import { EXERCISES, isStretchName } from '../src/data/exercises.ts'
 
 const SOURCE_URL = 'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json'
 const OUT_FILE = fileURLToPath(new URL('../src/data/ingested/exercises.json', import.meta.url))
@@ -72,8 +72,9 @@ function mapRecord(record) {
   const preset = PER_CATEGORY[record.category] ?? PER_CATEGORY['upper legs']
   const kind = record.category === 'cardio' ? 'timed' : 'reps'
   const cue = String(firstStep(record)).slice(0, 120)
+  const id = `ds-${record.id}`
   return {
-    id: `ds-${record.id}`,
+    id,
     name: record.name,
     kind,
     defaultSets: 3,
@@ -82,6 +83,7 @@ function mapRecord(record) {
     cue,
     restSeconds: preset.rest,
     bodyParts: parts,
+    category: isStretchName(id, record.name) ? 'stretch' : undefined,
     goals: preset.goals,
     equipment: [mapEquipment(record.equipment)],
     compound: Array.isArray(record.secondary_muscles) && record.secondary_muscles.length > 0,

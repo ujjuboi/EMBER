@@ -1,5 +1,6 @@
 export type ExerciseKind = 'reps' | 'timed'
 export type BodyPart = 'legs' | 'back' | 'chest' | 'arms' | 'core'
+export type ExerciseCategory = 'stretch'
 export type TrainerGoal = 'strength' | 'muscle' | 'fatloss' | 'endurance' | 'mobility' | 'general'
 export type KnownEquipment = 'bodyweight' | 'dumbbells' | 'bands' | 'bench' | 'pullup' | 'tubes'
 export type Equipment = KnownEquipment | (string & {})
@@ -8,6 +9,8 @@ export type Exercise = {
   id: string
   name: string
   kind: ExerciseKind
+  /** Optional browsing category beyond body part (e.g. 'stretch'). */
+  category?: ExerciseCategory
   defaultReps?: number
   defaultSeconds?: number
   defaultSets: number
@@ -61,6 +64,22 @@ export function normalizeBodyPart(id: unknown): BodyPart {
   if (id === 'full') return 'legs'
   if (BODY_PARTS.some((item) => item.id === id)) return id as BodyPart
   return 'legs'
+}
+
+/** Names indicating a stretching exercise in the supplemental dataset. */
+export const STRETCH_NAME_RE = /\bstretch\b|\bpose\b/i
+
+/** Dataset stretches whose names omit the usual markers (e.g. lying twists). */
+export const EXTRA_STRETCH_IDS: ReadonlySet<string> = new Set(['ds-3639', 'ds-2329'])
+
+export function isStretchName(id: unknown, name: string): boolean {
+  return STRETCH_NAME_RE.test(name) || EXTRA_STRETCH_IDS.has(String(id))
+}
+
+export function isStretch(exercise: Exercise): boolean {
+  if (exercise.category === 'stretch') return true
+  if (exercise.fromLibrary === true) return isStretchName(exercise.id, exercise.name)
+  return false
 }
 
 export const EQUIPMENT: { id: KnownEquipment; label: string }[] = [
