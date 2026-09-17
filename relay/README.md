@@ -28,8 +28,10 @@ npm run relay        # ws://127.0.0.1:8787
 ```
 
 Two-user smoke test: run the dev server, open a normal window and a
-private/incognito window, log in as two accounts, type each other's codes on
-the Partner page, and go through the Accept flow.
+private/incognito window, log in as two accounts. Pair **one-sided**: account A
+shares its code, account B enters it on the Partner page (A just waits on the
+code screen), then go through the Accept flow on both. Each device listens in
+its own code's room, so the code owner does not need to enter the other's code.
 
 ## Deploy on a Tailscale node
 

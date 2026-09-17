@@ -75,7 +75,7 @@ export class SyncSession implements SyncSessionLike {
   private myAccepted = false
   private theirAccepted = false
   private pendingPeer: { publicKey: string; name: string; email: string } | null = null
-  private pairingMode: 'code' | 'stable' = 'code'
+  private pairingMode: 'idle' | 'code' | 'stable' = 'idle'
   private relay: RelayClient | null = null
   private channel: PeerChannel | null = null
   private room: string | null = null
@@ -123,6 +123,9 @@ export class SyncSession implements SyncSessionLike {
         pendingPeer: null,
         syncError: null,
       })
+      // Stay discoverable: listen in our own code's room so a partner who
+      // types this code can reach us (the room is named by the shared code).
+      this.openIdleListen()
     }
     const pendingCode = consumePendingPairCode()
     if (pendingCode) this.startPairing(pendingCode)
@@ -172,6 +175,7 @@ export class SyncSession implements SyncSessionLike {
     this.resetHandshake()
     this.rotateCode()
     this.hooks.onPairPatch({ pairState: 'idle', pairCode: this.code, pendingPeer: null, syncError: 'Pairing declined' })
+    this.openIdleListen()
   }
 
   refreshPartner(): void {
@@ -228,6 +232,7 @@ export class SyncSession implements SyncSessionLike {
     this.theirAccepted = false
     this.rotateCode()
     this.hooks?.onPairPatch({ pairState: 'idle', pairCode: this.code, pendingPeer: null, syncError: null })
+    this.openIdleListen()
   }
 
   notifyChanged(): void {
@@ -251,6 +256,14 @@ export class SyncSession implements SyncSessionLike {
     return this.hooks?.getOwnSnapshot().name ?? ''
   }
 
+  private openIdleListen(): void {
+    if (this.mutual || !this.code) return
+    const url = relayUrl()
+    if (!url) return
+    this.pairingMode = 'idle'
+    this.openRoom(url, this.code)
+  }
+
   private openRoom(url: string, room: string, resetAttempts = true): void {
     this.closeTransport()
     this.suppressCloseNotice = false
@@ -263,9 +276,11 @@ export class SyncSession implements SyncSessionLike {
     // WebSocket URL (the Worker binds the room at connect time).
     relay.join(room)
     void relay.connect().catch(() => {
+      // A replaced relay (or an idle listen, which reconnects on its own)
+      // shouldn't surface an error.
+      if (this.relay !== relay || this.pairingMode === 'idle') return
       this.hooks?.onPairPatch({ pairState: 'error', pairCode: this.code, pendingPeer: null, syncError: 'Could not reach the relay' })
     })
-    relay.sendSignal({ kind: 'hello', data: this.keypair.publicKey })
   }
 
   private onRelayEvent(relay: RelayClient, event: RelayEvent): void {
@@ -276,6 +291,19 @@ export class SyncSession implements SyncSessionLike {
         relay.join(room)
         relay.sendSignal({ kind: 'hello', data: this.keypair.publicKey })
       }
+      return
+    }
+    if (event.type === 'peer' && event.delta === 'joined') {
+      // A peer joined our room. The relay never replays messages sent while
+      // the room was empty, so re-announce ourselves or the newcomer never
+      // learns our key and the DataChannel handshake stalls.
+      relay.sendSignal({ kind: 'hello', data: this.keypair.publicKey })
+      return
+    }
+    if (event.type === 'room' && event.peers >= 2) {
+      // The `room` event is the only presence signal the joining side gets;
+      // re-announce so both ends converge on each other's key.
+      relay.sendSignal({ kind: 'hello', data: this.keypair.publicKey })
       return
     }
     if (event.type === 'signal') {
@@ -303,10 +331,11 @@ export class SyncSession implements SyncSessionLike {
       {
         makeOffer,
         onSignalOut: (signal) => this.relay?.sendSignal(signal),
-        onOpen: () => this.onChannelOpen(),
+        onOpen: () => this.onChannelOpen(channel),
         onMessage: (text) => this.onChannelMessage(text),
-        onClose: () => this.onChannelClosed(),
+        onClose: () => this.onChannelClosed(channel),
         onError: (message) => {
+          if (channel !== this.channel) return
           this.hooks?.onPairPatch({ pairState: this.mutual ? 'linked' : 'error', pairCode: this.code, pendingPeer: null, syncError: message })
         },
       },
@@ -317,7 +346,8 @@ export class SyncSession implements SyncSessionLike {
     await channel.start()
   }
 
-  private onChannelOpen(): void {
+  private onChannelOpen(channel: PeerChannel): void {
+    if (channel !== this.channel) return
     if (!this.hooks) return
     if (this.mutual) {
       this.reconnectAttempts = 0
@@ -334,7 +364,8 @@ export class SyncSession implements SyncSessionLike {
     }
   }
 
-  private onChannelClosed(): void {
+  private onChannelClosed(channel: PeerChannel): void {
+    if (channel !== this.channel) return
     if (this.heartbeat !== null) {
       window.clearInterval(this.heartbeat)
       this.heartbeat = null
@@ -351,9 +382,14 @@ export class SyncSession implements SyncSessionLike {
     if (this.mutual) {
       this.hooks?.onPairPatch({ pairState: 'linked', pairCode: null, pendingPeer: null, syncError: 'Reconnecting…' })
       void this.reconnectStable()
+    } else if (this.pairingMode === 'idle') {
+      // The idle listen dropped; re-arm silently on the same code so we stay
+      // discoverable without rotating the code or flashing an error.
+      this.openIdleListen()
     } else {
       this.rotateCode()
       this.hooks?.onPairPatch({ pairState: 'idle', pairCode: this.code, pendingPeer: null, syncError: 'Connection lost — try pairing again' })
+      this.openIdleListen()
     }
   }
 
@@ -378,7 +414,7 @@ export class SyncSession implements SyncSessionLike {
         return
       }
       case 'pair-accept': {
-        if (this.pairingMode !== 'code' || this.mutual) return
+        if (this.pairingMode === 'stable' || this.mutual) return
         if (this.pendingPeer && !constantTimeEqualHex(this.pendingPeer.publicKey, envelope.publicKey)) return
         const name = typeof payload.displayName === 'string' ? payload.displayName : ''
         if (this.pendingPeer) {
@@ -393,10 +429,11 @@ export class SyncSession implements SyncSessionLike {
         return
       }
       case 'pair-decline': {
-        if (this.pairingMode !== 'code' || this.mutual) return
+        if (this.pairingMode === 'stable' || this.mutual) return
         this.resetHandshake()
         this.rotateCode()
         this.hooks?.onPairPatch({ pairState: 'idle', pairCode: this.code, pendingPeer: null, syncError: 'Your partner declined the pairing request' })
+        this.openIdleListen()
         return
       }
       case 'push': {
@@ -432,6 +469,7 @@ export class SyncSession implements SyncSessionLike {
         this.rotateCode()
         this.hooks?.onPairPatch({ pairState: 'idle', pairCode: this.code, pendingPeer: null, syncError: null })
         this.hooks?.onUnpaired('Your partner unlinked — pair again anytime')
+        this.openIdleListen()
         return
       }
       case 'ack':
@@ -521,6 +559,10 @@ export class SyncSession implements SyncSessionLike {
   }
 
   private closeTransport(): void {
+    if (this.heartbeat !== null) {
+      window.clearInterval(this.heartbeat)
+      this.heartbeat = null
+    }
     if (this.channel) {
       try {
         this.channel.close()
