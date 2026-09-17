@@ -2,9 +2,36 @@
 
 ## Status
 
-**Planned.** Design approved; not implemented. Supersedes the no-op partner
-prototype (`linkPartner` length-check + toasts) and the "read-only snapshot"
-model locked in Phase 1.
+**Implemented.** The no-op `EMBER9` prototype is gone: per-account codes,
+Ed25519 identity (`src/lib/pairing.ts`), a WebRTC DataChannel session state
+machine (`src/lib/sync/session.ts`), a signaling relay (Cloudflare Worker in
+`relay/` + local `scripts/relay.mjs`), signed pushes with locally-derived
+partner stats, an offline outbox for reminders, and full UI wiring are all in.
+Deviations from this plan are noted inline below:
+
+- **Room routing** — both relays bind a socket to its room at WebSocket-connect
+  time via `?room=` in the URL **plus** the wire `join` message (the Cloudflare
+  Worker is per-room by Durable Object, so `?room=` is authoritative there; the
+  local relay accepts either). The relay client appends `?room=` itself.
+- **Worker WebSocket API** — `relay/index.ts` uses the WebSocket Hibernation API
+  (`ctx.acceptWebSocket` + the `webSocketMessage` / `webSocketClose` /
+  `webSocketError` handlers, sockets read from `ctx.getWebSockets()`), **not**
+  `addEventListener`: once a socket is accepted for hibernation, the runtime
+  delivers events to the Durable Object and the socket's own listeners never
+  fire, and an in-memory `Set` of sockets is lost when the DO is evicted.
+  Verified against `wrangler dev` (join/peer counts, signal forwarding, room
+  isolation, leave notification all pass).
+- **Unpair** — an `unpair` channel message (not in the original table) is sent
+  on unlink so a mutual pair unwinds on both devices and the peer stops
+  reconnecting to the stable room.
+- **`ack` semantics** — `ack`s are sent but not tracked/retried; a fresh full
+  `push` is re-sent on every channel (re)open, which is the effective retry
+  path. Last-writer-wins per field stands.
+- **`lastSyncedAt`** — the cached partner `lastSyncedAt` records **receipt
+  time** (so the "Synced X ago" label is honest), not the sender's clock.
+- **Pairing code alphabet** — ambiguity-free set is 31 symbols, not 32
+  (`ABC…XYZ` minus `I L O` + `2-9`), ≈ 8.9e8 codes. Generation uses rejection
+  sampling (`b % 31` would bias the low 8 symbols).
 
 ## Goal
 
@@ -31,14 +58,14 @@ relay-transit signaling (SDP/ICE), which carries no app data.
 
 ### Identity
 
-- Each Account gets an **Ed25519 keypair** (`crypto.subtle`, per-account).
+- Each Account gets an **Ed25519 keypair** — **via `@noble/curves` (pure JS),
+  not `crypto.subtle`**, because Safari/iOS still lack Ed25519 WebCrypto
+  (deviation from this plan).
 - The **public-key fingerprint** is what pairing verifies, so the code itself
   is never an identity.
 - The private seed is stored at rest in SQLite (plaintext) — consistent with
   the Phase 1 "at-rest unencrypted" threat model — and round-trips through
   backup/restore so a restored install keeps its identity and codes.
-- `crypto.subtle` requires HTTPS — same constraint as passwords today
-  (`localhost` and Netlify/Vercel are fine).
 
 ### Pairing code
 
@@ -134,16 +161,16 @@ plans/phase-2-partner-sync.md
 
 | File | Change |
 | --- | --- |
-| `src/lib/db/index.ts` | Schema **v6** (`migrateV5toV6`, data-preserving): new `pairing` table + partner `last_synced_at`; `loadPairing`/`savePairing`; backup/restore round-trips identity (seed, code, peer key) |
-| `src/lib/types.ts` | `Partner` shape: drop stored `streak`/`calories`/`lastWorkout`, keep `history`/`steps`, add `lastSyncedAt`; new pairing fields on `AppState`; `EmberBackup` carries identity |
-| `src/lib/store-hooks.ts` | Action interface: `linkPartner` → async `startPairing`, add `refreshPartner`, `acceptPair`, `declinePair` |
-| `src/lib/store.tsx` | Replace no-op `linkPartner`; pair state + sync actions; partner derive util; signing/verification on push apply |
-| `src/features/partner/PartnerWidget.tsx` | Remove hardcoded `EMBER9`; real per-account code + copy/share; handshake/waiting UI; inline Accept/Decline |
+| `src/lib/db/index.ts` | Schema **v7** (`migrateV6toV7`, data-preserving — v6 already shipped password recovery): new `pairing` table + partner `last_synced_at`; `loadPairing`/`savePairing`; backup/restore round-trips identity (seed, code, peer key) |
+| `src/lib/types.ts` | `Partner` shape: keeps stored `streak`/`calories`/`lastWorkout` columns for data-compat, but they are **derived locally** now; adds `lastSyncedAt`; new pairing fields on `AppState`; `EmberBackup` carries identity |
+| `src/lib/store-hooks.ts` | Action interface: `linkPartner` → `startPairing`, plus `acceptPair`, `declinePair`, `refreshPartner`, `remindPartner` |
+| `src/lib/store.tsx` | Replace no-op `linkPartner`; pair state + sync actions; sync session lifecycle in `StoreProvider`; partner derive util; push apply |
+| `src/features/partner/PartnerWidget.tsx` | Remove hardcoded `EMBER9`; real per-account code + copy; handshake/waiting UI; inline Accept/Decline |
 | `src/features/partner/PartnerPage.tsx` | Real **Refresh** (async sync, last-synced label, connecting/error states); remove prototype toasts |
-| `src/features/profile/YouPage.tsx` | Unlink rotates the code; optional fingerprint display |
-| `src/features/auth/OnboardingPage.tsx` | Optional code stays; pairing completes on Partner page when both online |
+| `src/features/profile/YouPage.tsx` | Unlink rotates the code (session-side); optional fingerprint display |
+| `src/features/auth/OnboardingPage.tsx` | Optional code kept; pairing completes when both users are online |
 | `vite.config.ts` | Inject `VITE_RELAY_URL` (+ `VITE_SYNC_MODE=mock` for UI work) |
-| `.env.example` | `VITE_RELAY_URL` |
+| `.env.example` | `VITE_RELAY_URL`, `VITE_SYNC_MODE`, `VITE_STUN_URL` |
 | `README.md` | Partner sync section + local relay setup |
 | `HANDOFF.md` / `AGENTS.md` | Sync model, dev-sim instructions |
 
@@ -172,13 +199,19 @@ relay.
 | --- | --- | --- |
 | `identify` | both | signed public key + display name + pair intent |
 | `pair-accept` | both | confirm pairing; carries peer key + rotates own code |
+| `pair-decline` | both | reject a pairing (extra vs the plan's message table) |
 | `push` | both | signed sync payload (profile snapshot + history + steps) |
 | `ack` | both | per-message acknowledgment for last-writer-wins |
 | `ping` | both | liveness / reconnect detection |
 | `remind` | both | real reminder (queued in outbox when offline) |
+| `unpair` | both | tear down a mutual pair on both devices (extra vs the plan's table) |
 
-Relay wire messages (signaling only): `join {code}`, `offer`, `answer`,
-`ice`, `leave`.
+Relay wire messages (signaling only): `join {code}`, `hello` (public key),
+`offer`, `answer`, `ice`, `leave`. A socket's room is set at connect time via
+`?room=` in the WebSocket URL (authoritative for the Worker); the `join`
+message also switches rooms on an open socket for the local relay. `hello` lets
+either device decide who offers (lower public key) — this resolves the
+simultaneous-join race.
 
 Conflict model: **last-writer-wins per field**; signed so replay/tampering is
 detectable. No multi-device (one partner per account this phase).
@@ -199,7 +232,7 @@ detectable. No multi-device (one partner per account this phase).
 
 ## 6. Sequencing (each step shippable/verifiable)
 
-1. `pairing.ts` + schema v6 + types + store state.
+1. `pairing.ts` + schema v7 + types + store state.
 2. Relay (Worker + local `ws` script) + `relay.ts` client.
 3. WebRTC pairing session — end-to-end handshake in two windows.
 4. Push/apply sync payload + local derive of partner stats.
@@ -209,14 +242,16 @@ detectable. No multi-device (one partner per account this phase).
 
 ---
 
-## Open questions (confirm at implementation)
+## Open questions (resolved at implementation)
 
-- **Seed storage**: private seed plaintext in SQLite (consistent with Phase 1
-  threat model) — OK for MVP?
-- **Crypto support**: Ed25519 WebCrypto (modern browsers, iOS 17+) — ship an
-  ECDH P-256 fallback or require modern browsers only?
-- **E2E payload encryption**: optional ECDH payload encryption beyond DTLS —
-  in scope for MVP or follow-up?
+- **Seed storage** — resolved: private seed plaintext in SQLite, consistent
+  with the Phase 1 threat model; round-trips through backup.
+- **Crypto support** — resolved: **`@noble/curves` Ed25519 (pure JS)** chosen
+  over `crypto.subtle` because Safari/iOS lack Ed25519 WebCrypto; works
+  offline and on every browser.
+- **E2E payload encryption** — resolved: DTLS on the DataChannel is the
+  transport encryption this phase; payload-level ECDH encryption stays a
+  follow-up (the signed-envelope scheme already prevents tampering/injection).
 
 ---
 

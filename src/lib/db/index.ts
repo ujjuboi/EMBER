@@ -1,9 +1,10 @@
 import { Capacitor } from '@capacitor/core'
 import { CapacitorSQLite } from '@capacitor-community/sqlite'
 import type {
-  EmberBackup, HistoryItem, Partner, PlannedExercise, PlanSource, SessionProgress, TrainerPhase,
+  BackupPairing, EmberBackup, HistoryItem, Partner, PartnerActivity, PlannedExercise, PlanSource, SessionProgress, TrainerPhase,
   Workout, WorkoutSet,
 } from '../types'
+import { derivePartner } from '../partner'
 import type { BodyPart, Equipment, TrainerGoal } from '../../data/exercises'
 import type { Exercise } from '../../data/exercises'
 import { isoDate } from '../dates'
@@ -82,9 +83,9 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-// --- Schema (version 6) ---
+// --- Schema (version 7) ---
 
-const SCHEMA_VERSION = 6
+const SCHEMA_VERSION = 7
 
 const WORKOUT_TABLE = `CREATE TABLE IF NOT EXISTS workout (
   id TEXT PRIMARY KEY,
@@ -132,6 +133,19 @@ const CUSTOM_EXERCISE_TABLE = `CREATE TABLE IF NOT EXISTS custom_exercise (
   exercise_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
   PRIMARY KEY (account_email, id)
+)`
+
+const PAIRING_TABLE = `CREATE TABLE IF NOT EXISTS pairing (
+  account_email TEXT PRIMARY KEY,
+  secret_key TEXT NOT NULL,
+  public_key TEXT NOT NULL,
+  code TEXT,
+  peer_public_key TEXT,
+  peer_name TEXT,
+  peer_email TEXT,
+  mutual INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 )`
 
 async function getSchemaVersion(): Promise<number> {
@@ -243,8 +257,10 @@ async function createSchema(): Promise<void> {
       last_workout TEXT NOT NULL DEFAULT '',
       history TEXT NOT NULL DEFAULT '[]',
       partner_linked INTEGER NOT NULL DEFAULT 0,
-      partner_since TEXT
+      partner_since TEXT,
+      last_synced_at TEXT
     )`,
+      PAIRING_TABLE,
       WORKOUT_TABLE,
       WORKOUT_SET_TABLE,
       CUSTOM_EXERCISE_TABLE,
@@ -280,6 +296,10 @@ async function createSchema(): Promise<void> {
 
   if (version < 6) {
     await migrateV5toV6()
+  }
+
+  if (version < 7) {
+    await migrateV6toV7()
   }
 
   await setSchemaVersion(SCHEMA_VERSION)
@@ -354,6 +374,20 @@ async function migrateV5toV6(): Promise<void> {
       database: DB_NAME,
       statements: 'ALTER TABLE account ADD COLUMN recovery_hash TEXT',
     })
+  }
+}
+
+// v6 -> v7. Adds the per-account `pairing` table (P2P identity/codes) and the
+// synced-cache `partner.last_synced_at` column. Data-preserving.
+async function migrateV6toV7(): Promise<void> {
+  await CapacitorSQLite.execute({ database: DB_NAME, statements: PAIRING_TABLE })
+  if (await tableExists('partner')) {
+    if (!(await columnExists('partner', 'last_synced_at'))) {
+      await CapacitorSQLite.execute({
+        database: DB_NAME,
+        statements: 'ALTER TABLE partner ADD COLUMN last_synced_at TEXT',
+      })
+    }
   }
 }
 
@@ -979,8 +1013,8 @@ export async function savePlan(accountEmail: string, plan: PlannedExercise[], fo
 
 function partnerInsertStatement(accountEmail: string): { statement: string; values: unknown[] } {
   return {
-    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
-     VALUES (?, '', 0, 0, 0, '', '[]', 0, NULL)`,
+    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since, last_synced_at)
+     VALUES (?, '', 0, 0, 0, '', '[]', 0, NULL, NULL)`,
     values: [accountEmail],
   }
 }
@@ -1004,18 +1038,43 @@ export async function loadPartner(accountEmail: string): Promise<{ partner: Part
     return loadPartner(accountEmail)
   }
   const row = rows[0]
+  const history = JSON.parse(String(row.history || '[]')) as PartnerActivity[]
+  const partner = derivePartner({
+    name: String(row.name || ''),
+    steps: Number(row.steps) || 0,
+    history,
+    lastSyncedAt: row.last_synced_at ? String(row.last_synced_at) : null,
+  })
   return {
-    partner: {
-      name: String(row.name || ''),
-      streak: Number(row.streak) || 0,
-      steps: Number(row.steps) || 0,
-      calories: Number(row.calories) || 0,
-      lastWorkout: String(row.last_workout || ''),
-      history: JSON.parse(String(row.history || '[]')),
-    },
+    partner,
     partnerLinked: !!(row.partner_linked as number),
     partnerSince: row.partner_since ? String(row.partner_since) : null,
   }
+}
+
+export async function savePartner(
+  accountEmail: string,
+  partner: Partner,
+  linked: boolean,
+  since: string | null,
+): Promise<void> {
+  return enqueue(async () => {
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: `UPDATE partner SET
+        name = ?, steps = ?, history = ?, partner_linked = ?, partner_since = ?, last_synced_at = ?
+      WHERE account_email = ?`,
+      values: [
+        partner.name,
+        partner.steps,
+        JSON.stringify(partner.history),
+        linked ? 1 : 0,
+        since,
+        partner.lastSyncedAt,
+        accountEmail,
+      ],
+    })
+  })
 }
 
 export async function updatePartnerLinked(accountEmail: string, linked: boolean, since: string | null): Promise<void> {
@@ -1024,6 +1083,63 @@ export async function updatePartnerLinked(accountEmail: string, linked: boolean,
       database: DB_NAME,
       statement: 'UPDATE partner SET partner_linked = ?, partner_since = ? WHERE account_email = ?',
       values: [linked ? 1 : 0, since, accountEmail],
+    })
+  })
+}
+
+// --- Pairing (P2P identity) ---
+
+export type PairingData = {
+  secretKey: string
+  publicKey: string
+  code: string | null
+  peerPublicKey: string | null
+  peerName: string | null
+  peerEmail: string | null
+  mutual: boolean
+  createdAt: string
+}
+
+export async function loadPairing(accountEmail: string): Promise<PairingData | null> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT * FROM pairing WHERE account_email = ?',
+    values: [accountEmail],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return null
+  const row = rows[0]
+  return {
+    secretKey: String(row.secret_key),
+    publicKey: String(row.public_key),
+    code: row.code ? String(row.code) : null,
+    peerPublicKey: row.peer_public_key ? String(row.peer_public_key) : null,
+    peerName: row.peer_name ? String(row.peer_name) : null,
+    peerEmail: row.peer_email ? String(row.peer_email) : null,
+    mutual: !!(row.mutual as number),
+    createdAt: String(row.created_at),
+  }
+}
+
+export async function savePairing(accountEmail: string, pairing: PairingData): Promise<void> {
+  return enqueue(async () => {
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: `INSERT OR REPLACE INTO pairing (
+        account_email, secret_key, public_key, code, peer_public_key, peer_name, peer_email, mutual, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      values: [
+        accountEmail,
+        pairing.secretKey,
+        pairing.publicKey,
+        pairing.code,
+        pairing.peerPublicKey,
+        pairing.peerName,
+        pairing.peerEmail,
+        pairing.mutual ? 1 : 0,
+        pairing.createdAt,
+        new Date().toISOString(),
+      ],
     })
   })
 }
@@ -1117,9 +1233,9 @@ function historyInsertStatement(accountEmail: string, item: HistoryItem): { stat
 
 function partnerInsertFullStatement(accountEmail: string, p: Partner, linked: boolean, since: string | null): { statement: string; values: unknown[] } {
   return {
-    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    values: [accountEmail, p.name, p.streak, p.steps, p.calories, p.lastWorkout, JSON.stringify(p.history), linked ? 1 : 0, since],
+    statement: `INSERT OR REPLACE INTO partner (account_email, name, streak, steps, calories, last_workout, history, partner_linked, partner_since, last_synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [accountEmail, p.name, p.streak, p.steps, p.calories, p.lastWorkout, JSON.stringify(p.history), linked ? 1 : 0, since, p.lastSyncedAt],
   }
 }
 
@@ -1176,11 +1292,12 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     planByDate.set(forDate, items)
   }
 
-  const [profile, history, partnerData, customExercises] = await Promise.all([
+  const [profile, history, partnerData, customExercises, pairing] = await Promise.all([
     loadProfile(accountEmail),
     loadHistory(accountEmail),
     loadPartner(accountEmail),
     loadCustomExercises(accountEmail),
+    loadPairing(accountEmail),
   ])
 
   return {
@@ -1195,6 +1312,18 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
       recoverySalt: accountRow.recovery_salt ? String(accountRow.recovery_salt) : null,
       recoveryHash: accountRow.recovery_hash ? String(accountRow.recovery_hash) : null,
     },
+    pairing: pairing
+      ? {
+          secretKey: pairing.secretKey,
+          publicKey: pairing.publicKey,
+          code: pairing.code,
+          peerPublicKey: pairing.peerPublicKey,
+          peerName: pairing.peerName,
+          peerEmail: pairing.peerEmail,
+          mutual: pairing.mutual,
+          createdAt: pairing.createdAt,
+        }
+      : null,
     profile,
     history,
     plan: Array.from(planByDate.entries()).map(([forDate, items]) => ({ forDate, items })),
@@ -1204,6 +1333,26 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     workouts,
     workoutSets,
     customExercises,
+  }
+}
+
+function pairingInsertStatement(email: string, pairing: BackupPairing): { statement: string; values: unknown[] } {
+  return {
+    statement: `INSERT INTO pairing (
+      account_email, secret_key, public_key, code, peer_public_key, peer_name, peer_email, mutual, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    values: [
+      email,
+      pairing.secretKey,
+      pairing.publicKey,
+      pairing.code,
+      pairing.peerPublicKey,
+      pairing.peerName,
+      pairing.peerEmail,
+      pairing.mutual ? 1 : 0,
+      pairing.createdAt,
+      new Date().toISOString(),
+    ],
   }
 }
 
@@ -1220,10 +1369,12 @@ function replaceAccountStatements(backup: EmberBackup, email: string): { stateme
     { statement: 'DELETE FROM plan WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM history WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM partner WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM pairing WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM profile WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM custom_exercise WHERE account_email = ?', values: [email] },
     profileInsertStatement(email, backup.profile),
     partnerInsertFullStatement(email, backup.partner, backup.partnerLinked, backup.partnerSince),
+    ...(backup.pairing ? [pairingInsertStatement(email, backup.pairing)] : []),
     ...backup.history.map((item) => historyInsertStatement(email, item)),
     ...(backup.customExercises ?? []).map((exercise) => customExerciseInsertStatement(email, exercise)),
     ...planStatements,

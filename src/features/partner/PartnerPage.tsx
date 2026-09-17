@@ -1,15 +1,32 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '../../components/ui/Button'
+import { Field } from '../../components/ui/Field'
 import { Stat } from '../../components/ui/Stat'
-import { isoDate } from '../../lib/dates'
+import { dateLabel, isoDate } from '../../lib/dates'
 import { fmt } from '../../lib/format'
 import { useStore } from '../../lib/store-hooks'
 import { LogCalendar, WhoSwatch } from '../home/MonthCalendar'
-import { PairPanel } from './PartnerWidget'
 
 export function PartnerPage() {
-  const { partner, partnerLinked, streak, steps, calories, history, showToast } = useStore()
+  const {
+    partner,
+    partnerLinked,
+    streak,
+    steps,
+    calories,
+    history,
+    pairCode,
+    pairState,
+    pendingPeer,
+    syncError,
+    startPairing,
+    acceptPair,
+    declinePair,
+    refreshPartner,
+    remindPartner,
+  } = useStore()
   const [selected, setSelected] = useState(isoDate)
+  const syncedNote = useMemo(() => syncedLabel(partner.lastSyncedAt), [partner.lastSyncedAt])
 
   if (!partnerLinked || !partner.name) {
     return (
@@ -34,8 +51,51 @@ export function PartnerPage() {
           />
         </div>
 
-        <div className="mt-8">
-          <PairPanel />
+        <div className="mt-8 rounded-xl border border-line bg-surface px-4 py-4">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Pair with your partner</p>
+          <p className="mt-1.5 text-sm text-muted">Enter their code, or share yours below.</p>
+
+          {pendingPeer ? (
+            <div className="mt-4 rounded-lg border border-orange/30 bg-orange/5 px-3 py-3">
+              <p className="text-sm font-medium">{pendingPeer.name} · {pendingPeer.fingerprint}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {pendingPeer.email || 'A fellow member'} wants to pair with you
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button size="sm" onClick={() => acceptPair()}>
+                  Accept
+                </Button>
+                <Button size="sm" variant="line" onClick={() => declinePair()}>
+                  Decline
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {pairState === 'searching' ? (
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted">
+              <span className="inline-block h-2 w-2 rounded-full bg-orange animate-pulse" />
+              Waiting for a partner…
+            </div>
+          ) : null}
+
+          {syncError ? <div className="mt-3 text-xs text-red">{syncError}</div> : null}
+
+          {pairCode ? (
+            <div className="mt-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-muted">Your code</p>
+              <div className="mt-1.5 flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
+                <p className="min-w-0 truncate tabular text-2xl leading-none tracking-[0.3em]">{pairCode}</p>
+                <Button size="sm" variant="line" onClick={() => navigator.clipboard?.writeText(pairCode)}>
+                  Copy
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-4">
+            <PairInput onPair={(code) => startPairing(code)} />
+          </div>
         </div>
       </div>
     )
@@ -50,8 +110,11 @@ export function PartnerPage() {
       <h1 className="mt-2 text-3xl font-semibold leading-none tracking-tight">You vs {partner.name}</h1>
 
       <div className="mt-6 flex items-center justify-between gap-3">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Live stats</p>
-        <Button size="sm" variant="line" onClick={() => showToast('Prototype — linking comes later')}>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Live stats</p>
+          <p className="mt-0.5 truncate text-xs text-muted">{syncedNote}</p>
+        </div>
+        <Button size="sm" variant="line" onClick={() => refreshPartner()}>
           Refresh
         </Button>
       </div>
@@ -84,11 +147,57 @@ export function PartnerPage() {
           partnerLogs={partner.history}
           selected={selected}
           onSelect={setSelected}
-          onRemindPartner={() => showToast(`Reminder sent to ${partner.name} — keep the streak going`)}
+          onRemindPartner={() => remindPartner()}
         />
       </div>
     </div>
   )
+}
+
+function PairInput({ onPair }: { onPair: (code: string) => void }) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+
+  return (
+    <div className="space-y-3">
+      <Field
+        value={code}
+        onChange={(value) => {
+          setCode(value)
+          if (error) setError('')
+        }}
+        placeholder="Enter partner code"
+        error={error}
+      />
+      <Button
+        block
+        onClick={() => {
+          const trimmed = code.trim().toUpperCase()
+          if (trimmed.length !== 6) {
+            setError('Enter a 6-character code')
+            return
+          }
+          setError('')
+          onPair(trimmed)
+        }}
+      >
+        Pair
+      </Button>
+    </div>
+  )
+}
+
+function syncedLabel(lastSyncedAt: string | null): string {
+  if (!lastSyncedAt) return 'Not synced yet'
+  const diff = Date.now() - new Date(lastSyncedAt).getTime()
+  const seconds = Math.max(0, Math.floor(diff / 1000))
+  if (seconds < 5) return 'Synced just now'
+  if (seconds < 60) return `Synced ${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `Synced ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Synced ${hours}h ago`
+  return `Last synced ${dateLabel(lastSyncedAt.slice(0, 10))}`
 }
 
 function splitLast(value: string): { name: string; when?: string } {

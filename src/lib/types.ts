@@ -13,6 +13,7 @@ export type EmberBackup = {
     recoverySalt: string | null
     recoveryHash: string | null
   }
+  pairing: BackupPairing | null
   profile: ProfileData
   history: HistoryItem[]
   plan: { forDate: string; items: PlannedExercise[] }[]
@@ -22,6 +23,17 @@ export type EmberBackup = {
   workouts: Workout[]
   workoutSets: WorkoutSet[]
   customExercises: Exercise[]
+}
+
+export type BackupPairing = {
+  secretKey: string
+  publicKey: string
+  code: string | null
+  peerPublicKey: string | null
+  peerName: string | null
+  peerEmail: string | null
+  mutual: boolean
+  createdAt: string
 }
 
 export type PlanSource = 'trainer' | 'custom'
@@ -43,6 +55,7 @@ export type PartnerActivity = {
   date: string
   name: string
   durationMin: number
+  calories?: number
   rest?: boolean
 }
 
@@ -53,6 +66,23 @@ export type Partner = {
   calories: number
   lastWorkout: string
   history: PartnerActivity[]
+  lastSyncedAt: string | null
+}
+
+// P2P partner sync (phase 2)
+export type PairState = 'idle' | 'searching' | 'connecting' | 'waiting' | 'linked' | 'error'
+
+export type PendingPeer = {
+  name: string
+  email: string
+  fingerprint: string
+}
+
+export type SyncPush = {
+  name: string
+  history: PartnerActivity[]
+  steps: number
+  lastSyncedAt: string
 }
 
 export type WorkoutStatus = 'in_progress' | 'completed' | 'abandoned'
@@ -131,6 +161,10 @@ export type AppState = {
   partnerLinked: boolean
   partnerSince: string | null
   partner: Partner
+  pairCode: string | null
+  pairState: PairState
+  pendingPeer: PendingPeer | null
+  syncError: string | null
   history: HistoryItem[]
   equipment: Equipment[]
   plan: PlannedExercise[]
