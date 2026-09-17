@@ -23,6 +23,9 @@ export function ensureLibrary(): Promise<Exercise[]> {
       .catch((err) => {
         console.error('[library] Failed to load supplemental exercise library:', err)
         loaded = false
+        // Do not cache a rejected import forever (a transient HMR/dev failure
+        // would otherwise leave the library empty for the whole session).
+        promise = null
         return []
       })
   }
