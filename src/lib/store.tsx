@@ -9,6 +9,7 @@ import type { AppState, HistoryItem, Partner, SessionProgress, Workout } from '.
 import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
 import { normalizePairingCode, publicKeyFingerprint } from './pairing'
 import { StoreContext, type StoreValue } from './store-hooks'
+import { requestPersistentStorage } from './persist'
 import * as db from './db'
 
 function blankPartner(): Partner {
@@ -146,6 +147,7 @@ async function loadInitialState(): Promise<AppState> {
         }
 
         _initialState = await signInState(sessionEmail)
+        void requestPersistentStorage()
       } catch (err) {
         _initPromise = null
         throw err
@@ -433,6 +435,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await db.setSession(trimmed)
         const next = await signInState(trimmed)
         commit(next)
+        void requestPersistentStorage()
         return { ok: true, recoveryCode }
       },
       logIn: async (email, password) => {
@@ -446,6 +449,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await db.setSession(trimmed)
         const next = await signInState(trimmed)
         commit(next)
+        void requestPersistentStorage()
         return { ok: true, dest: next.onboarded ? '/home' : '/onboarding' }
       },
       resetPassword: async (email, recoveryCode, newPassword) => {
