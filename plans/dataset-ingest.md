@@ -8,7 +8,7 @@ Source: https://github.com/hasaneyldrm/exercises-dataset
 - **English-only** instructions/steps.
 - **SVG coach**: build tooling that derives stick-figure pose loops from the dataset GIFs (semi-automated) + manual QA — with idle fallback as the safety net.
 - Trimmed en-only asset (~1–1.5 MB, vs 17.4 MB raw `exercises.json`) loaded lazily, never in the main bundle.
-- Store shape/actions untouched (HANDOFF constraint); feeds the SQLite migration later in the same `exercise` data.
+- Store shape/actions untouched; feeds the SQLite migration later in the same `exercise` data.
 - Unknown `coachId`/pose safely falls back to the idle pose (`CoachAvatar.tsx:28`) — non-breaking.
 
 ## Phase 1 — Dataset ingest & library

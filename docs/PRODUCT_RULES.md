@@ -10,4 +10,4 @@ Copy these into tickets. The UI already implements them.
 6. Coach is **SVG pose loops**, not GIFs.
 7. Phone-first: shell **430px**, black `#050505`, orange `#FF5A1F`, Space Grotesk.
 
-Details and file pointers: [HANDOFF.md](../HANDOFF.md).
+Details and file pointers: [README.md](../README.md) and [.cursor/rules/ember.mdc](../.cursor/rules/ember.mdc).
