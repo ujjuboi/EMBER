@@ -1,14 +1,23 @@
-import { Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Plus, Search, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CoachAvatar } from '../../coach/CoachAvatar'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
-import { BODY_PARTS, equipmentLabel, goalLabel, type BodyPart, type Exercise } from '../../data/exercises'
+import {
+  BODY_PARTS,
+  EQUIPMENT,
+  allExercises,
+  equipmentLabel,
+  goalLabel,
+  type BodyPart,
+  type Equipment,
+  type Exercise,
+} from '../../data/exercises'
+import { ensureLibrary, isLibraryLoaded } from '../../data/ingested/loadLibrary'
 import { useStore } from '../../lib/store-hooks'
-import { libraryFor } from '../../lib/trainer'
 import type { PlannedExercise } from '../../lib/types'
 
 export function TrainPage() {
@@ -35,6 +44,7 @@ export function TrainPage() {
   } = useStore()
   const [addOpen, setAddOpen] = useState(false)
   const [error, setError] = useState('')
+  const [libraryReady, setLibraryReady] = useState(isLibraryLoaded())
 
   useEffect(() => {
     if (workoutInProgress) return
@@ -44,18 +54,21 @@ export function TrainPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Preload the supplemental library (lazy, never in the initial bundle) so the
+  // AddSheet browse has the full pool and offline runs keep their cache warm.
+  useEffect(() => {
+    void ensureLibrary().then(() => setLibraryReady(true))
+  }, [])
+
   const kitLabel = equipment.length ? equipment.map(equipmentLabel).join(', ') : 'No kit yet'
-  const addable = [
-    ...libraryFor(trainerBodyPart, equipment),
-    ...customExercises,
-  ].filter((exercise, index, all) => {
-    const name = exercise.name.trim().toLowerCase()
-    const firstIndex = all.findIndex((item) => item.name.trim().toLowerCase() === name)
-    return (
-      firstIndex === index &&
-      !plan.some((item) => item.exercise.name.trim().toLowerCase() === name)
-    )
-  })
+  const planNames = new Set(plan.map((item) => item.exercise.name.trim().toLowerCase()))
+  const addable = allExercises()
+    .concat(customExercises)
+    .filter((exercise, index, all) => {
+      const name = exercise.name.trim().toLowerCase()
+      const firstIndex = all.findIndex((item) => item.name.trim().toLowerCase() === name)
+      return firstIndex === index && !planNames.has(name)
+    })
 
   const addLibrary = (exercise: Exercise) => {
     const item: PlannedExercise = {
@@ -199,6 +212,8 @@ export function TrainPage() {
       {addOpen ? (
         <AddSheet
           exercises={addable}
+          ready={libraryReady}
+          defaultBodyPart={trainerBodyPart}
           onAdd={addLibrary}
           onDeleteCustom={(id) => deleteCustomExercise(id)}
           onClose={() => setAddOpen(false)}
@@ -231,18 +246,41 @@ function useSheetMaxHeight() {
 
 function AddSheet({
   exercises,
+  ready,
+  defaultBodyPart,
   onAdd,
   onDeleteCustom,
   onClose,
 }: {
   exercises: Exercise[]
+  ready: boolean
+  defaultBodyPart: BodyPart
   onAdd: (exercise: Exercise) => void
   onDeleteCustom: (id: string) => void
   onClose: () => void
 }) {
   const [customOpen, setCustomOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [bodyPart, setBodyPart] = useState<BodyPart | 'all'>(defaultBodyPart)
+  const [equipment, setEquipment] = useState<Equipment | 'all'>('all')
   const formRef = useRef<HTMLDivElement>(null)
   const maxHeight = useSheetMaxHeight()
+
+  const equipmentOptions = useMemo(() => {
+    const seen = new Set(exercises.flatMap((item) => item.equipment ?? []))
+    return [...EQUIPMENT.map((item) => item.id), ...seen].filter(
+      (id, index, all) => all.indexOf(id) === index,
+    )
+  }, [exercises])
+
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase()
+    return exercises.filter((exercise) => {
+      if (bodyPart !== 'all' && !(exercise.bodyParts ?? []).includes(bodyPart)) return false
+      if (equipment !== 'all' && !(exercise.equipment ?? []).includes(equipment)) return false
+      return !term || exercise.name.toLowerCase().includes(term)
+    })
+  }, [exercises, query, bodyPart, equipment])
 
   useEffect(() => {
     if (!customOpen) return
@@ -268,14 +306,63 @@ function AddSheet({
             <X size={18} strokeWidth={1.6} />
           </button>
         </div>
+
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-line px-3">
+          <Search size={15} className="shrink-0 text-muted" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search 1,300+ moves"
+            className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-muted/50 focus:outline-none"
+          />
+          {query ? (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setQuery('')}
+              className="text-muted hover:text-ink"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-2">
+          <ChipRow<BodyPart | 'all'>
+            options={[{ id: 'all', label: 'All' }, ...BODY_PARTS]}
+            value={bodyPart}
+            onSelect={setBodyPart}
+          />
+        </div>
+        <div className="-mx-5 mt-2 overflow-x-auto px-5">
+          <div className="flex w-max gap-2 pb-1">
+            <Chip active={equipment === 'all'} onClick={() => setEquipment('all')}>
+              Any kit
+            </Chip>
+            {equipmentOptions.map((option) => (
+              <Chip
+                key={option}
+                active={equipment === option}
+                onClick={() => setEquipment(option)}
+              >
+                {equipmentLabel(option)}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
-          {exercises.length === 0 ? (
+          {!ready ? (
             <p className="border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-              No more moves for this focus.
+              Loading the exercise library…
+            </p>
+          ) : filtered.length === 0 ? (
+            <p className="border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+              No moves match — try another body part, kit, or search.
             </p>
           ) : (
             <ul className="divide-y divide-line border border-line">
-              {exercises.map((exercise) => (
+              {filtered.map((exercise) => (
                 <li key={exercise.id}>
                   <div className="flex items-center gap-2 px-3 py-3">
                     <button
@@ -284,7 +371,13 @@ function AddSheet({
                       className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-white/5"
                     >
                       <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
-                      <p className="min-w-0 flex-1 text-sm">{exercise.name}</p>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm leading-tight">{exercise.name}</span>
+                        <span className="mt-0.5 block text-[11px] text-muted">
+                          {bodyPartLabels(exercise)}
+                          {exercise.fromLibrary ? ' · from library' : ''}
+                        </span>
+                      </span>
                     </button>
                     {exercise.isCustom ? (
                       <button
@@ -303,6 +396,18 @@ function AddSheet({
               ))}
             </ul>
           )}
+          <p className="mt-2 px-1 text-right text-[10px] leading-tight text-muted">
+            Exercise library from{' '}
+            <a
+              href="https://github.com/hasaneyldrm/exercises-dataset"
+              target="_blank"
+              rel="noreferrer"
+              className="text-muted underline decoration-muted/40 hover:text-ink"
+            >
+              exercises-dataset
+            </a>{' '}
+            · media © Gym visual
+          </p>
           {customOpen ? (
             <div ref={formRef} className="mt-3 border border-line px-3 py-3">
               <div className="mb-3 flex items-center justify-between">
@@ -330,6 +435,14 @@ function AddSheet({
       </div>
     </div>
   )
+}
+
+function bodyPartLabels(exercise: Exercise): string {
+  return (exercise.bodyParts ?? []).map(bodyPartLabelShort).join(' · ') || 'General'
+}
+
+function bodyPartLabelShort(id: BodyPart): string {
+  return BODY_PARTS.find((item) => item.id === id)?.label ?? id
 }
 
 function Stepper({

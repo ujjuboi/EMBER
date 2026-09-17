@@ -20,6 +20,14 @@ export type Exercise = {
   coachId?: string
   isCustom?: boolean
   compound?: boolean
+  /** English instructions, kept from the supplemental dataset. Optional. */
+  instructions?: string
+  /** Ordered English instruction steps from the supplemental dataset. */
+  instructionSteps?: string[]
+  /** True for records ingested from the 1,324-exercise library. */
+  fromLibrary?: boolean
+  /** Dataset media attribution (© Gym visual). */
+  attribution?: string
 }
 
 export const BODY_PARTS: { id: BodyPart; label: string }[] = [
@@ -689,7 +697,46 @@ export const EXERCISES: Exercise[] = [
 ]
 
 export function getExercise(id: string): Exercise | undefined {
-  return EXERCISES.find((item) => item.id === id)
+  return allExercises().find((item) => item.id === id)
+}
+
+function normalizedName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+/**
+ * Supplemental library registry. The 1,324-exercise dataset is loaded lazily
+ * (never in the main bundle) and registered here so browsing and lookups see
+ * the merged catalog — curated entries always win on name/id collisions.
+ */
+let registered: Exercise[] = []
+
+export function registerExercises(exercises: Exercise[]): void {
+  const names = new Set<string>()
+  const ids = new Set<string>()
+  const take = (items: Exercise[]) => {
+    for (const item of items) {
+      const name = normalizedName(item.name)
+      if (names.has(name) || ids.has(item.id)) continue
+      names.add(name)
+      ids.add(item.id)
+    }
+  }
+  // Curated first: ingested duplicates by name resolve to the curated entry.
+  take(EXERCISES)
+  const accepted: Exercise[] = []
+  for (const item of exercises) {
+    const name = normalizedName(item.name)
+    if (!name || names.has(name) || ids.has(item.id)) continue
+    names.add(name)
+    ids.add(item.id)
+    accepted.push(item)
+  }
+  registered = accepted
+}
+
+export function allExercises(): Exercise[] {
+  return registered.length === 0 ? EXERCISES : [...EXERCISES, ...registered]
 }
 
 export function bodyPartLabel(id: BodyPart): string {

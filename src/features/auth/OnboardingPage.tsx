@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { ChipRow } from '../../components/ui/ChipRow'
@@ -6,6 +6,7 @@ import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
+import { ensureLibrary } from '../../data/ingested/loadLibrary'
 import { useStore } from '../../lib/store-hooks'
 import { KitChips } from '../trainer/KitChips'
 
@@ -33,6 +34,12 @@ export function OnboardingPage() {
   const [kit, setKit] = useState<Equipment[]>(savedKit.length ? savedKit : ['bodyweight'])
   const [error, setError] = useState('')
   const [entering, setEntering] = useState(false)
+
+  // Warm the supplemental library cache while the user fills the form, so the
+  // Train page starts with the full browse immediately after onboarding.
+  useEffect(() => {
+    void ensureLibrary()
+  }, [])
 
   if (!signedIn) return <Navigate to="/" replace />
   if (onboarded && !entering) return <Navigate to="/home" replace />

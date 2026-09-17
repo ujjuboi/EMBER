@@ -985,14 +985,71 @@ export const LOOP_MS: Record<string, number> = {
   celebrate: 700,
 }
 
+/**
+ * Generated pose loops extracted from the dataset GIFs (scripts/extract-poses.mjs).
+ * Each is a JSON file under src/coach/poses/generated/ that Vite splits into its
+ * own lazy chunk (never in the main bundle). Files are fetched on first request
+ * for an exercise id; until then — and for any id without a file — the caller
+ * falls back to the idles, so a missing/failed pose is always non-breaking.
+ */
+export type GeneratedPoseFile = {
+  id: string
+  name: string
+  view: 'side' | 'front'
+  loopMs: number
+  frames: Pose[]
+}
+
+const generatedImports = import.meta.glob<{ default: GeneratedPoseFile }>('./poses/generated/*.json')
+const generatedCache = new Map<string, Pose[]>()
+const generatedMs = new Map<string, number>()
+const loading = new Map<string, Promise<void>>()
+
+function loadGenerated(exerciseId: string): void {
+  if (generatedCache.has(exerciseId) || loading.has(exerciseId)) return
+  const load = generatedImports[`./poses/generated/${exerciseId}.json`]
+  if (!load) return
+  const pending = load()
+    .then((mod) => {
+      const file = mod.default
+      if (generatedCache.has(file.id) || generatedMs.has(file.id)) return
+      if (!file || !Array.isArray(file.frames) || file.frames.length === 0) return
+      generatedCache.set(exerciseId, file.frames.map((frame) => ({ ...frame })))
+      generatedMs.set(exerciseId, file.loopMs)
+    })
+    .catch((err) => {
+      console.error('[poses] Failed to load generated loop for', exerciseId, err)
+    })
+  loading.set(exerciseId, pending)
+}
+
+/**
+ * Dev-only writer used by the pose-QA harness to preview hand-corrections live.
+ * Ignored outside development; production keeps the generated files read-only.
+ */
+export function updateGeneratedPose(exerciseId: string, file: GeneratedPoseFile): void {
+  if (!import.meta.env.DEV) return
+  generatedCache.set(exerciseId, file.frames.map((frame) => ({ ...frame })))
+  generatedMs.set(exerciseId, file.loopMs)
+}
+
 export function posesFor(exerciseId: string, phase: 'work' | 'rest' | 'celebrate'): Pose[] {
   if (phase === 'rest') return POSE_LOOPS.rest ?? [idle]
   if (phase === 'celebrate') return POSE_LOOPS.celebrate ?? [idle]
-  return POSE_LOOPS[exerciseId] ?? POSE_LOOPS.idle ?? [idle]
+  const curated = POSE_LOOPS[exerciseId]
+  if (curated) return curated
+  const generated = generatedCache.get(exerciseId)
+  if (generated) return generated
+  loadGenerated(exerciseId)
+  return POSE_LOOPS.idle ?? [idle]
 }
 
 export function durationFor(exerciseId: string, phase: 'work' | 'rest' | 'celebrate'): number {
   if (phase === 'rest') return LOOP_MS.rest ?? 2200
   if (phase === 'celebrate') return LOOP_MS.celebrate ?? 700
-  return LOOP_MS[exerciseId] ?? LOOP_MS.idle ?? 2200
+  if (POSE_LOOPS[exerciseId]) return LOOP_MS[exerciseId] ?? LOOP_MS.idle ?? 2200
+  const generated = generatedMs.get(exerciseId)
+  if (generated) return generated
+  loadGenerated(exerciseId)
+  return LOOP_MS.idle ?? 2200
 }

@@ -1,10 +1,29 @@
-import { EXERCISES, bodyPartLabel, goalLabel, type BodyPart, type Equipment, type Exercise, type TrainerGoal } from '../data/exercises'
+import { EXERCISES, allExercises, bodyPartLabel, goalLabel, type BodyPart, type Equipment, type Exercise, type TrainerGoal } from '../data/exercises'
 import type { PlannedExercise } from './types'
+
+/**
+ * Home-kit substitutions so exercises from the supplemental library (barbell,
+ * cable, kettlebell, …) still match everyday kits: barbell/kettlebell/weights →
+ * dumbbells, cable/smith/assisted → bands or tubes.
+ */
+const EQUIPMENT_SUBSTITUTES: Record<string, Equipment[]> = {
+  barbell: ['dumbbells'],
+  'olympic barbell': ['dumbbells'],
+  'ez barbell': ['dumbbells'],
+  kettlebell: ['dumbbells'],
+  'medicine ball': ['dumbbells'],
+  weighted: ['dumbbells'],
+  'trap bar': ['dumbbells'],
+  cable: ['bands', 'tubes'],
+  'smith machine': ['bands', 'tubes'],
+  assisted: ['bands'],
+}
 
 function kitHas(kit: Equipment[], needed: Equipment): boolean {
   if (kit.includes(needed)) return true
   if (needed === 'bands' && kit.includes('tubes')) return true
-  return false
+  if (needed === 'tubes' && kit.includes('bands')) return true
+  return (EQUIPMENT_SUBSTITUTES[needed] ?? []).some((sub) => kit.includes(sub))
 }
 
 export function fitsKit(exercise: Exercise, kit: Equipment[]): boolean {
@@ -19,6 +38,14 @@ function matchesPart(exercise: Exercise, bodyPart: BodyPart): boolean {
 }
 
 export function libraryFor(bodyPart: BodyPart, kit: Equipment[]): Exercise[] {
+  return allExercises().filter((item) => !item.isCustom && fitsKit(item, kit) && matchesPart(item, bodyPart))
+}
+
+/**
+ * Curated-only pool for the session suggester — the trainer keeps its
+ * hand-tuned pool unchanged; the supplemental library stays a browse/add source.
+ */
+function curatedFor(bodyPart: BodyPart, kit: Equipment[]): Exercise[] {
   return EXERCISES.filter((item) => !item.isCustom && fitsKit(item, kit) && matchesPart(item, bodyPart))
 }
 
@@ -102,7 +129,7 @@ function prescribe(exercise: Exercise, goal: TrainerGoal): PlannedExercise {
 }
 
 export function suggestSession(bodyPart: BodyPart, goal: TrainerGoal, kit: Equipment[]): PlannedExercise[] {
-  const ranked = libraryFor(bodyPart, kit)
+  const ranked = curatedFor(bodyPart, kit)
     .map((exercise) => ({ exercise, score: scoreExercise(exercise, bodyPart, goal) }))
     .sort((a, b) => b.score - a.score || a.exercise.name.localeCompare(b.exercise.name))
 

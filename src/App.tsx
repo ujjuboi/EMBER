@@ -9,6 +9,10 @@ import { PartnerPage } from './features/partner/PartnerPage'
 import { YouPage } from './features/profile/YouPage'
 import { SessionPage } from './features/workout/SessionPage'
 import { TrainPage } from './features/workout/TrainPage'
+{/* Dev-only pose-QA harness (tools/pose-qa/PoseQAPage.tsx) — kept out of the
+    production bundle via ESM: the import only exists when the route renders,
+    and the route only exists in dev. See plans/dataset-ingest.md Phase 2. */}
+import { PoseQAPage } from '../tools/pose-qa/PoseQAPage'
 import { StoreProvider } from './lib/store'
 import { useStore } from './lib/store-hooks'
 
@@ -52,6 +56,9 @@ export default function App() {
               <Route path="/train/go" element={<SessionPage />} />
               <Route path="/partner" element={<PartnerPage />} />
               <Route path="/you" element={<YouPage />} />
+              {import.meta.env.DEV ? (
+                <Route path="/tools/pose-qa" element={<PoseQAPage />} />
+              ) : null}
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
