@@ -6,6 +6,7 @@ import { Field } from '../../components/ui/Field'
 import { isoDate } from '../../lib/dates'
 import { useStore } from '../../lib/store-hooks'
 import { WhoSwatch } from '../home/MonthCalendar'
+import { AcceptPairCard } from './AcceptPairCard'
 
 export function PartnerWidget() {
   const navigate = useNavigate()
@@ -61,21 +62,10 @@ export function PartnerWidget() {
   return (
     <div className="rounded-xl border border-line bg-surface px-4 py-4">
       <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Partner code</p>
-      <p className="mt-1.5 text-sm text-muted">Pair up to see each other's streaks, sessions and stats.</p>
+      <p className="mt-1.5 text-sm text-muted">Share your code, or enter your partner's below.</p>
 
       {pendingPeer ? (
-        <div className="mt-4 rounded-lg border border-orange/30 bg-orange/5 px-3 py-3">
-          <p className="text-sm font-medium">{pendingPeer.name} · {pendingPeer.fingerprint}</p>
-          <p className="mt-0.5 text-xs text-muted">wants to pair with you</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button size="sm" onClick={() => acceptPair()}>
-              Accept
-            </Button>
-            <Button size="sm" variant="line" onClick={() => declinePair()}>
-              Decline
-            </Button>
-          </div>
-        </div>
+        <AcceptPairCard peer={pendingPeer} onAccept={() => acceptPair()} onDecline={() => declinePair()} />
       ) : null}
 
       {pairState === 'searching' ? (

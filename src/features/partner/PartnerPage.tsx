@@ -6,6 +6,7 @@ import { dateLabel, isoDate } from '../../lib/dates'
 import { fmt } from '../../lib/format'
 import { useStore } from '../../lib/store-hooks'
 import { LogCalendar, WhoSwatch } from '../home/MonthCalendar'
+import { AcceptPairCard } from './AcceptPairCard'
 
 export function PartnerPage() {
   const {
@@ -56,20 +57,7 @@ export function PartnerPage() {
           <p className="mt-1.5 text-sm text-muted">Enter their code, or share yours below.</p>
 
           {pendingPeer ? (
-            <div className="mt-4 rounded-lg border border-orange/30 bg-orange/5 px-3 py-3">
-              <p className="text-sm font-medium">{pendingPeer.name} · {pendingPeer.fingerprint}</p>
-              <p className="mt-0.5 text-xs text-muted">
-                {pendingPeer.email || 'A fellow member'} wants to pair with you
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button size="sm" onClick={() => acceptPair()}>
-                  Accept
-                </Button>
-                <Button size="sm" variant="line" onClick={() => declinePair()}>
-                  Decline
-                </Button>
-              </div>
-            </div>
+            <AcceptPairCard peer={pendingPeer} onAccept={() => acceptPair()} onDecline={() => declinePair()} />
           ) : null}
 
           {pairState === 'searching' ? (
