@@ -45,7 +45,7 @@ src/
   app/             Shell, bottom nav, route gate
   coach/           Stick-figure coach (SVG pose loops)
   components/ui/   Shared primitives (buttons, chips, fields, toast, timer)
-  data/            Exercise catalog + seed data
+  data/            Exercise catalog
   features/
     auth/          Login, signup, onboarding (local accounts)
     home/          Home, streak, month calendar
@@ -58,7 +58,7 @@ src/
 
 ## Features (Prototype)
 
-- Local accounts with PBKDF2-hashed passwords (SQLite)
+- Local accounts with PBKDF2-hashed passwords (SQLite) + offline password recovery via a one-time recovery code
 - Onboarding with body kit selection and partner pairing
 - Streak tracking (calendar days with completed workouts)
 - Auto-generated workout plans by body part, goal, and equipment
@@ -70,7 +70,7 @@ src/
 
 ## Persistence & privacy
 
-State lives in on-device **SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so the store keeps working **fully offline** after first load. Accounts are stored locally with PBKDF2-hashed passwords (`src/lib/password.ts`), and all data (`profile` / `history` / `plan` / `partner` / `workout` / `workout_set`) is scoped per account with a `session` row restoring the last logged-in user. Finished workouts keep full per-set detail (reps/seconds + weight), and an in-progress session **resumes** where you left off after a reload or background-kill. See `src/lib/store.tsx` for the shape and actions.
+State lives in on-device **SQLite** (`src/lib/db/index.ts`, DB `ember_db`; IndexedDB-backed via jeep-sqlite on web). The PWA precaches the SQLite WASM engine (`assets/sql-wasm.wasm`), so the store keeps working **fully offline** after first load. Accounts are stored locally with PBKDF2-hashed passwords (`src/lib/password.ts`), and all data (`profile` / `history` / `plan` / `partner` / `workout` / `workout_set`) is scoped per account with a `session` row restoring the last logged-in user. Password recovery is fully offline too: each account mints a one-time 12-char **recovery code** (hashed at rest, shown once at signup or from You) that — with the account email — resets the password on `/forgot`. Finished workouts keep full per-set detail (reps/seconds + weight), and an in-progress session **resumes** where you left off after a reload or background-kill. See `src/lib/store.tsx` for the shape and actions.
 
 Privacy notes:
 

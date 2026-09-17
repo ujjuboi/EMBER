@@ -70,8 +70,7 @@ src/
 
 Unused leftovers (safe to delete when you wire the real app, or reuse):
 
-- `src/features/partner/PartnerSpark.tsx` — pixel-art duo, not mounted
-- `src/components/ui/Ring.tsx` — old streak ring, not mounted
+- (none — `PartnerSpark.tsx` pixel duo and `Ring.tsx` streak ring were removed)
 
 ---
 
@@ -81,14 +80,14 @@ Unused leftovers (safe to delete when you wire the real app, or reuse):
 
 - **Accounts are real, local accounts.** Signup stores the email plus a PBKDF2-SHA256 hash (per-user salt, 100k iterations — `src/lib/password.ts`); login verifies against the DB. A `session` row holds the active account, so a reload restores the signed-in user. `crypto.subtle` requires HTTPS — `localhost` and Netlify/Vercel are fine, plain `http://` on a LAN phone is not.
 - **Every table is scoped per account** (`account_email` on `profile` / `history` / `plan` / `partner` / `workout` / `workout_set`), so multiple accounts on one install never see each other's data.
-- There is **no server**. Auth is local-only — no OAuth, no recovery, no sync. The Google button was removed; `createAccount` / `logIn` / `signOut` all go through the store actions.
+- There is **no server**. Auth is local-only — no OAuth, no sync. **Password recovery is offline**: every account gets a one-time 12-char recovery code (shown once at signup, hashed at rest via the same PBKDF2 machinery); `/forgot` confirms the new password then returns the user to login (reset never signs in silently). Restoring a backup can optionally set a fresh password (the backup's hash is otherwise unknown).
 - Onboarding writes profile + kit + optional partner link (any **6-character** code).
-- Schema is versioned (`PRAGMA user_version`, currently **v5**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body). `profile.workout_done_today` is a dead column (retained, never written or read).
+- Schema is versioned (`PRAGMA user_version`, currently **v6**). Upgrades are **data-preserving**: the v2 → v3 migration only adds the `workout`/`workout_set` tables and `plan.for_date`/`plan.weight_kg` columns; the v3 → v4 migration only purges unambiguous seed artifacts (fixed history ids `h1`–`h4`, mock partner row named Rae); the v4 → v5 migration adds the `custom_exercise` table (user-defined moves, keyed `account_email` + `id`, JSON body); the v5 → v6 migration adds `account.recovery_salt`/`account.recovery_hash` (per-account recovery code, NULL until generated).
 - **Workout lifecycle & resume** (`src/lib/db/index.ts`): each session writes a `workout` row (status `in_progress` → `completed`/`abandoned`) plus per-set detail in `workout_set` (position, exercise, reps/seconds, `weight_kg`). Progress (`currentIndex`, set, phase, elapsed, kcal, rest/work seconds, sets logged) is persisted on transitions only, so a killed tab or iOS background resume restores the session where it stopped. Only one `in_progress` workout exists per account — starting a new one abandons the old.
 - **Weights**: reps exercises carry a `weight_kg` plan value (Train stepper) that is stored on the plan row and copied into each logged `workout_set`.
 - **Plans are date-scoped**: the `plan` row writes `for_date` (today). `history` stays the date-rollup source of truth for calendars/streaks; `streak`/`steps`/`calories` are recomputed from history on hydrate so caches cannot drift.
 - Distribution is an **installable PWA** (manifest + service worker via `vite-plugin-pwa`), not a native wrapper. See [plans/phase-1-capacitor-sqlite.md](./plans/phase-1-capacitor-sqlite.md).
-- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. Exports include workouts, history, plan, profile, partner, and the user's custom-exercise library. Schema 4 backups still restore. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
+- **Backup**: the app is local-first — data dies with the origin's storage, so users can export their account as a JSON file (You → Back up your data → Export, or share to Files/iCloud Drive/Drive/email) and restore it (You → Restore, or Auth → Restore from backup) to recreate the account on a fresh install. Exports include workouts, history, plan, profile, partner, and the user's custom-exercise library. Schema 4/5 backups still restore (their recovery fields default to NULL). Restore can set a **fresh password** — the backup's hash is unknown, so this is the only way to take ownership of a restored account's login. No automatic/cloud backup exists; background cron-style backups are not possible in an iOS PWA.
 
 Types: `src/lib/types.ts`.  
 Store → DB: `src/lib/store.tsx` → `src/lib/db/index.ts`.  
@@ -102,6 +101,7 @@ Catalog: `src/data/exercises.ts`.
 | Path | Screen | Nav |
 | --- | --- | --- |
 | `/` | Auth | none |
+| `/forgot` | Reset password (email + recovery code) | none |
 | `/onboarding` | Profile + kit + partner code | none |
 | `/home` | Today, streak, partner card | Home |
 | `/train` | Body-part chips + suggested plan | Train |
@@ -171,7 +171,7 @@ Users log rest from Home (**Log rest day**) only before they have a workout toda
 
 ### Auth / onboarding
 
-Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = a prototype no-op link (toast only).
+Real local accounts: signup hashes the password (PBKDF2) and stores it in SQLite; login verifies the stored hash before unlocking the app. Validation: email has `@`, password ≥ 6. Signup mints a one-time 12-char **recovery code** (shown once via modal before onboarding); `/forgot` accepts email + code + new password, confirms the reset, and returns to log in. The Google button is gone (OAuth needs a backend). Onboarding requires kit (≥1) and realistic weight/height. Partner code empty = unlinked; length 6 = a prototype no-op link (toast only).
 
 **Tester path:** Create an account (any email + password of ≥6 chars) → keep defaults → Save. Lands on Train.
 
@@ -197,7 +197,7 @@ Linked: compare columns + calendar. Unlinked: pair panel (`PartnerWidget.tsx`). 
 
 ### You
 
-Edits persist in the store. Unlink confirm. Log out clears `signedIn` and the plan, not the whole profile (so log-in can resume onboarding vs home).
+Edits persist in the store. Unlink confirm. Log out clears `signedIn` and the plan, not the whole profile (so log-in can resume onboarding vs home). A **Recovery code** section mints a new one-time code (confirm warns it invalidates the old); restore accepts an optional new password.
 
 ---
 

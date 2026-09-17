@@ -90,9 +90,9 @@ any existing `in_progress` row for that account as `abandoned`.
 
 ### `profile`
 
-- `workout_done_today` becomes dead: column retained in the table (no
-  destructive `ALTER DROP`), but never written or read. The value is derived
-  from today's `history` instead.
+- `workout_done_today` becomes dead: never written or read. The value is
+  derived from today's `history` instead. The column was later dropped from the
+  `profile` DDL (fresh installs); existing installs keep the harmless leftover.
 
 ## Types (`src/lib/types.ts`)
 
@@ -181,9 +181,10 @@ Manual:
 - **Write volume**: ticking `elapsed` every second is not persisted; progress
   writes are debounced to transitions to avoid hammering the IndexedDB/OPFS
   store.
-- `workout_done_today` stays as a dead column (no `ALTER DROP COLUMN` in the
-  migration) to avoid a risky destructive step; a later cleanup can run a
-  home-grown table-rebuild migration if ever needed.
+- `workout_done_today` was removed from the `profile` DDL (fresh installs get
+  no such column). It was never written or read; existing installs keep the
+  leftover column harmlessly since every write uses explicit column lists.
+  No `ALTER DROP COLUMN` in the migration to avoid a risky destructive step.
 
 ## Decisions locked
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Button } from './Button'
 
 type Props = {
@@ -6,9 +7,10 @@ type Props = {
   confirm: string
   onCancel: () => void
   onConfirm: () => void
+  children?: ReactNode
 }
 
-export function Confirm({ title, body, confirm, onCancel, onConfirm }: Props) {
+export function Confirm({ title, body, confirm, onCancel, onConfirm, children }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
       <button
@@ -28,6 +30,7 @@ export function Confirm({ title, body, confirm, onCancel, onConfirm }: Props) {
           {title}
         </h2>
         <p className="mt-1.5 text-sm text-muted">{body}</p>
+        {children}
         <div className="mt-6 grid grid-cols-2 gap-3">
           <Button variant="line" block onClick={onCancel}>
             Cancel

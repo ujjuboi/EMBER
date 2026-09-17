@@ -15,10 +15,6 @@ export function shiftIso(iso: string, days: number): string {
   return isoDate(next)
 }
 
-export function daysAgo(days: number): string {
-  return shiftIso(isoDate(), -days)
-}
-
 export function dateLabel(iso: string): string {
   const today = isoDate()
   if (iso === today) return 'Today'

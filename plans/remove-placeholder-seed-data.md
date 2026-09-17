@@ -1,5 +1,12 @@
 # Remove placeholder/demo data from the new-user flow (schema v4 seed purge)
 
+## Status
+
+**Shipped / superseded.** Implemented in the v3→v4 migration (fixed history
+ids `h1`–`h4` purged, mock partner row blanked) plus the `seedState()` cleanup.
+The codebase has since moved on to **schema v5** (v4→v5 added the
+`custom_exercise` table), so this doc's "schema v4" references are historical.
+
 ## Goal
 
 A brand-new user who signs up should never see demo placeholder values like

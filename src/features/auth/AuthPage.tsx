@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
+import { Confirm } from '../../components/ui/Confirm'
 import { Field } from '../../components/ui/Field'
+import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { useStore } from '../../lib/store-hooks'
 
 export function AuthPage() {
@@ -12,22 +14,28 @@ export function AuthPage() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
+  const [restorePick, setRestorePick] = useState<{ file: File } | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const restoreInputRef = useRef<HTMLInputElement>(null)
 
   if (signedIn && onboarded) return <Navigate to="/home" replace />
-  if (signedIn && !onboarded) return <Navigate to="/onboarding" replace />
+  if (signedIn && !onboarded && !recoveryCode) return <Navigate to="/onboarding" replace />
 
-  const onRestoreFile = async (file: File) => {
-    if (restoring) return
+  const runRestore = async () => {
+    const pending = restorePick
+    if (!pending || restoring) return
     setRestoring(true)
     try {
-      const result = await importData(file)
+      const result = await importData(pending.file, { newPassword: newPassword.trim() || undefined })
       if (!result.ok) {
         setError(result.error ?? 'Could not restore that backup')
         return
       }
       setError('')
+      setRestorePick(null)
+      setNewPassword('')
       navigate(result.dest ?? '/home')
     } finally {
       setRestoring(false)
@@ -45,7 +53,7 @@ export function AuthPage() {
           return
         }
         setError('')
-        navigate('/onboarding')
+        setRecoveryCode(result.recoveryCode ?? null)
         return
       }
       const result = await logIn(email, password)
@@ -97,16 +105,21 @@ export function AuthPage() {
         </Button>
 
         {mode === 'login' ? (
-          <button
-            type="button"
-            onClick={() => {
-              setMode('signup')
-              setError('')
-            }}
-            className="w-full text-center text-sm text-muted"
-          >
-            New to EMBER? <span className="text-orange">Create an account</span>
-          </button>
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signup')
+                setError('')
+              }}
+              className="w-full text-center text-sm text-muted"
+            >
+              New to EMBER? <span className="text-orange">Create an account</span>
+            </button>
+            <Link to="/forgot" className="block w-full text-center text-sm text-muted">
+              <span className="text-orange">Forgot your password?</span>
+            </Link>
+          </div>
         ) : (
           <button
             type="button"
@@ -136,12 +149,37 @@ export function AuthPage() {
             className="hidden"
             onChange={(event) => {
               const file = event.target.files?.[0]
-              if (file) void onRestoreFile(file)
+              if (file) setRestorePick({ file })
               event.target.value = ''
             }}
           />
         </div>
       </div>
+
+      {recoveryCode ? (
+        <RecoveryCodeModal code={recoveryCode} onDone={() => navigate('/onboarding')} />
+      ) : null}
+
+      {restorePick ? (
+        <Confirm
+          title="Restore from backup?"
+          body="This will create or replace the account from the backup file. Optionally set a fresh password — leave it blank to keep the backup's."
+          confirm="Restore"
+          onCancel={() => {
+            setRestorePick(null)
+            setNewPassword('')
+          }}
+          onConfirm={() => void runRestore()}
+        >
+          <Field
+            label="New password (optional)"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Leave blank to keep the backup password"
+          />
+        </Confirm>
+      ) : null}
     </div>
   )
 }

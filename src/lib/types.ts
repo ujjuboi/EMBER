@@ -10,6 +10,8 @@ export type EmberBackup = {
     passwordHash: string
     salt: string
     createdAt: string
+    recoverySalt: string | null
+    recoveryHash: string | null
   }
   profile: ProfileData
   history: HistoryItem[]

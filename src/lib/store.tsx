@@ -63,6 +63,59 @@ function workoutTitle(plan: AppState['plan']): string {
 let _initialState: AppState | null = null
 let _initPromise: Promise<void> | null = null
 
+// Ambiguity-free recovery-code alphabet: A-Z + 2-9 minus I, L, O, 0.
+const RECOVERY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+// 12 chars over a 31-symbol alphabet ≈ 59 bits of entropy — plenty given the
+// 100k-iteration PBKDF2 hash an attacker would have to grind through.
+function generateRecoveryCode(): string {
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
+  let out = ''
+  for (const b of bytes) out += RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length]
+  return out
+}
+
+async function signInState(email: string): Promise<AppState> {
+  const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
+    db.loadProfile(email),
+    db.loadHistory(email),
+    db.loadPlan(email),
+    db.loadPartner(email),
+    db.loadWorkoutInProgress(email),
+    db.loadCustomExercises(email),
+  ])
+  const totals = workoutTotalsFromHistory(history)
+  return {
+    signedIn: true,
+    accountEmail: email,
+    onboarded: profile.onboarded,
+    displayName: profile.displayName,
+    weightKg: profile.weightKg,
+    heightFt: profile.heightFt,
+    heightIn: profile.heightIn,
+    stepGoal: profile.stepGoal,
+    streak: totals.streak,
+    steps: totals.steps,
+    calories: totals.calories,
+    workoutInProgress: !!activeWorkout,
+    workingWorkout: activeWorkout,
+    partnerLinked: partnerData.partnerLinked,
+    partnerSince: partnerData.partnerSince,
+    partner: partnerData.partner,
+    history,
+    equipment: profile.equipment,
+    plan,
+    customExercises,
+    planSource: profile.planSource,
+    trainerPhase: profile.trainerPhase,
+    trainerDay: profile.trainerDay,
+    trainerBodyPart: profile.trainerBodyPart,
+    trainerGoal: profile.trainerGoal,
+    toast: null,
+  }
+}
+
 async function loadInitialState(): Promise<AppState> {
   if (_initialState) return _initialState
   if (!_initPromise) {
@@ -81,45 +134,7 @@ async function loadInitialState(): Promise<AppState> {
           return
         }
 
-        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
-          db.loadProfile(sessionEmail),
-          db.loadHistory(sessionEmail),
-          db.loadPlan(sessionEmail),
-          db.loadPartner(sessionEmail),
-          db.loadWorkoutInProgress(sessionEmail),
-          db.loadCustomExercises(sessionEmail),
-        ])
-
-        const totals = workoutTotalsFromHistory(history)
-
-        _initialState = {
-          signedIn: true,
-          accountEmail: sessionEmail,
-          onboarded: profile.onboarded,
-          displayName: profile.displayName,
-          weightKg: profile.weightKg,
-          heightFt: profile.heightFt,
-          heightIn: profile.heightIn,
-          stepGoal: profile.stepGoal,
-          streak: totals.streak,
-          steps: totals.steps,
-          calories: totals.calories,
-          workoutInProgress: !!activeWorkout,
-          workingWorkout: activeWorkout,
-          partnerLinked: partnerData.partnerLinked,
-          partnerSince: partnerData.partnerSince,
-          partner: partnerData.partner,
-          history,
-          equipment: profile.equipment,
-          plan,
-          customExercises,
-          planSource: profile.planSource,
-          trainerPhase: profile.trainerPhase,
-          trainerDay: profile.trainerDay,
-          trainerBodyPart: profile.trainerBodyPart,
-          trainerGoal: profile.trainerGoal,
-          toast: null,
-        }
+        _initialState = await signInState(sessionEmail)
       } catch (err) {
         _initPromise = null
         throw err
@@ -304,10 +319,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const salt = generateSalt()
         const hash = await hashPassword(password, salt)
         await db.createAccountRow(trimmed, hash, salt)
+        const recoveryCode = generateRecoveryCode()
+        await db.setRecoveryCode(trimmed, recoveryCode)
         await db.setSession(trimmed)
-        const base = seedState()
-        commit({ ...base, signedIn: true, accountEmail: trimmed, onboarded: false })
-        return { ok: true }
+        const next = await signInState(trimmed)
+        commit(next)
+        return { ok: true, recoveryCode }
       },
       logIn: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
@@ -318,45 +335,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: 'No account for that email, or wrong password.' }
         }
         await db.setSession(trimmed)
-        const [profile, history, plan, partnerData, activeWorkout, customExercises] = await Promise.all([
-          db.loadProfile(trimmed),
-          db.loadHistory(trimmed),
-          db.loadPlan(trimmed),
-          db.loadPartner(trimmed),
-          db.loadWorkoutInProgress(trimmed),
-          db.loadCustomExercises(trimmed),
-        ])
-        const totals = workoutTotalsFromHistory(history)
-        const next: AppState = {
-          signedIn: true,
-          accountEmail: trimmed,
-          onboarded: profile.onboarded,
-          displayName: profile.displayName,
-          weightKg: profile.weightKg,
-          heightFt: profile.heightFt,
-          heightIn: profile.heightIn,
-          stepGoal: profile.stepGoal,
-          streak: totals.streak,
-          steps: totals.steps,
-          calories: totals.calories,
-          workoutInProgress: !!activeWorkout,
-          workingWorkout: activeWorkout,
-          partnerLinked: partnerData.partnerLinked,
-          partnerSince: partnerData.partnerSince,
-          partner: partnerData.partner,
-          history,
-          equipment: profile.equipment,
-          plan,
-          customExercises,
-          planSource: profile.planSource,
-          trainerPhase: profile.trainerPhase,
-          trainerDay: profile.trainerDay,
-          trainerBodyPart: profile.trainerBodyPart,
-          trainerGoal: profile.trainerGoal,
-          toast: null,
-        }
+        const next = await signInState(trimmed)
         commit(next)
         return { ok: true, dest: next.onboarded ? '/home' : '/onboarding' }
+      },
+      resetPassword: async (email, recoveryCode, newPassword) => {
+        const trimmed = email.trim().toLowerCase()
+        if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
+        if (newPassword.length < 6) return { ok: false, error: 'Password must be at least 6 characters' }
+        const normalized = recoveryCode.trim().toUpperCase().replace(/[^A-Z2-9]/g, '')
+        if (normalized.length < 12) return { ok: false, error: 'Enter your 12-character recovery code' }
+        const verified = await db.verifyRecoveryCode(trimmed, normalized)
+        if (!verified) {
+          return { ok: false, error: 'No account for that email, or wrong code.' }
+        }
+        await db.resetPassword(trimmed, newPassword)
+        return { ok: true }
+      },
+      generateRecoveryCode: async () => {
+        const s = current()
+        if (!s.accountEmail) return null
+        const recoveryCode = generateRecoveryCode()
+        await db.setRecoveryCode(s.accountEmail, recoveryCode)
+        return recoveryCode
       },
       completeOnboarding: ({ displayName, weightKg, heightFt, heightIn, stepGoal, partnerCode, equipment, trainerGoal }) => {
         const s = current()
@@ -722,6 +723,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         try {
           await db.importAccount(backup, { newAccount: !matters, intoEmail: opts?.intoEmail })
+          if (opts?.newPassword) {
+            const target = opts.intoEmail ?? backup.account.email
+            await db.resetPassword(target, opts.newPassword)
+          }
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Could not restore that backup'
           return { ok: false, error: message }
