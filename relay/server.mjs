@@ -1,6 +1,8 @@
-// Local EMBER signaling relay for development. Same wire protocol as the
-// Cloudflare Worker relay (relay/index.ts), so the app works against either.
-// Run: `npm run relay` (ws://127.0.0.1:8787).
+// EMBER signaling relay (Node `ws` server). The relay only forwards SDP
+// offers/answers and ICE candidates between two devices in a room; it never
+// sees app data. A socket's room is bound at connect time via `?room=` in the
+// URL and can also be switched with the wire `join` message.
+// Run locally: `npm run relay` (ws://127.0.0.1:8787).
 import { WebSocketServer } from 'ws'
 
 const PORT = Number(process.env.RELAY_PORT ?? 8787)

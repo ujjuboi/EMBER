@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "icons": "node scripts/generate-icons.mjs",
-    "relay": "node scripts/relay.mjs",
+    "relay": "node relay/server.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -25,7 +25,6 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260916.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

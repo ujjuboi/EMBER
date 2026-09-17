@@ -2,13 +2,13 @@
 
 ## Status
 
-**In progress.** Git-based Netlify deployment for EMBER (repo `ujjuboi/EMBER`).
-Completed items from the pre-work: `netlify.toml` (build `npm run build`,
-publish `dist`, SPA fallback), `public/_redirects` (same fallback), and the
-existing PWA build (`dist/` contains `sw.js`, `manifest.webmanifest`,
-`icons/*`). The `here.now` short-lived anonymous host was already dropped in
-`af979d6`; this change documents the **live Netlify deployment + URL** in the
-docs and removes the last stale mention.
+**Live.** EMBER is deployed to Netlify (repo `ujjuboi/EMBER`) via the
+Git-connected flow. `netlify.toml` (build `npm run build`, publish `dist`,
+SPA fallback) and `public/_redirects` are in place. The Cloudflare Worker
+relay (`relay/index.ts`, `wrangler.toml`) and the `here.now` short-lived
+anonymous host have been dropped in favor of the self-hosted Tailscale relay
+(see `plans/tailscale-relay.md`); production partner sync runs against
+`wss://<node>.<tailnet>.ts.net` via `VITE_RELAY_URL`.
 
 ## Goal
 
@@ -16,8 +16,8 @@ docs and removes the last stale mention.
    at a stable URL.
 2. Make partner sync work in production by wiring the Tailscale-hosted
    signaling relay into the Netlify build via `VITE_RELAY_URL`.
-3. Replace the removed `here.now` deployment in README/HANDOFF with the Netlify
-   deployment steps and live URL.
+3. Ensure README/HANDOFF reflect the live Netlify deployment with no stale
+   `here.now` / Cloudflare / Vercel references.
 
 ## Decisions locked
 
@@ -29,23 +29,24 @@ docs and removes the last stale mention.
 | Relay scope | Relay deploy is documented in `plans/tailscale-relay.md`; this plan only wires `VITE_RELAY_URL` into the Netlify build |
 | Relay | Node `ws` server (`relay/server.mjs`) on an always-on tailnet node, exposed via Tailscale Serve (see `plans/tailscale-relay.md`) |
 | Prod `VITE_RELAY_URL` | `wss://<node>.<tailnet>.ts.net` (captured at relay deploy time) |
-| Vercel | Keep `vercel.json` as the equivalent alternative; docs promote Netlify |
+| Vercel | Removed — `vercel.json` deleted; Netlify is the sole deploy target |
 
 ## Steps
 
-### 1. Deploy the relay (Cloudflare) — before the app build
+### 1. Deploy the relay (Tailscale) — before the app build
+
+The relay itself is deployed **per `plans/tailscale-relay.md`** (Node `ws`
+server `relay/server.mjs` on an always-on tailnet node, exposed via Tailscale
+Serve). This plan doesn't deploy it — it only needs the resulting base URL.
 
 The app appends `?room=<code>` to `VITE_RELAY_URL`, so only the base URL is
 needed. `crypto.subtle`, WebRTC, and the service worker all require HTTPS —
-the Worker's `wss://` URL satisfies it.
+the `wss://` URL from Tailscale Serve satisfies it.
 
-```sh
-cd relay
-npx wrangler login        # browser auth (first time)
-npx wrangler deploy       # prints wss://ember-relay.<subdomain>.workers.dev
-```
-
-Capture the printed URL → this is the production **`VITE_RELAY_URL`**.
+1. Follow `plans/tailscale-relay.md` to bring the relay up at
+   `https://<node>.<tailnet>.ts.net`.
+2. Capture that URL → this is the production **`VITE_RELAY_URL`** (scheme must
+   be `wss://`; `ws://` is blocked as mixed content on the HTTPS site).
 
 ### 2. Create the Netlify site (Git-based, dashboard)
 
@@ -63,21 +64,20 @@ Capture the printed URL → this is the production **`VITE_RELAY_URL`**.
 6. Trigger the first production deploy (push merged `main`, or the dashboard's
    **Trigger deploy**).
 
-### 3. Update docs (remove `here.now`, document the Netlify deployment)
+### 3. Update docs (document the live Netlify deployment)
 
 - **README.md** — rewrite **"Preview & Deploy"**: add the live URL, state the
   app is deployed to Netlify via the Git-connected repo (`netlify.toml` builds
   on push to `main`; PRs get deploy previews), note the `VITE_RELAY_URL` env
   var for partner sync, and demote Vercel to an alternative line.
 - **HANDOFF.md** —
-  - "Live app & hosting" section (lines 277–290): replace the
-    "Older short-lived anonymous hosts (here.now) are deprecated and removed."
-    line with the live Netlify URL + host specifics (production branch, relay
-    env var, verify steps).
+  - "Live app & hosting" section (lines 277–290): record the live Netlify URL
+    + host specifics (production branch, relay env var, verify steps); drop the
+    Vercel alternative and any remaining `here.now` deprecation note.
   - Line 7 and line 252: point at the live Netlify deployment instead of
     "deploy `dist/` to Netlify/Vercel".
-- **relay/README.md** — record the deployed worker's base URL next to the
-  `npx wrangler deploy` instructions.
+- **relay/README.md** — record the deployed relay's base URL next to the
+  Tailscale deploy instructions (see `plans/tailscale-relay.md`).
 - Grep the repo for `here.now` → **0 matches** at the end.
 
 ### 4. Release flow

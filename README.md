@@ -79,9 +79,9 @@ Two accounts pair with **6-char per-account codes**. Each account owns an
 Ed25519 keypair (`src/lib/pairing.ts`, pure-JS via `@noble/curves` so it works
 on Safari/iOS too); the **public-key fingerprint** is the verified identity,
 the code only names a relay room and is rotated on pair/unpair. The handshake
-runs over a **signaling relay** (Cloudflare Worker Durable Object, or the local
-`npm run relay` — `scripts/relay.mjs`) that only ever forwards SDP/ICE, never
-workout data. Once the WebRTC DataChannel opens, both sides exchange **signed**
+runs over a **signaling relay** (Tailscale-hosted Node `ws` server —
+`relay/server.mjs`, local `npm run relay`) that only ever forwards SDP/ICE,
+never workout data. Once the WebRTC DataChannel opens, both sides exchange **signed**
 identity + stats pushes, derive partner streak/calories locally from the synced
 history (mirroring the "your" side), and reconnect via a stable room
 `hash(myPub + peerPub)` whenever either device comes back online. Reminders
@@ -95,10 +95,11 @@ the network drops. See `src/lib/sync/session.ts` for the state machine and
 Private notes:
 
 - **Data never leaves your device** except relay-transit WebRTC signaling.
-  There is no app backend; hosting (Netlify/Vercel) serves static files only.
-  The signaling relay (Cloudflare Worker or local `npm run relay`) only
-  forwards SDP offers/answers and ICE candidates — it never sees workout data,
-  which travels device-to-device over an encrypted DataChannel.
+  There is no app backend; hosting (Netlify) serves static files only.
+  The signaling relay (Tailscale-hosted Node `ws` server, or local
+  `npm run relay`) only forwards SDP offers/answers and ICE candidates — it
+  never sees workout data, which travels device-to-device over an encrypted
+  DataChannel.
 - **Auth is local UI gating, not server-grade security.** Anyone with access to the device's browser storage (DevTools, backups) can read the data. Password hashes are PBKDF2-salted on-device.
 - **At-rest storage is unencrypted** in the browser's storage sandbox (jeep-sqlite has no web encryption).
 - **Pairing keys are plaintext seeds** in SQLite, exported inside backups —
@@ -118,7 +119,7 @@ EMBER is an installable **Progressive Web App** — no app store, no APK.
 npm run build
 ```
 
-SPA fallback is preconfigured for **Netlify** (`netlify.toml`) and **Vercel** (`vercel.json`). HTTPS is required for the local password hash (`crypto.subtle`) and for the service worker — both hosts provide it automatically.
+SPA fallback is preconfigured for **Netlify** (`netlify.toml`). HTTPS is required for the local password hash (`crypto.subtle`) and for the service worker — Netlify provides it automatically.
 
 ## Partner sync — local setup & dev simulation
 
@@ -136,8 +137,10 @@ and a private/incognito window, log in as two different accounts, then on the
 Partner page each device types the other's code and both tap **Accept**. Verify
 live Refresh, twin-flame, reminder-as-push, and that unlink rotates the code.
 
-To deploy a real relay on Cloudflare: `cd relay && npx wrangler deploy`, then
-set `VITE_RELAY_URL` to the Worker's `wss://` URL (details in `relay/README.md`).
+To deploy a real relay: host `relay/server.mjs` on an always-on Tailscale node
+(`relay/README.md`), expose tailnet-only with `tailscale serve`, then set
+`VITE_RELAY_URL` to its `wss://<node>.<tailnet>.ts.net` URL (scheme must be
+`wss://` — `ws://` is blocked as mixed content on the HTTPS site).
 
 ## Scripts
 

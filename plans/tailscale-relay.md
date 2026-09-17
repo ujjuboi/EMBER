@@ -2,13 +2,13 @@
 
 ## Status
 
-**Planned.** The partner-sync signaling relay currently has two implementations:
+**Done.** The partner-sync signaling relay previously had two implementations:
 a **Cloudflare Worker** (`relay/index.ts`, Durable Object + WebSocket Hibernation
 API + `wrangler.toml`) and the **local Node `ws` server** (`scripts/relay.mjs`).
-There is no deployed relay yet, and no Cloudflare instance to deploy to — so
-Cloudflare is dropped entirely. The relay will be **self-hosted on an always-on
-node inside a Tailscale tailnet**, exposed with **Tailscale Serve** (tailnet-only
-`wss://`) now, and migrated to **Tailscale Funnel** (public internet) in the
+The Cloudflare implementation was deleted entirely. The single relay is now
+**self-hosted on an always-on node inside a Tailscale tailnet**, exposed with
+**Tailscale Serve** (tailnet-only
+`wss://`) now, and migratable to **Tailscale Funnel** (public internet) in the
 future. No other hosting alternative is planned.
 
 ## Goal
@@ -112,8 +112,8 @@ npm run lint
 npm run build
 npm run relay        # local dev still works
 
-rg -i "cloudflare|wrangler|workers\.dev|durable object"   # → 0 matches
-rg "here.now"                                             # → 0 matches
+rg -i "cloudflare|wrangler|workers\.dev|durable object" -g '!plans/'   # → 0 matches
+rg "here.now" -g '!plans/'                                             # → 0 matches
 ```
 
 Local smoke: two browser windows, `VITE_RELAY_URL=ws://127.0.0.1:8787`,
