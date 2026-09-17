@@ -137,10 +137,37 @@ and a private/incognito window, log in as two different accounts, then on the
 Partner page each device types the other's code and both tap **Accept**. Verify
 live Refresh, twin-flame, reminder-as-push, and that unlink rotates the code.
 
-To deploy a real relay: host `relay/server.mjs` on an always-on Tailscale node
-(`relay/README.md`), expose tailnet-only with `tailscale serve`, then set
-`VITE_RELAY_URL` to its `wss://<node>.<tailnet>.ts.net` URL (scheme must be
-`wss://` — `ws://` is blocked as mixed content on the HTTPS site).
+To deploy a real relay on a Tailscale node (Node ≥ 18, Tailscale ≥ 1.38.3):
+
+1. Copy the server to an always-on node and install `ws`:
+   ```sh
+   scp relay/server.mjs <node>:~/relay/server.mjs
+   ssh <node>
+   npm init -y && npm install ws@8
+   ```
+2. Run persistently — Linux:
+   ```sh
+   # /etc/systemd/system/ember-relay.service
+   [Unit]
+   Description=EMBER signaling relay
+   After=network-online.target
+   [Service]
+   Restart=on-failure
+   ExecStart=/usr/bin/node /home/<user>/relay/server.mjs
+   Environment=RELAY_PORT=8787
+   [Install]
+   WantedBy=multi-user.target
+
+   sudo systemctl enable --now ember-relay
+   ```
+   macOS: a `~/Library/LaunchAgents` plist with `KeepAlive` and the same `ExecStart`.
+3. Expose tailnet-only:
+   ```sh
+   tailscale serve --bg 8787
+   ```
+4. Set `VITE_RELAY_URL=wss://<node>.<tailnet>.ts.net` in the Netlify build env — scheme **must** be `wss://` (`ws://` is blocked as mixed content on the HTTPS site).
+
+Full details in `relay/README.md`. To make the relay public later, swap `tailscale serve` for `tailscale funnel --bg --https=443 8787` (one CLI command, no code change).
 
 ## Scripts
 
