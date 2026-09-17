@@ -7,7 +7,7 @@ import { suggestSession } from './trainer'
 import { backupFilename, parseBackup, readTextFile, serializeBackup, shareOrDownload } from './backup'
 import type { AppState, HistoryItem, Partner, SessionProgress, Workout } from './types'
 import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
-import { normalizePairingCode } from './pairing'
+import { normalizePairingCode, publicKeyFingerprint } from './pairing'
 import { StoreContext, type StoreValue } from './store-hooks'
 import * as db from './db'
 
@@ -32,6 +32,7 @@ const seedState = (): AppState => ({
   partnerLinked: false,
   partnerSince: null,
   partner: blankPartner(),
+  partnerFingerprint: null,
   pairCode: null,
   pairState: 'idle',
   pendingPeer: null,
@@ -108,6 +109,7 @@ async function signInState(email: string): Promise<AppState> {
     partnerLinked: partnerData.partnerLinked,
     partnerSince: partnerData.partnerSince,
     partner: partnerData.partner,
+    partnerFingerprint: pairing?.peerPublicKey ? publicKeyFingerprint(pairing.peerPublicKey) : null,
     pairCode: pairing?.code ?? null,
     pairState: pairing?.mutual ? 'linked' : 'idle',
     pendingPeer: null,
@@ -349,6 +351,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             partnerLinked: true,
             partnerSince: s.partnerSince ?? isoDate(),
             partner: { ...blankPartner(), name: peer.name },
+            partnerFingerprint: peer.fingerprint,
           },
           { immediate: true },
         )
@@ -379,6 +382,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           partnerLinked: false,
           partnerSince: null,
           partner: blankPartner(),
+          partnerFingerprint: null,
           toast: message,
         })
       },
@@ -771,6 +775,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           partnerLinked: false,
           partnerSince: null,
           partner: blankPartner(),
+          partnerFingerprint: null,
         }, { immediate: true })
         sessionRef.current?.unlink()
       },

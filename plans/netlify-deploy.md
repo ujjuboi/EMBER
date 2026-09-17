@@ -14,8 +14,8 @@ docs and removes the last stale mention.
 
 1. Ship EMBER's installable PWA to a permanent HTTPS host (Netlify) reachable
    at a stable URL.
-2. Make partner sync work in production by deploying the signaling relay
-   (Cloudflare Worker) and wiring `VITE_RELAY_URL` into the Netlify build.
+2. Make partner sync work in production by wiring the Tailscale-hosted
+   signaling relay into the Netlify build via `VITE_RELAY_URL`.
 3. Replace the removed `here.now` deployment in README/HANDOFF with the Netlify
    deployment steps and live URL.
 
@@ -26,8 +26,9 @@ docs and removes the last stale mention.
 | Host | Netlify (Git-based: repo-connected, auto-builds on push) |
 | Production branch | `main` (branches get deploy previews on PRs) |
 | Build settings | From `netlify.toml`: `npm run build`, publish dir `dist`, SPA fallback `/* → /index.html` |
-| Relay | Cloudflare Worker `ember-relay` (`relay/wrangler.toml`, Durable Object + SQLite) |
-| Prod `VITE_RELAY_URL` | `wss://ember-relay.<worker-subdomain>.workers.dev` (captured at relay deploy time) |
+| Relay scope | Relay deploy is documented in `plans/tailscale-relay.md`; this plan only wires `VITE_RELAY_URL` into the Netlify build |
+| Relay | Node `ws` server (`relay/server.mjs`) on an always-on tailnet node, exposed via Tailscale Serve (see `plans/tailscale-relay.md`) |
+| Prod `VITE_RELAY_URL` | `wss://<node>.<tailnet>.ts.net` (captured at relay deploy time) |
 | Vercel | Keep `vercel.json` as the equivalent alternative; docs promote Netlify |
 
 ## Steps

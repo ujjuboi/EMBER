@@ -31,6 +31,7 @@ export function YouPage() {
     partnerLinked,
     partnerSince,
     partner,
+    partnerFingerprint,
     updateProfile,
     unlinkPartner,
     signOut,
@@ -174,6 +175,11 @@ export function YouPage() {
               <p className="mt-1 text-sm text-muted">
                 {partnerSince ? partnersSinceLabel(partnerSince) : 'Partners'}
               </p>
+              {partnerFingerprint ? (
+                <p className="mt-1 text-xs text-muted">
+                  Fingerprint: <span className="tracking-widest">{partnerFingerprint}</span>
+                </p>
+              ) : null}
             </div>
             <Button className="mt-0.5 shrink-0" size="sm" variant="line" onClick={() => setUnlinkOpen(true)}>
               Unlink
