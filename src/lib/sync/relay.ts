@@ -1,13 +1,11 @@
 // Signaling relay client. The relay only forwards SDP offers/answers and ICE
 // candidates between two devices in the same room; it never sees app data.
-// Works against both the Cloudflare Worker relay and the local `npm run relay`
-// server.
+// Works against the Node `ws` relay (`relay/server.mjs`, run with `npm run
+// relay`) — a single server that binds each socket to a room at connect time
+// via `?room=` in the URL and also honors the wire `join` message.
 //
-// A room is bound at WebSocket-connect time: the client appends `?room=<room>`
-// to the URL, which is how the Cloudflare Worker (per-room Durable Object) and
-// the local relay both assign sockets to a room. On an established connection,
-// the client can also move rooms with `{ type: 'join', room }` (supported by
-// the local relay; the Worker ignores it because its room is fixed per socket).
+// On an established connection, the client can move rooms with
+// `{ type: 'join', room }`.
 //
 //   client -> relay  { type: 'join', room } | { type: 'leave' } | { type: 'signal', payload }
 //   relay -> client  { type: 'room', room, peers }
@@ -118,8 +116,7 @@ export class RelayClient {
   join(room: string): void {
     this.room = room
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      // Move an established socket to a new room (local relay only; the
-      // Worker's room is fixed per socket from the `?room=` URL).
+      // Move an established socket to a new room.
       this.sendJoin(room)
     }
   }

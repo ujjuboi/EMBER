@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Confirm } from '../../components/ui/Confirm'
@@ -10,6 +10,7 @@ import { Section } from '../../components/ui/Section'
 import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
 import { parseBackup, readTextFile } from '../../lib/backup'
 import { partnersSinceLabel } from '../../lib/dates'
+import { isStoragePersisted, requestPersistentStorage } from '../../lib/persist'
 import { useStore } from '../../lib/store-hooks'
 import { KitChips } from '../trainer/KitChips'
 
@@ -31,6 +32,7 @@ export function YouPage() {
     partnerLinked,
     partnerSince,
     partner,
+    partnerFingerprint,
     updateProfile,
     unlinkPartner,
     signOut,
@@ -52,6 +54,30 @@ export function YouPage() {
   const [recoveryConfirmOpen, setRecoveryConfirmOpen] = useState(false)
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
   const restoreInputRef = useRef<HTMLInputElement>(null)
+  const [dataProtected, setDataProtected] = useState<boolean | null>(null)
+  const [protecting, setProtecting] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    void isStoragePersisted().then((persisted) => {
+      if (mounted) setDataProtected(persisted)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const protectData = async () => {
+    if (protecting) return
+    setProtecting(true)
+    try {
+      const granted = await requestPersistentStorage()
+      setDataProtected(granted)
+      if (!granted) showToast('Could not protect your data on this browser')
+    } finally {
+      setProtecting(false)
+    }
+  }
 
   const onRestoreFile = async (file: File) => {
     try {
@@ -174,6 +200,11 @@ export function YouPage() {
               <p className="mt-1 text-sm text-muted">
                 {partnerSince ? partnersSinceLabel(partnerSince) : 'Partners'}
               </p>
+              {partnerFingerprint ? (
+                <p className="mt-1 text-xs text-muted">
+                  Fingerprint: <span className="tracking-widest">{partnerFingerprint}</span>
+                </p>
+              ) : null}
             </div>
             <Button className="mt-0.5 shrink-0" size="sm" variant="line" onClick={() => setUnlinkOpen(true)}>
               Unlink
@@ -181,6 +212,30 @@ export function YouPage() {
           </div>
         </section>
       ) : null}
+
+      <section className="mt-10 space-y-3">
+        <div className="w-full">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-orange">Data protection</p>
+          <p className="mt-2 text-sm text-muted">
+            Keep your offline data safe on this device. Protecting it stops iOS and other browsers from
+            automatically deleting it.
+          </p>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span className="text-sm">
+              {dataProtected === null
+                ? 'Checking…'
+                : dataProtected
+                  ? 'Protected'
+                  : 'Not protected'}
+            </span>
+            {dataProtected === false ? (
+              <Button variant="line" size="sm" onClick={() => void protectData()} disabled={protecting}>
+                {protecting ? 'Protecting…' : 'Protect my data'}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </section>
 
       <section className="mt-10 space-y-3">
         <div className="w-full">

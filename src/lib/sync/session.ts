@@ -29,7 +29,7 @@ type ChannelPayload =
 export type SessionHooks = {
   getOwnSnapshot: () => SyncPush
   onPairPatch: (patch: { pairState: PairState; pairCode: string | null; pendingPeer: PendingPeer | null; syncError: string | null }) => void
-  onPairLinked: (peer: { name: string; email: string | null }) => void
+  onPairLinked: (peer: { name: string; email: string | null; fingerprint: string }) => void
   applyPartnerPush: (push: SyncPush) => void
   onReminder: (fromName: string) => void
   onUnpaired: (message: string) => void
@@ -450,7 +450,7 @@ export class SyncSession implements SyncSessionLike {
     this.mutual = true
     this.code = null
     void this.persistPairing()
-    this.hooks.onPairLinked({ name: this.peer.name, email: this.peer.email || null })
+    this.hooks.onPairLinked({ name: this.peer.name, email: this.peer.email || null, fingerprint: publicKeyFingerprint(this.peer.publicKey) })
     this.hooks.onPairPatch({ pairState: 'linked', pairCode: null, pendingPeer: null, syncError: null })
     this.reconnectStable()
   }
@@ -591,7 +591,7 @@ export class MockSyncSession implements SyncSessionLike {
     hooks.onPairPatch({ pairState: 'connecting', pairCode: this.code, pendingPeer: null, syncError: null })
     this.schedule(() => {
       this.linked = true
-      hooks.onPairLinked({ name: 'Sam', email: 'sam@ember.mock' })
+      hooks.onPairLinked({ name: 'Sam', email: 'sam@ember.mock', fingerprint: 'A1B2-C3D4-E5F6' })
       hooks.onPairPatch({ pairState: 'linked', pairCode: null, pendingPeer: null, syncError: null })
       hooks.applyPartnerPush(mockPush())
     }, 700)

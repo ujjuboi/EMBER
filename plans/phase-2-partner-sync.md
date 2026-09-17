@@ -4,23 +4,18 @@
 
 **Implemented.** The no-op `EMBER9` prototype is gone: per-account codes,
 Ed25519 identity (`src/lib/pairing.ts`), a WebRTC DataChannel session state
-machine (`src/lib/sync/session.ts`), a signaling relay (Cloudflare Worker in
-`relay/` + local `scripts/relay.mjs`), signed pushes with locally-derived
+machine (`src/lib/sync/session.ts`), a signaling relay (`relay/server.mjs` — a
+single Node `ws` server), signed pushes with locally-derived
 partner stats, an offline outbox for reminders, and full UI wiring are all in.
 Deviations from this plan are noted inline below:
 
-- **Room routing** — both relays bind a socket to its room at WebSocket-connect
-  time via `?room=` in the URL **plus** the wire `join` message (the Cloudflare
-  Worker is per-room by Durable Object, so `?room=` is authoritative there; the
-  local relay accepts either). The relay client appends `?room=` itself.
-- **Worker WebSocket API** — `relay/index.ts` uses the WebSocket Hibernation API
-  (`ctx.acceptWebSocket` + the `webSocketMessage` / `webSocketClose` /
-  `webSocketError` handlers, sockets read from `ctx.getWebSockets()`), **not**
-  `addEventListener`: once a socket is accepted for hibernation, the runtime
-  delivers events to the Durable Object and the socket's own listeners never
-  fire, and an in-memory `Set` of sockets is lost when the DO is evicted.
-  Verified against `wrangler dev` (join/peer counts, signal forwarding, room
-  isolation, leave notification all pass).
+- **Room routing** — the relay binds a socket to its room at WebSocket-connect
+  time via `?room=` in the URL **plus** the wire `join` message. The relay
+  client appends `?room=` itself.
+- **Relay implementation** — `relay/server.mjs` (Node `ws`) is the only relay;
+  the originally-planned Cloudflare Worker Durable Object was dropped and the
+  relay is self-hosted on an always-on Tailscale node (see
+  `plans/tailscale-relay.md`).
 - **Unpair** — an `unpair` channel message (not in the original table) is sent
   on unlink so a mutual pair unwinds on both devices and the peer stops
   reconnecting to the stable room.
@@ -41,9 +36,9 @@ Turn the partner prototype into a real feature:
    `EMBER9` placeholder.
 2. **Peer-to-peer** sync of partner history/stats over an encrypted WebRTC
    DataChannel.
-3. A tiny **untrusted signaling relay** for the handshake only (WebSocket
-   Durable Object / local `ws` server for dev). Data flows device-to-device;
-   the relay never sees workout data.
+3. A tiny **untrusted signaling relay** for the handshake only (single Node
+   `ws` server, `relay/server.mjs`, run locally or on an always-on Tailscale
+   node). Data flows device-to-device; the relay never sees workout data.
 4. Offline-first preserved: partner data reads use a local last-known-state
    cache; an outbox queues reminders/pushes until reconnect.
 5. Two-user dev simulation without app changes: two browser contexts + local
@@ -151,9 +146,8 @@ src/
       channel.ts      DataChannel protocol + signed-payload enforcement + outbox
       session.ts      startPairing / accept / decline / reconnect / refresh / teardown
 relay/
-  index.ts            Cloudflare Worker (WS Durable Object), ~100 lines
-  wrangler.toml       deploy config
-  README.md           deploy + local-run instructions
+  server.mjs          Node `ws` server (only relay implementation)
+  README.md           local-run + Tailscale deploy instructions
 plans/phase-2-partner-sync.md
 ```
 
@@ -208,10 +202,9 @@ relay.
 
 Relay wire messages (signaling only): `join {code}`, `hello` (public key),
 `offer`, `answer`, `ice`, `leave`. A socket's room is set at connect time via
-`?room=` in the WebSocket URL (authoritative for the Worker); the `join`
-message also switches rooms on an open socket for the local relay. `hello` lets
-either device decide who offers (lower public key) — this resolves the
-simultaneous-join race.
+`?room=` in the WebSocket URL; the `join` message also switches rooms on an
+open socket. `hello` lets either device decide who offers (lower public key) —
+this resolves the simultaneous-join race.
 
 Conflict model: **last-writer-wins per field**; signed so replay/tampering is
 detectable. No multi-device (one partner per account this phase).
@@ -233,7 +226,7 @@ detectable. No multi-device (one partner per account this phase).
 ## 6. Sequencing (each step shippable/verifiable)
 
 1. `pairing.ts` + schema v7 + types + store state.
-2. Relay (Worker + local `ws` script) + `relay.ts` client.
+2. Relay (`relay/server.mjs`) + `relay.ts` client.
 3. WebRTC pairing session — end-to-end handshake in two windows.
 4. Push/apply sync payload + local derive of partner stats.
 5. UI wiring (widget, page refresh, accept flow, unlink/rotate).
@@ -261,7 +254,7 @@ detectable. No multi-device (one partner per account this phase).
 | --- | --- |
 | Identity | Per-account Ed25519 keypair; public-key fingerprint is the verified identity |
 | Pairing code | Random 6-char per-account, ambiguity-free alphabet, single-use, rotated on pair/unpair |
-| Transport | WebRTC DataChannel; own signaling relay (CF Worker Durable Object / local `ws`) |
+| Transport | WebRTC DataChannel; own signaling relay (Node `ws` server, `relay/server.mjs`) |
 | Relay role | Signaling only (SDP/ICE); never sees workout data |
 | Ongoing sync | Stable room `hash(myPubKey + peerPubKey)`; reconnect any time |
 | Integrity | Every payload Ed25519-signed; constant-time fingerprint check |

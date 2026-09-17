@@ -161,6 +161,7 @@ export type AppState = {
   partnerLinked: boolean
   partnerSince: string | null
   partner: Partner
+  partnerFingerprint: string | null
   pairCode: string | null
   pairState: PairState
   pendingPeer: PendingPeer | null
