@@ -1,5 +1,6 @@
-import { Check, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, GripVertical, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Reorder, useDragControls } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { CoachAvatar } from '../../coach/CoachAvatar'
 import { AutoScroll } from '../../components/ui/AutoScroll'
@@ -42,8 +43,8 @@ export function TrainPage() {
     setTrainerFocus,
     addToPlan,
     deleteCustomExercise,
-    updatePlan,
     removeFromPlan,
+    reorderPlan,
     applyTrainerPlan,
     beginTrainerReview,
     beginWorkout,
@@ -153,7 +154,9 @@ export function TrainPage() {
             todayDone={todayDone}
             todaySlot={todayIndex}
             selectedSlot={previewSlot}
-            onSelectSlot={(i) => setPreviewSlot((prev) => (prev === i ? null : i))}
+            onSelectSlot={(i) =>
+              setPreviewSlot((prev) => (i === todayIndex ? null : prev === i ? null : i))
+            }
             onOpen={() => setProgramOpen(true)}
           />
         ) : (
@@ -208,82 +211,15 @@ export function TrainPage() {
                 Preview · {dateLabel(previewDate)} · {focusLabel(activeDay?.focus ?? [])}
               </p>
             ) : null}
-            <ul className="mt-2 divide-y divide-line border border-line">
-              {(isPreviewing ? previewPlan : plan).map((item) => (
-                <li key={item.uid} className="px-3 py-2.5">
-                  <div className="flex items-start gap-3">
-                    <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      {isPreviewing ? (
-                        <>
-                          <AutoScroll className="pt-0.5 text-sm leading-none">{item.exercise.name}</AutoScroll>
-                          <p className="mt-1 text-xs text-muted">
-                            {item.sets} ×{' '}
-                            {item.exercise.kind === 'timed' ? `${item.seconds ?? 30}s` : `${item.reps ?? 1} reps`}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-start gap-2">
-<AutoScroll className="min-w-0 flex-1 pt-0.5 text-sm leading-none">{item.exercise.name}</AutoScroll>
-                            <button
-                              type="button"
-                              aria-label={`Remove ${item.exercise.name}`}
-                              onClick={() => removeFromPlan(item.uid)}
-                              className="-mr-1 -mt-0.5 p-1 text-muted hover:text-orange"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                          <div className="mt-1.5 flex gap-4 overflow-x-auto">
-                            <Stepper
-                              label="Sets"
-                              value={item.sets}
-                              onChange={(sets) => updatePlan(item.uid, { sets })}
-                            />
-                            {item.exercise.kind === 'timed' ? (
-                              <Stepper
-                                label="Sec"
-                                value={item.seconds ?? 30}
-                                step={5}
-                                min={5}
-                                onChange={(seconds) => updatePlan(item.uid, { seconds })}
-                              />
-                            ) : (
-                              <>
-                                <Stepper
-                                  label="Reps"
-                                  value={item.reps ?? 1}
-                                  onChange={(reps) => updatePlan(item.uid, { reps })}
-                                />
-                                <Stepper
-                                  label="kg"
-                                  value={item.weightKg ?? 0}
-                                  step={2.5}
-                                  min={0}
-                                  onChange={(weightKg) => updatePlan(item.uid, { weightKg })}
-                                />
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              ))}
-              {!isPreviewing ? (
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setAddOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 px-3 py-4 text-sm text-muted hover:text-ink"
-                  >
-                    <Plus size={16} /> Add exercise
-                  </button>
-                </li>
-              ) : null}
-            </ul>
+            <SortablePlan
+              className="mt-2"
+              items={isPreviewing ? previewPlan : plan}
+              preview={isPreviewing}
+              onReorder={isPreviewing ? undefined : reorderPlan}
+              onRemove={removeFromPlan}
+              onAdd={() => setAddOpen(true)}
+              showAdd={!isPreviewing}
+            />
           </>
         )
       ) : equipment.length === 0 ? (
@@ -291,68 +227,15 @@ export function TrainPage() {
           Add equipment on You to see a session.
         </p>
       ) : (
-        <ul className="mt-6 divide-y divide-line border border-line">
-          {plan.map((item) => (
-            <li key={item.uid} className="px-3 py-2.5">
-              <div className="flex items-start gap-3">
-                <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start gap-2">
-                    <AutoScroll className="min-w-0 flex-1 pt-0.5 text-sm leading-none">{item.exercise.name}</AutoScroll>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${item.exercise.name}`}
-                      onClick={() => removeFromPlan(item.uid)}
-                      className="-mr-1 -mt-0.5 p-1 text-muted hover:text-orange"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="mt-1.5 flex gap-4 overflow-x-auto">
-                    <Stepper
-                      label="Sets"
-                      value={item.sets}
-                      onChange={(sets) => updatePlan(item.uid, { sets })}
-                    />
-                    {item.exercise.kind === 'timed' ? (
-                      <Stepper
-                        label="Sec"
-                        value={item.seconds ?? 30}
-                        step={5}
-                        min={5}
-                        onChange={(seconds) => updatePlan(item.uid, { seconds })}
-                      />
-                    ) : (
-                      <>
-                        <Stepper
-                          label="Reps"
-                          value={item.reps ?? 1}
-                          onChange={(reps) => updatePlan(item.uid, { reps })}
-                        />
-                        <Stepper
-                          label="kg"
-                          value={item.weightKg ?? 0}
-                          step={2.5}
-                          min={0}
-                          onChange={(weightKg) => updatePlan(item.uid, { weightKg })}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </li>
-          ))}
-          <li>
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="flex w-full items-center justify-center gap-2 px-3 py-4 text-sm text-muted hover:text-ink"
-            >
-              <Plus size={16} /> Add exercise
-            </button>
-          </li>
-        </ul>
+        <SortablePlan
+          className="mt-6"
+          items={plan}
+          preview={false}
+          onReorder={reorderPlan}
+          onRemove={removeFromPlan}
+          onAdd={() => setAddOpen(true)}
+          showAdd
+        />
       )}
 
       {isPreviewing ? (
@@ -769,6 +652,183 @@ function Stepper({
         >
           +
         </button>
+      </div>
+    </div>
+  )
+}
+
+function SortablePlan({
+  items,
+  preview,
+  onReorder,
+  onRemove,
+  onAdd,
+  showAdd,
+  className = '',
+}: {
+  items: PlannedExercise[]
+  preview: boolean
+  onReorder?: (items: PlannedExercise[]) => void
+  onRemove: (uid: string) => void
+  onAdd: () => void
+  showAdd: boolean
+  className?: string
+}) {
+  const reorderable = !preview && !!onReorder
+
+  const addRow = () => (
+    <li key="__add__">
+      <button
+        type="button"
+        onClick={onAdd}
+        className="flex w-full items-center justify-center gap-2 px-3 py-4 text-sm text-muted hover:text-ink"
+      >
+        <Plus size={16} /> Add exercise
+      </button>
+    </li>
+  )
+
+  if (reorderable) {
+    return (
+      <Reorder.Group
+        axis="y"
+        values={items}
+        onReorder={onReorder}
+        className={`divide-y divide-line border border-line ${className}`}
+      >
+        {items.map((item) => (
+          <SortableRow
+            key={item.uid}
+            item={item}
+            preview={preview}
+            onRemove={onRemove}
+          />
+        ))}
+        {showAdd ? addRow() : null}
+      </Reorder.Group>
+    )
+  }
+
+  return (
+    <ul className={`divide-y divide-line border border-line ${className}`}>
+      {items.map((item) => (
+        <li key={item.uid} className="px-3 py-2.5">
+          <PlanRowContent item={item} preview={preview} onRemove={onRemove} />
+        </li>
+      ))}
+      {showAdd ? addRow() : null}
+    </ul>
+  )
+}
+
+function SortableRow({
+  item,
+  preview,
+  onRemove,
+}: {
+  item: PlannedExercise
+  preview: boolean
+  onRemove: (uid: string) => void
+}) {
+  const dragControls = useDragControls()
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      whileDrag={{ opacity: 0.8 }}
+      className="px-3 py-2.5"
+    >
+      <PlanRowContent
+        item={item}
+        preview={preview}
+        onRemove={onRemove}
+        dragHandle={
+          <button
+            type="button"
+            aria-label={`Reorder ${item.exercise.name}`}
+            onPointerDown={(event) => dragControls.start(event)}
+            className="-ml-1 flex self-stretch items-center touch-none px-1 text-muted hover:text-orange"
+          >
+            <GripVertical size={18} />
+          </button>
+        }
+      />
+    </Reorder.Item>
+  )
+}
+
+function PlanRowContent({
+  item,
+  preview,
+  onRemove,
+  dragHandle,
+}: {
+  item: PlannedExercise
+  preview: boolean
+  onRemove: (uid: string) => void
+  dragHandle?: ReactNode
+}) {
+  const { updatePlan } = useStore()
+  return (
+    <div className="flex items-start gap-3">
+      {dragHandle}
+      <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
+      <div className="min-w-0 flex-1">
+        {preview ? (
+          <>
+            <AutoScroll className="pt-0.5 text-sm leading-none">{item.exercise.name}</AutoScroll>
+            <p className="mt-1 text-xs text-muted">
+              {item.sets} ×{' '}
+              {item.exercise.kind === 'timed' ? `${item.seconds ?? 30}s` : `${item.reps ?? 1} reps`}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start gap-2">
+              <AutoScroll className="min-w-0 flex-1 pt-0.5 text-sm leading-none">{item.exercise.name}</AutoScroll>
+              <button
+                type="button"
+                aria-label={`Remove ${item.exercise.name}`}
+                onClick={() => onRemove(item.uid)}
+                className="-mr-1 -mt-0.5 p-1 text-muted hover:text-orange"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mt-1.5 flex gap-4 overflow-x-auto">
+              <Stepper
+                label="Sets"
+                value={item.sets}
+                onChange={(sets) => updatePlan(item.uid, { sets })}
+              />
+              {item.exercise.kind === 'timed' ? (
+                <Stepper
+                  label="Sec"
+                  value={item.seconds ?? 30}
+                  step={5}
+                  min={5}
+                  onChange={(seconds) => updatePlan(item.uid, { seconds })}
+                />
+              ) : (
+                <>
+                  <Stepper
+                    label="Reps"
+                    value={item.reps ?? 1}
+                    onChange={(reps) => updatePlan(item.uid, { reps })}
+                  />
+                  <Stepper
+                    label="kg"
+                    value={item.weightKg ?? 0}
+                    step={2.5}
+                    min={0}
+                    onChange={(weightKg) => updatePlan(item.uid, { weightKg })}
+                  />
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

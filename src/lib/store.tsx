@@ -639,6 +639,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const s = current()
         commit({ ...s, customExercises: s.customExercises.filter((item) => item.id !== id) })
       },
+      reorderPlan: (items: PlannedExercise[]) => {
+        const s = current()
+        if (items.length !== s.plan.length) return
+        commit({ ...s, plan: items })
+      },
       updatePlan: (uid, patch) => {
         const s = current()
         commit({
