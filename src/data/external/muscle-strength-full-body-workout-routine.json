@@ -9,7 +9,7 @@
     "author": "Steve Shaw",
     "publishedAt": "2013-12-12T14:57:10-05:00",
     "pdfUrl": "https://www.muscleandstrength.com/sites/default/files/workouts/mnsfullbody.pdf",
-    "fetchedAt": "2026-09-18T01:57:39.559Z",
+    "fetchedAt": "2026-09-18T03:15:38.505Z",
     "banner": null
   },
   "summary": {
@@ -58,7 +58,7 @@
                   "kind": "reps",
                   "defaultReps": 5,
                   "defaultSets": 5,
-                  "met": 5,
+                  "met": 7,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -70,7 +70,8 @@
                   "isCustom": true
                 },
                 "sets": 5,
-                "reps": 5
+                "reps": 5,
+                "weightKg": 100
               }
             },
             {
@@ -86,7 +87,7 @@
                   "kind": "reps",
                   "defaultReps": 5,
                   "defaultSets": 5,
-                  "met": 5,
+                  "met": 7,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -98,7 +99,8 @@
                   "isCustom": true
                 },
                 "sets": 5,
-                "reps": 5
+                "reps": 5,
+                "weightKg": 70
               }
             },
             {
@@ -114,7 +116,7 @@
                   "kind": "reps",
                   "defaultReps": 5,
                   "defaultSets": 5,
-                  "met": 5,
+                  "met": 6.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -126,7 +128,8 @@
                   "isCustom": true
                 },
                 "sets": 5,
-                "reps": 5
+                "reps": 5,
+                "weightKg": 60
               }
             },
             {
@@ -142,7 +145,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -154,7 +157,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 20
               }
             },
             {
@@ -170,7 +174,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -182,7 +186,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 12
               }
             },
             {
@@ -198,7 +203,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -210,7 +215,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 12
               }
             },
             {
@@ -226,7 +232,7 @@
                   "kind": "reps",
                   "defaultReps": 12,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -238,7 +244,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 12
+                "reps": 12,
+                "weightKg": 30
               }
             },
             {
@@ -254,7 +261,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -290,7 +297,7 @@
                   "kind": "reps",
                   "defaultReps": 5,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 7.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -302,7 +309,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 5
+                "reps": 5,
+                "weightKg": 120
               }
             },
             {
@@ -318,7 +326,7 @@
                   "kind": "reps",
                   "defaultReps": 8,
                   "defaultSets": 2,
-                  "met": 5,
+                  "met": 6.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -330,7 +338,8 @@
                   "isCustom": true
                 },
                 "sets": 2,
-                "reps": 8
+                "reps": 8,
+                "weightKg": 70
               }
             },
             {
@@ -346,7 +355,7 @@
                   "kind": "reps",
                   "defaultReps": 8,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 6,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -358,7 +367,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 8
+                "reps": 8,
+                "weightKg": 40
               }
             },
             {
@@ -374,7 +384,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 6.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -402,7 +412,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 5.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -430,7 +440,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -442,7 +452,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 50
               }
             },
             {
@@ -458,7 +469,7 @@
                   "kind": "reps",
                   "defaultReps": 12,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 3,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -470,7 +481,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 12
+                "reps": 12,
+                "weightKg": 12
               }
             },
             {
@@ -483,10 +495,10 @@
                 "exercise": {
                   "id": "ms-plank-8",
                   "name": "Plank",
-                  "kind": "reps",
-                  "defaultReps": 60,
+                  "kind": "timed",
+                  "defaultSeconds": 60,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 3.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -498,7 +510,7 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 60
+                "seconds": 60
               }
             }
           ]
@@ -522,7 +534,7 @@
                   "kind": "reps",
                   "defaultReps": 5,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 7,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -534,7 +546,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 5
+                "reps": 5,
+                "weightKg": 100
               }
             },
             {
@@ -550,7 +563,7 @@
                   "kind": "reps",
                   "defaultReps": 20,
                   "defaultSets": 1,
-                  "met": 5,
+                  "met": 6.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -562,7 +575,8 @@
                   "isCustom": true
                 },
                 "sets": 1,
-                "reps": 20
+                "reps": 20,
+                "weightKg": 80
               }
             },
             {
@@ -578,7 +592,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 6,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -590,7 +604,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 30
               }
             },
             {
@@ -618,7 +633,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 25
               }
             },
             {
@@ -634,7 +650,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 6,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -646,7 +662,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 30
               }
             },
             {
@@ -662,7 +679,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 3.5,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -674,7 +691,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 15
               }
             },
             {
@@ -702,7 +720,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 10
+                "reps": 10,
+                "weightKg": 15
               }
             },
             {
@@ -718,7 +737,7 @@
                   "kind": "reps",
                   "defaultReps": 12,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -730,7 +749,8 @@
                   "isCustom": true
                 },
                 "sets": 3,
-                "reps": 12
+                "reps": 12,
+                "weightKg": 30
               }
             },
             {
@@ -746,7 +766,7 @@
                   "kind": "reps",
                   "defaultReps": 10,
                   "defaultSets": 3,
-                  "met": 5,
+                  "met": 4,
                   "cue": "As written in the source program",
                   "restSeconds": 60,
                   "bodyParts": [
@@ -778,7 +798,7 @@
                 "kind": "reps",
                 "defaultReps": 5,
                 "defaultSets": 5,
-                "met": 5,
+                "met": 7,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -790,7 +810,8 @@
                 "isCustom": true
               },
               "sets": 5,
-              "reps": 5
+              "reps": 5,
+              "weightKg": 100
             },
             {
               "uid": "ms-bench-press-ramped-2",
@@ -800,7 +821,7 @@
                 "kind": "reps",
                 "defaultReps": 5,
                 "defaultSets": 5,
-                "met": 5,
+                "met": 7,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -812,7 +833,8 @@
                 "isCustom": true
               },
               "sets": 5,
-              "reps": 5
+              "reps": 5,
+              "weightKg": 70
             },
             {
               "uid": "ms-barbell-row-ramped-3",
@@ -822,7 +844,7 @@
                 "kind": "reps",
                 "defaultReps": 5,
                 "defaultSets": 5,
-                "met": 5,
+                "met": 6.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -834,7 +856,8 @@
                 "isCustom": true
               },
               "sets": 5,
-              "reps": 5
+              "reps": 5,
+              "weightKg": 60
             },
             {
               "uid": "ms-upright-row-4",
@@ -844,7 +867,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -856,7 +879,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 20
             },
             {
               "uid": "ms-skullcrushers-5",
@@ -866,7 +890,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -878,7 +902,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 12
             },
             {
               "uid": "ms-dumbbell-curls-6",
@@ -888,7 +913,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -900,7 +925,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 12
             },
             {
               "uid": "ms-leg-curls-7",
@@ -910,7 +936,7 @@
                 "kind": "reps",
                 "defaultReps": 12,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -922,7 +948,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weightKg": 30
             },
             {
               "uid": "ms-ab-wheel-roll-out-8",
@@ -932,7 +959,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -961,7 +988,7 @@
                 "kind": "reps",
                 "defaultReps": 5,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 7.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -973,7 +1000,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 5
+              "reps": 5,
+              "weightKg": 120
             },
             {
               "uid": "ms-romanian-deadlift-2",
@@ -983,7 +1011,7 @@
                 "kind": "reps",
                 "defaultReps": 8,
                 "defaultSets": 2,
-                "met": 5,
+                "met": 6.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -995,7 +1023,8 @@
                 "isCustom": true
               },
               "sets": 2,
-              "reps": 8
+              "reps": 8,
+              "weightKg": 70
             },
             {
               "uid": "ms-seated-overhead-press-3",
@@ -1005,7 +1034,7 @@
                 "kind": "reps",
                 "defaultReps": 8,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 6,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1017,7 +1046,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 8
+              "reps": 8,
+              "weightKg": 40
             },
             {
               "uid": "ms-pull-ups-or-inverted-rows-4",
@@ -1027,7 +1057,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 6.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1049,7 +1079,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 5.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1071,7 +1101,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1083,7 +1113,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 50
             },
             {
               "uid": "ms-standing-or-seated-calf-raise-7",
@@ -1093,7 +1124,7 @@
                 "kind": "reps",
                 "defaultReps": 12,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 3,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1105,17 +1136,18 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weightKg": 12
             },
             {
               "uid": "ms-plank-8",
               "exercise": {
                 "id": "ms-plank-8",
                 "name": "Plank",
-                "kind": "reps",
-                "defaultReps": 60,
+                "kind": "timed",
+                "defaultSeconds": 60,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 3.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1127,7 +1159,7 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 60
+              "seconds": 60
             }
           ]
         },
@@ -1144,7 +1176,7 @@
                 "kind": "reps",
                 "defaultReps": 5,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 7,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1156,7 +1188,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 5
+              "reps": 5,
+              "weightKg": 100
             },
             {
               "uid": "ms-squats-2",
@@ -1166,7 +1199,7 @@
                 "kind": "reps",
                 "defaultReps": 20,
                 "defaultSets": 1,
-                "met": 5,
+                "met": 6.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1178,7 +1211,8 @@
                 "isCustom": true
               },
               "sets": 1,
-              "reps": 20
+              "reps": 20,
+              "weightKg": 80
             },
             {
               "uid": "ms-incline-dumbbell-bench-press-3",
@@ -1188,7 +1222,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 6,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1200,7 +1234,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 30
             },
             {
               "uid": "ms-one-arm-dumbbell-row-4",
@@ -1222,7 +1257,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 25
             },
             {
               "uid": "ms-seated-arnold-press-5",
@@ -1232,7 +1268,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 6,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1244,7 +1280,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 30
             },
             {
               "uid": "ms-cable-tricep-extensions-6",
@@ -1254,7 +1291,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 3.5,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1266,7 +1303,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 15
             },
             {
               "uid": "ms-barbell-curls-7",
@@ -1288,7 +1326,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weightKg": 15
             },
             {
               "uid": "ms-leg-curls-8",
@@ -1298,7 +1337,7 @@
                 "kind": "reps",
                 "defaultReps": 12,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [
@@ -1310,7 +1349,8 @@
                 "isCustom": true
               },
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weightKg": 30
             },
             {
               "uid": "ms-ab-wheel-roll-out-9",
@@ -1320,7 +1360,7 @@
                 "kind": "reps",
                 "defaultReps": 10,
                 "defaultSets": 3,
-                "met": 5,
+                "met": 4,
                 "cue": "As written in the source program",
                 "restSeconds": 60,
                 "bodyParts": [

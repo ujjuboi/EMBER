@@ -246,6 +246,86 @@ function extractMuscleAndFitnessGroups(pageTitle) {
   return sections.length ? [{ label: pageTitle, sections, dayLines: [] }] : []
 }
 
+// Per-exercise calorie profile for extracted moves: MET for the effort class
+// and an assumed working load (kg) so the load-based kcal estimate has a base.
+// Missing entries fall back to met 5.0 / no load.
+const EXTRACTED_PROFILE = {
+  'ab wheel roll out': { met: 4.0, load: 0 },
+  'barbell clean and press': { met: 7.5, load: 50 },
+  'barbell curl': { met: 5.0, load: 15 },
+  'barbell curls': { met: 5.0, load: 15 },
+  'barbell french press': { met: 4.0, load: 15 },
+  'barbell lunge': { met: 6.0, load: 40 },
+  'barbell row (ramped)': { met: 6.5, load: 60 },
+  'barbell shrugs': { met: 4.5, load: 50 },
+  'bench press': { met: 6.5, load: 60 },
+  'bench press (ramped)': { met: 7.0, load: 70 },
+  'bent over row': { met: 6.0, load: 50 },
+  'cable crossovers': { met: 4.5, load: 12 },
+  'cable lateral raise': { met: 3.5, load: 8 },
+  'cable tricep extensions': { met: 3.5, load: 15 },
+  'chin up': { met: 6.5, load: 0 },
+  'close grip bench press': { met: 6.0, load: 50 },
+  'crunches': { met: 3.5, load: 0 },
+  'deadlift': { met: 7.0, load: 100 },
+  'deadlifts (ramped)': { met: 7.5, load: 120 },
+  'dips': { met: 5.5, load: 0 },
+  'dumbbell concentration curl': { met: 4.0, load: 10 },
+  'dumbbell curl': { met: 4.5, load: 12 },
+  'dumbbell curls': { met: 4.5, load: 12 },
+  'dumbbell flye': { met: 4.0, load: 12 },
+  'dumbbell lateral raise': { met: 3.5, load: 8 },
+  'dumbbell pullover': { met: 4.5, load: 15 },
+  'dumbbell pullovers': { met: 4.5, load: 15 },
+  'good mornings': { met: 5.5, load: 40 },
+  'incline bench press': { met: 6.5, load: 50 },
+  'incline dumbbell bench press': { met: 6.0, load: 30 },
+  'lateral raise': { met: 3.5, load: 8 },
+  'leg curl': { met: 4.0, load: 30 },
+  'leg curls': { met: 4.0, load: 30 },
+  'leg extension': { met: 4.0, load: 35 },
+  'leg press': { met: 5.5, load: 120 },
+  'lunge': { met: 5.5, load: 30 },
+  'military press': { met: 6.0, load: 45 },
+  'non-stop abs training': { met: 4.0, load: 0 },
+  'one arm dumbbell row': { met: 5.0, load: 25 },
+  'one arm dumbbell tricep extension': { met: 4.0, load: 10 },
+  'one leg dumbbell calf raise': { met: 3.0, load: 10 },
+  'plank': { met: 3.5, load: 0 },
+  'pull ups or inverted rows': { met: 6.5, load: 0 },
+  'rear delt lateral raise': { met: 3.0, load: 6 },
+  'reverse barbell curl': { met: 4.5, load: 15 },
+  'reverse crunch': { met: 3.5, load: 0 },
+  'reverse wrist curls': { met: 3.0, load: 5 },
+  'romanian deadlift': { met: 6.5, load: 70 },
+  'seated arnold press': { met: 6.0, load: 30 },
+  'seated barbell press': { met: 6.0, load: 45 },
+  'seated calf raise': { met: 3.0, load: 12 },
+  'seated dumbbell curl': { met: 4.5, load: 12 },
+  'seated overhead press': { met: 6.0, load: 40 },
+  'seated pulley row': { met: 5.0, load: 40 },
+  'skullcrushers': { met: 4.0, load: 12 },
+  'squat': { met: 6.5, load: 80 },
+  'squats': { met: 6.5, load: 80 },
+  'squats (ramped)': { met: 7.0, load: 100 },
+  'standing barbell curl': { met: 5.0, load: 15 },
+  'standing barbell tricep extension': { met: 4.5, load: 15 },
+  'standing calf raise': { met: 3.0, load: 12 },
+  'standing or seated calf raise': { met: 3.0, load: 12 },
+  'stiff leg deadlift': { met: 6.5, load: 70 },
+  't bar row': { met: 6.0, load: 60 },
+  'tricep pushdown': { met: 3.5, load: 15 },
+  'upright row': { met: 4.5, load: 20 },
+  'wide grip pull up': { met: 8.0, load: 0 },
+  'wrist curl': { met: 3.0, load: 5 },
+  'wrist curls': { met: 3.0, load: 5 },
+  'wrist roller machine': { met: 3.0, load: 5 },
+}
+
+function profileFor(name) {
+  return EXTRACTED_PROFILE[String(name ?? '').toLowerCase().trim()] ?? {}
+}
+
 function rowToSet(row, index, bodyParts, goal, idPrefix = 'ms') {
   const cells = row.find('td')
   if (cells.length < 2) return null
@@ -255,14 +335,29 @@ function rowToSet(row, index, bodyParts, goal, idPrefix = 'ms') {
   const rawSets = tag(cells.eq(1).text())
   const rawReps = tag(cells.eq(2).text())
 
+  const profile = profileFor(name)
+
   const baseId = `${idPrefix}-${slugify(name) || 'exercise'}`
   const id = index === 0 ? baseId : `${baseId}-${index + 1}`
-  const numSets = leadInt(rawSets) ?? 3
+
+  const secondsCell = rawReps.match(/(\d+)\s*(min|sec)/i)
+  const timedCell = secondsCell ? parseInt(secondsCell[1], 10) * (secondsCell[2].toLowerCase() === 'min' ? 60 : 1) : null
+  // A duration in the Sets column with no numeric reps (e.g. "30 Minutes" /
+  // "By Instinct") is one long continuous block, not a set count.
+  const setsMinute = rawSets.match(/(\d+)\s*min/i)
+  const continuous = setsMinute && !leadInt(rawReps)
+
+  const numSets = continuous ? 1 : leadInt(rawSets) ?? 3
   const minutes = rawReps.match(/(\d+)\s*(?:min|minute|minutes)/i)
-  const timed = Boolean(minutes)
+  const timed = Boolean(minutes) || timedCell !== null || continuous
   const kind = timed ? 'timed' : 'reps'
-  const seconds = timed ? parseInt(minutes[1], 10) * 60 : undefined
-  const reps = timed ? undefined : leadInt(rawReps) ?? undefined
+  const seconds = continuous ? parseInt(setsMinute[1], 10) * 60 : timed ? (minutes ? parseInt(minutes[1], 10) * 60 : timedCell) : undefined
+  const reps =
+    timed
+      ? undefined
+      : leadInt(rawReps) ??
+        (/failure|as many as possible|by instinct|instinct/i.test(rawReps) ? 10 : undefined)
+  const weightKg = kind === 'reps' && profile.load ? profile.load : undefined
 
   const exercise = {
     id,
@@ -271,7 +366,7 @@ function rowToSet(row, index, bodyParts, goal, idPrefix = 'ms') {
     ...(reps != null ? { defaultReps: reps } : {}),
     ...(seconds != null ? { defaultSeconds: seconds } : {}),
     defaultSets: numSets,
-    met: 5.0,
+    met: profile.met ?? 5.0,
     cue: 'As written in the source program',
     restSeconds: 60,
     bodyParts,
@@ -285,6 +380,7 @@ function rowToSet(row, index, bodyParts, goal, idPrefix = 'ms') {
     sets: numSets,
     ...(reps != null ? { reps } : {}),
     ...(seconds != null ? { seconds } : {}),
+    ...(weightKg != null ? { weightKg } : {}),
   }
 
   return { sourceName: name, sourceHref: href, rawSets, rawReps, planned }

@@ -49,6 +49,7 @@ export function SessionPage() {
   const [kcal, setKcal] = useState(init.kcal)
   const [pulse, setPulse] = useState(false)
   const finishing = useRef(false)
+  const completedRef = useRef(false)
   const busy = useRef(false)
   const pendingAdvance = useRef(false)
   const loggedRef = useRef(workoutId ? (workingWorkout?.setsLogged ?? 0) : 0)
@@ -199,6 +200,7 @@ export function SessionPage() {
     const gained = estimateKcal({
       met: item.exercise.met,
       weightKg,
+      loadKg: item.weightKg,
       reps: item.reps,
       seconds: item.seconds,
       sets: 1,
@@ -228,6 +230,7 @@ export function SessionPage() {
     const lastSet = setNoNow + 1 >= item.sets
     const lastMove = index + 1 >= session.length
     if (lastSet && lastMove) {
+      completedRef.current = true
       finish()
       return
     }
@@ -247,11 +250,25 @@ export function SessionPage() {
       navigate('/train')
       return
     }
-    finish()
+    pause()
+  }
+
+  const pause = () => {
+    if (finishing.current || !item || !workoutId || phase === 'done') return
+    setPhase('done')
+  }
+
+  const resumeSession = () => {
+    if (finishing.current) return
+    setPulse(false)
+    setRestLeft(0)
+    setPhase('work')
   }
 
   const coachPhase = phase === 'done' ? 'celebrate' : phase === 'rest' ? 'rest' : 'work'
   const gif = phase === 'work' ? exerciseGif(item.exercise) : null
+  const totalSets = session.reduce((sum, ex) => sum + ex.sets, 0)
+  const percentThrough = totalSets > 0 ? Math.min(100, Math.round((loggedRef.current / totalSets) * 100)) : 0
 
   return (
     <div className="flex min-h-dvh flex-col px-5 pb-8 pt-6">
@@ -284,11 +301,15 @@ export function SessionPage() {
             className="h-64 w-full max-w-[280px]"
           />
         )}
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">{item.exercise.name}</h2>
-        <p className="mt-1 text-sm text-muted">{item.exercise.cue}</p>
-        <p className="mt-3 tabular text-xs uppercase tracking-[0.2em] text-orange">
-          Set {Math.min(setNo + 1, item.sets)} / {item.sets}
-        </p>
+        {phase !== 'done' ? (
+          <>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">{item.exercise.name}</h2>
+            <p className="mt-1 text-sm text-muted">{item.exercise.cue}</p>
+            <p className="mt-3 tabular text-xs uppercase tracking-[0.2em] text-orange">
+              Set {Math.min(setNo + 1, item.sets)} / {item.sets}
+            </p>
+          </>
+        ) : null}
       </div>
 
       <div className="mt-auto space-y-4">
@@ -322,7 +343,27 @@ export function SessionPage() {
         ) : null}
 
         {phase === 'done' ? (
-          <p className="text-center text-sm uppercase tracking-[0.22em] text-orange">Streak locked</p>
+          completedRef.current ? (
+            <div className="text-center">
+              <p className="text-sm uppercase tracking-[0.22em] text-orange">Workout complete</p>
+              <p className="mt-1 text-sm text-muted">
+                Congrats — you burned {kcal} kcal in {Math.max(1, Math.round(elapsedRef.current / 60))} minutes.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm uppercase tracking-[0.22em] text-orange">Session ended</p>
+              <p className="mt-1 text-sm text-muted">You're {percentThrough}% through today's session.</p>
+              <div className="mt-4 space-y-2">
+                <Button block onClick={resumeSession}>
+                  Start where you left off
+                </Button>
+                <Button variant="line" block onClick={finish}>
+                  Finish session
+                </Button>
+              </div>
+            </div>
+          )
         ) : null}
       </div>
     </div>
