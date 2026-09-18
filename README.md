@@ -250,6 +250,7 @@ The coach is SVG pose loops in `src/coach/` — there are **no GIF files**
 | `npm run build` | `tsc -b && vite build` (generates service worker + manifest) |
 | `npm run preview` | Preview the production build |
 | `npm run lint` | Run oxlint |
+| `npm run plan -- <url>` | Extract a workout page into `plans/extracted/<slug>.json` (app-model shaped). Supports muscleandstrength.com (`.node-stats-block` + exercise tables) and muscleandfitness.com (WordPress workout galleries, e.g. body-part guides); falls back to the Wayback Machine when Cloudflare blocks live fetch. Also downloads a banner image of the plan's subject (`--subject "Name"` to override the query, `--no-banner` to skip) and writes `<slug>.preview.html` with a slide-in/slide-out banner animation. Outputs are gitignored |
 | `npm run relay` | Run the local signaling relay (`ws://127.0.0.1:8787`) |
 | `npm run icons` | Regenerate `public/icons/*.png` from `public/favicon.svg` |
 

@@ -1,0 +1,6033 @@
+{
+  "app": "ember",
+  "kind": "workout-program",
+  "schema": 1,
+  "source": {
+    "url": "https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-volume-workout-routines",
+    "site": "muscleandstrength.com",
+    "title": "Arnold Schwarzenegger Volume Workout Routines",
+    "author": "Steve Shaw",
+    "publishedAt": "2012-03-12T13:57:15-04:00",
+    "pdfUrl": "https://www.muscleandstrength.com/sites/default/files/workouts/arnoldvolume_0.pdf",
+    "fetchedAt": "2026-09-18T02:08:12.954Z",
+    "banner": null
+  },
+  "summary": {
+    "mainGoal": "Build Muscle",
+    "workoutType": "Split",
+    "trainingLevel": "Advanced",
+    "programDuration": "16 weeks",
+    "daysPerWeek": "6",
+    "timePerWorkout": "60-75 minutes",
+    "equipment": [
+      "Barbell",
+      "Bodyweight",
+      "Cables",
+      "Dumbbells",
+      "EZ Bar"
+    ],
+    "targetGender": "Male",
+    "recommendedSupps": [
+      "Protein Powder",
+      "Creatine",
+      "Mass Gainer",
+      "Multivitamin"
+    ]
+  },
+  "programs": [
+    {
+      "id": "arnold-schwarzenegger-volume-workout-routines-1",
+      "name": "Arnold Schwarzenegger Workout Variation #1",
+      "goal": "muscle",
+      "days": [
+        {
+          "label": "Arnold Schwarzenegger Chest & Back Workout",
+          "focus": [
+            "chest",
+            "back"
+          ],
+          "exercises": [
+            {
+              "sourceName": "Bench Press",
+              "sourceHref": "/exercises/barbell-bench-press.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-bench-press",
+                "exercise": {
+                  "id": "ms-bench-press",
+                  "name": "Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Incline Bench Press",
+              "sourceHref": "/exercises/incline-bench-press.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-incline-bench-press-2",
+                "exercise": {
+                  "id": "ms-incline-bench-press-2",
+                  "name": "Incline Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Dumbbell Pullovers",
+              "sourceHref": "/exercises/dumbbell-pullover.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-dumbbell-pullovers-3",
+                "exercise": {
+                  "id": "ms-dumbbell-pullovers-3",
+                  "name": "Dumbbell Pullovers",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Chin Up",
+              "sourceHref": "/exercises/chin-up.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-chin-up-4",
+                "exercise": {
+                  "id": "ms-chin-up-4",
+                  "name": "Chin Up",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Bent Over Row",
+              "sourceHref": "/exercises/bent-over-barbell-row.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-bent-over-row-5",
+                "exercise": {
+                  "id": "ms-bent-over-row-5",
+                  "name": "Bent Over Row",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Deadlift",
+              "sourceHref": "/exercises/deadlifts.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-deadlift-6",
+                "exercise": {
+                  "id": "ms-deadlift-6",
+                  "name": "Deadlift",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Crunches",
+              "sourceHref": "/exercises/floor-crunch-legs-on-bench.html",
+              "rawSets": "5",
+              "rawReps": "25",
+              "planned": {
+                "uid": "ms-crunches-7",
+                "exercise": {
+                  "id": "ms-crunches-7",
+                  "name": "Crunches",
+                  "kind": "reps",
+                  "defaultReps": 25,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 25
+              }
+            }
+          ]
+        },
+        {
+          "label": "Arnold Schwarzenegger Shoulders & Arms Workout",
+          "focus": [
+            "arms"
+          ],
+          "exercises": [
+            {
+              "sourceName": "Barbell Clean and Press",
+              "sourceHref": null,
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-barbell-clean-and-press",
+                "exercise": {
+                  "id": "ms-barbell-clean-and-press",
+                  "name": "Barbell Clean and Press",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Dumbbell Lateral Raise",
+              "sourceHref": "/exercises/dumbbell-lateral-raise.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-dumbbell-lateral-raise-2",
+                "exercise": {
+                  "id": "ms-dumbbell-lateral-raise-2",
+                  "name": "Dumbbell Lateral Raise",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Upright Row",
+              "sourceHref": "/exercises/upright-row.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-upright-row-3",
+                "exercise": {
+                  "id": "ms-upright-row-3",
+                  "name": "Upright Row",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Military Press",
+              "sourceHref": "/exercises/military-press.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-military-press-4",
+                "exercise": {
+                  "id": "ms-military-press-4",
+                  "name": "Military Press",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Standing Barbell Curl",
+              "sourceHref": "/exercises/standing-barbell-curl.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-standing-barbell-curl-5",
+                "exercise": {
+                  "id": "ms-standing-barbell-curl-5",
+                  "name": "Standing Barbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Seated Dumbbell Curl",
+              "sourceHref": "/exercises/seated-dumbbell-curl.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-seated-dumbbell-curl-6",
+                "exercise": {
+                  "id": "ms-seated-dumbbell-curl-6",
+                  "name": "Seated Dumbbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Close Grip Bench Press",
+              "sourceHref": "/exercises/close-grip-bench-press.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-close-grip-bench-press-7",
+                "exercise": {
+                  "id": "ms-close-grip-bench-press-7",
+                  "name": "Close Grip Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Standing Barbell Tricep Extension",
+              "sourceHref": "/exercises/french-press.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-standing-barbell-tricep-extension-8",
+                "exercise": {
+                  "id": "ms-standing-barbell-tricep-extension-8",
+                  "name": "Standing Barbell Tricep Extension",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Wrist Curls",
+              "sourceHref": "/exercises/one-arm-seated-dumbbell-wrist-curl.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-wrist-curls-9",
+                "exercise": {
+                  "id": "ms-wrist-curls-9",
+                  "name": "Wrist Curls",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Reverse Wrist Curls",
+              "sourceHref": "/exercises/reverse-dumbbell-wrist-curl-over-bench.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-reverse-wrist-curls-10",
+                "exercise": {
+                  "id": "ms-reverse-wrist-curls-10",
+                  "name": "Reverse Wrist Curls",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Reverse Crunch",
+              "sourceHref": null,
+              "rawSets": "5",
+              "rawReps": "25",
+              "planned": {
+                "uid": "ms-reverse-crunch-11",
+                "exercise": {
+                  "id": "ms-reverse-crunch-11",
+                  "name": "Reverse Crunch",
+                  "kind": "reps",
+                  "defaultReps": 25,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 25
+              }
+            }
+          ]
+        },
+        {
+          "label": "Arnold Schwarzenegger Legs & Lower Back Workout",
+          "focus": [
+            "back",
+            "legs"
+          ],
+          "exercises": [
+            {
+              "sourceName": "Squat",
+              "sourceHref": "/exercises/squat.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-squat",
+                "exercise": {
+                  "id": "ms-squat",
+                  "name": "Squat",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Lunge",
+              "sourceHref": "/exercises/barbell-lunge.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-lunge-2",
+                "exercise": {
+                  "id": "ms-lunge-2",
+                  "name": "Lunge",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Leg Curl",
+              "sourceHref": "/exercises/leg-curl.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-leg-curl-3",
+                "exercise": {
+                  "id": "ms-leg-curl-3",
+                  "name": "Leg Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Stiff Leg Deadlift",
+              "sourceHref": "/exercises/stiff-leg-deadlift-aka-romanian-deadlift.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-stiff-leg-deadlift-4",
+                "exercise": {
+                  "id": "ms-stiff-leg-deadlift-4",
+                  "name": "Stiff Leg Deadlift",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Good Mornings",
+              "sourceHref": "/exercises/good-mornings.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-good-mornings-5",
+                "exercise": {
+                  "id": "ms-good-mornings-5",
+                  "name": "Good Mornings",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Standing Calf Raise",
+              "sourceHref": "/exercises/standing-calf-raise.html",
+              "rawSets": "3-4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-standing-calf-raise-6",
+                "exercise": {
+                  "id": "ms-standing-calf-raise-6",
+                  "name": "Standing Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 3,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 3,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Crunches",
+              "sourceHref": "/exercises/floor-crunch-legs-on-bench.html",
+              "rawSets": "5",
+              "rawReps": "25",
+              "planned": {
+                "uid": "ms-crunches-7",
+                "exercise": {
+                  "id": "ms-crunches-7",
+                  "name": "Crunches",
+                  "kind": "reps",
+                  "defaultReps": 25,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 25
+              }
+            }
+          ]
+        }
+      ],
+      "template": [
+        {
+          "focus": [
+            "chest",
+            "back"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-bench-press",
+              "exercise": {
+                "id": "ms-bench-press",
+                "name": "Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-incline-bench-press-2",
+              "exercise": {
+                "id": "ms-incline-bench-press-2",
+                "name": "Incline Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dumbbell-pullovers-3",
+              "exercise": {
+                "id": "ms-dumbbell-pullovers-3",
+                "name": "Dumbbell Pullovers",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-chin-up-4",
+              "exercise": {
+                "id": "ms-chin-up-4",
+                "name": "Chin Up",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-bent-over-row-5",
+              "exercise": {
+                "id": "ms-bent-over-row-5",
+                "name": "Bent Over Row",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-deadlift-6",
+              "exercise": {
+                "id": "ms-deadlift-6",
+                "name": "Deadlift",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-crunches-7",
+              "exercise": {
+                "id": "ms-crunches-7",
+                "name": "Crunches",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": [
+            "arms"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-barbell-clean-and-press",
+              "exercise": {
+                "id": "ms-barbell-clean-and-press",
+                "name": "Barbell Clean and Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dumbbell-lateral-raise-2",
+              "exercise": {
+                "id": "ms-dumbbell-lateral-raise-2",
+                "name": "Dumbbell Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-upright-row-3",
+              "exercise": {
+                "id": "ms-upright-row-3",
+                "name": "Upright Row",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-military-press-4",
+              "exercise": {
+                "id": "ms-military-press-4",
+                "name": "Military Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-barbell-curl-5",
+              "exercise": {
+                "id": "ms-standing-barbell-curl-5",
+                "name": "Standing Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-dumbbell-curl-6",
+              "exercise": {
+                "id": "ms-seated-dumbbell-curl-6",
+                "name": "Seated Dumbbell Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-close-grip-bench-press-7",
+              "exercise": {
+                "id": "ms-close-grip-bench-press-7",
+                "name": "Close Grip Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-barbell-tricep-extension-8",
+              "exercise": {
+                "id": "ms-standing-barbell-tricep-extension-8",
+                "name": "Standing Barbell Tricep Extension",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-wrist-curls-9",
+              "exercise": {
+                "id": "ms-wrist-curls-9",
+                "name": "Wrist Curls",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-wrist-curls-10",
+              "exercise": {
+                "id": "ms-reverse-wrist-curls-10",
+                "name": "Reverse Wrist Curls",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-crunch-11",
+              "exercise": {
+                "id": "ms-reverse-crunch-11",
+                "name": "Reverse Crunch",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": [
+            "back",
+            "legs"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-squat",
+              "exercise": {
+                "id": "ms-squat",
+                "name": "Squat",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-lunge-2",
+              "exercise": {
+                "id": "ms-lunge-2",
+                "name": "Lunge",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-leg-curl-3",
+              "exercise": {
+                "id": "ms-leg-curl-3",
+                "name": "Leg Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-stiff-leg-deadlift-4",
+              "exercise": {
+                "id": "ms-stiff-leg-deadlift-4",
+                "name": "Stiff Leg Deadlift",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-good-mornings-5",
+              "exercise": {
+                "id": "ms-good-mornings-5",
+                "name": "Good Mornings",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-calf-raise-6",
+              "exercise": {
+                "id": "ms-standing-calf-raise-6",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-crunches-7",
+              "exercise": {
+                "id": "ms-crunches-7",
+                "name": "Crunches",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": [
+            "chest",
+            "back"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-bench-press",
+              "exercise": {
+                "id": "ms-bench-press",
+                "name": "Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-incline-bench-press-2",
+              "exercise": {
+                "id": "ms-incline-bench-press-2",
+                "name": "Incline Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dumbbell-pullovers-3",
+              "exercise": {
+                "id": "ms-dumbbell-pullovers-3",
+                "name": "Dumbbell Pullovers",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-chin-up-4",
+              "exercise": {
+                "id": "ms-chin-up-4",
+                "name": "Chin Up",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-bent-over-row-5",
+              "exercise": {
+                "id": "ms-bent-over-row-5",
+                "name": "Bent Over Row",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-deadlift-6",
+              "exercise": {
+                "id": "ms-deadlift-6",
+                "name": "Deadlift",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-crunches-7",
+              "exercise": {
+                "id": "ms-crunches-7",
+                "name": "Crunches",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": [
+            "arms"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-barbell-clean-and-press",
+              "exercise": {
+                "id": "ms-barbell-clean-and-press",
+                "name": "Barbell Clean and Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dumbbell-lateral-raise-2",
+              "exercise": {
+                "id": "ms-dumbbell-lateral-raise-2",
+                "name": "Dumbbell Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-upright-row-3",
+              "exercise": {
+                "id": "ms-upright-row-3",
+                "name": "Upright Row",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-military-press-4",
+              "exercise": {
+                "id": "ms-military-press-4",
+                "name": "Military Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-barbell-curl-5",
+              "exercise": {
+                "id": "ms-standing-barbell-curl-5",
+                "name": "Standing Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-dumbbell-curl-6",
+              "exercise": {
+                "id": "ms-seated-dumbbell-curl-6",
+                "name": "Seated Dumbbell Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-close-grip-bench-press-7",
+              "exercise": {
+                "id": "ms-close-grip-bench-press-7",
+                "name": "Close Grip Bench Press",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-barbell-tricep-extension-8",
+              "exercise": {
+                "id": "ms-standing-barbell-tricep-extension-8",
+                "name": "Standing Barbell Tricep Extension",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-wrist-curls-9",
+              "exercise": {
+                "id": "ms-wrist-curls-9",
+                "name": "Wrist Curls",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-wrist-curls-10",
+              "exercise": {
+                "id": "ms-reverse-wrist-curls-10",
+                "name": "Reverse Wrist Curls",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-crunch-11",
+              "exercise": {
+                "id": "ms-reverse-crunch-11",
+                "name": "Reverse Crunch",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": [
+            "back",
+            "legs"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-squat",
+              "exercise": {
+                "id": "ms-squat",
+                "name": "Squat",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-lunge-2",
+              "exercise": {
+                "id": "ms-lunge-2",
+                "name": "Lunge",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-leg-curl-3",
+              "exercise": {
+                "id": "ms-leg-curl-3",
+                "name": "Leg Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-stiff-leg-deadlift-4",
+              "exercise": {
+                "id": "ms-stiff-leg-deadlift-4",
+                "name": "Stiff Leg Deadlift",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-good-mornings-5",
+              "exercise": {
+                "id": "ms-good-mornings-5",
+                "name": "Good Mornings",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-calf-raise-6",
+              "exercise": {
+                "id": "ms-standing-calf-raise-6",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 3,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 3,
+              "reps": 10
+            },
+            {
+              "uid": "ms-crunches-7",
+              "exercise": {
+                "id": "ms-crunches-7",
+                "name": "Crunches",
+                "kind": "reps",
+                "defaultReps": 25,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 25
+            }
+          ]
+        },
+        {
+          "focus": []
+        }
+      ]
+    },
+    {
+      "id": "arnold-schwarzenegger-volume-workout-routines-2",
+      "name": "Arnold Schwarzenegger Workout Variation #2",
+      "goal": "muscle",
+      "days": [
+        {
+          "label": "Arnold Schwarzenegger Chest, Back, & Legs Workout",
+          "focus": [
+            "chest",
+            "back",
+            "legs"
+          ],
+          "exercises": [
+            {
+              "sourceName": "Bench Press",
+              "sourceHref": "/exercises/barbell-bench-press.html",
+              "rawSets": "5",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-bench-press",
+                "exercise": {
+                  "id": "ms-bench-press",
+                  "name": "Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Dumbbell Flye",
+              "sourceHref": "/exercises/dumbbell-flys.html",
+              "rawSets": "5",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-dumbbell-flye-2",
+                "exercise": {
+                  "id": "ms-dumbbell-flye-2",
+                  "name": "Dumbbell Flye",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Incline Bench Press",
+              "sourceHref": "/exercises/incline-bench-press.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-incline-bench-press-3",
+                "exercise": {
+                  "id": "ms-incline-bench-press-3",
+                  "name": "Incline Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Cable Crossovers",
+              "sourceHref": "/exercises/cable-crossovers-%28mid-chest%29.html",
+              "rawSets": "6",
+              "rawReps": "10-12",
+              "planned": {
+                "uid": "ms-cable-crossovers-4",
+                "exercise": {
+                  "id": "ms-cable-crossovers-4",
+                  "name": "Cable Crossovers",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Dips",
+              "sourceHref": "/exercises/chest-dip.html",
+              "rawSets": "5",
+              "rawReps": "Failure",
+              "planned": {
+                "uid": "ms-dips-5",
+                "exercise": {
+                  "id": "ms-dips-5",
+                  "name": "Dips",
+                  "kind": "reps",
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5
+              }
+            },
+            {
+              "sourceName": "Dumbbell Pullover",
+              "sourceHref": "/exercises/dumbbell-pullover.html",
+              "rawSets": "5",
+              "rawReps": "10-12",
+              "planned": {
+                "uid": "ms-dumbbell-pullover-6",
+                "exercise": {
+                  "id": "ms-dumbbell-pullover-6",
+                  "name": "Dumbbell Pullover",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Wide Grip Pull Up",
+              "sourceHref": "/exercises/wide-grip-pull-up.html",
+              "rawSets": "6",
+              "rawReps": "Failure",
+              "planned": {
+                "uid": "ms-wide-grip-pull-up-7",
+                "exercise": {
+                  "id": "ms-wide-grip-pull-up-7",
+                  "name": "Wide Grip Pull Up",
+                  "kind": "reps",
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6
+              }
+            },
+            {
+              "sourceName": "T Bar Row",
+              "sourceHref": "/exercises/machine-t-bar-row.html",
+              "rawSets": "5",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-t-bar-row-8",
+                "exercise": {
+                  "id": "ms-t-bar-row-8",
+                  "name": "T Bar Row",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Seated Pulley Row",
+              "sourceHref": "/exercises/seated-row.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-seated-pulley-row-9",
+                "exercise": {
+                  "id": "ms-seated-pulley-row-9",
+                  "name": "Seated Pulley Row",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "One Arm Dumbbell Row",
+              "sourceHref": "/exercises/one-arm-dumbbell-row.html",
+              "rawSets": "5",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-one-arm-dumbbell-row-10",
+                "exercise": {
+                  "id": "ms-one-arm-dumbbell-row-10",
+                  "name": "One Arm Dumbbell Row",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Stiff Leg Deadlift",
+              "sourceHref": "/exercises/stiff-leg-deadlift-aka-romanian-deadlift.html",
+              "rawSets": "6",
+              "rawReps": "15",
+              "planned": {
+                "uid": "ms-stiff-leg-deadlift-11",
+                "exercise": {
+                  "id": "ms-stiff-leg-deadlift-11",
+                  "name": "Stiff Leg Deadlift",
+                  "kind": "reps",
+                  "defaultReps": 15,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 15
+              }
+            },
+            {
+              "sourceName": "Squat",
+              "sourceHref": "/exercises/squat.html",
+              "rawSets": "6",
+              "rawReps": "8-12",
+              "planned": {
+                "uid": "ms-squat-12",
+                "exercise": {
+                  "id": "ms-squat-12",
+                  "name": "Squat",
+                  "kind": "reps",
+                  "defaultReps": 8,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 8
+              }
+            },
+            {
+              "sourceName": "Leg Press",
+              "sourceHref": "/exercises/45-degree-leg-press.html",
+              "rawSets": "6",
+              "rawReps": "8-12",
+              "planned": {
+                "uid": "ms-leg-press-13",
+                "exercise": {
+                  "id": "ms-leg-press-13",
+                  "name": "Leg Press",
+                  "kind": "reps",
+                  "defaultReps": 8,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 8
+              }
+            },
+            {
+              "sourceName": "Leg Extension",
+              "sourceHref": "/exercises/leg-extension.html",
+              "rawSets": "6",
+              "rawReps": "12-15",
+              "planned": {
+                "uid": "ms-leg-extension-14",
+                "exercise": {
+                  "id": "ms-leg-extension-14",
+                  "name": "Leg Extension",
+                  "kind": "reps",
+                  "defaultReps": 12,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 12
+              }
+            },
+            {
+              "sourceName": "Leg Curl",
+              "sourceHref": "/exercises/leg-curl.html",
+              "rawSets": "6",
+              "rawReps": "10-15",
+              "planned": {
+                "uid": "ms-leg-curl-15",
+                "exercise": {
+                  "id": "ms-leg-curl-15",
+                  "name": "Leg Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Barbell Lunge",
+              "sourceHref": "/exercises/barbell-lunge.html",
+              "rawSets": "5",
+              "rawReps": "15",
+              "planned": {
+                "uid": "ms-barbell-lunge-16",
+                "exercise": {
+                  "id": "ms-barbell-lunge-16",
+                  "name": "Barbell Lunge",
+                  "kind": "reps",
+                  "defaultReps": 15,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 15
+              }
+            },
+            {
+              "sourceName": "Standing Calf Raise",
+              "sourceHref": "/exercises/standing-calf-raise.html",
+              "rawSets": "10",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-standing-calf-raise-17",
+                "exercise": {
+                  "id": "ms-standing-calf-raise-17",
+                  "name": "Standing Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 10,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 10,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Seated Calf Raise",
+              "sourceHref": "/exercises/seated-calf-raise.html",
+              "rawSets": "8",
+              "rawReps": "15",
+              "planned": {
+                "uid": "ms-seated-calf-raise-18",
+                "exercise": {
+                  "id": "ms-seated-calf-raise-18",
+                  "name": "Seated Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 15,
+                  "defaultSets": 8,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 8,
+                "reps": 15
+              }
+            },
+            {
+              "sourceName": "One Leg Dumbbell Calf Raise",
+              "sourceHref": "/exercises/standing-one-leg-calf-raise-with-dumbbell.html",
+              "rawSets": "6",
+              "rawReps": "12",
+              "planned": {
+                "uid": "ms-one-leg-dumbbell-calf-raise-19",
+                "exercise": {
+                  "id": "ms-one-leg-dumbbell-calf-raise-19",
+                  "name": "One Leg Dumbbell Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 12,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 12
+              }
+            },
+            {
+              "sourceName": "Wrist Curl",
+              "sourceHref": "/exercises/dumbbell-wrist-curl-over-bench.html",
+              "rawSets": "4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-wrist-curl-20",
+                "exercise": {
+                  "id": "ms-wrist-curl-20",
+                  "name": "Wrist Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Reverse Barbell Curl",
+              "sourceHref": "/exercises/reverse-barbell-curl.html",
+              "rawSets": "4",
+              "rawReps": "8",
+              "planned": {
+                "uid": "ms-reverse-barbell-curl-21",
+                "exercise": {
+                  "id": "ms-reverse-barbell-curl-21",
+                  "name": "Reverse Barbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 8,
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4,
+                "reps": 8
+              }
+            },
+            {
+              "sourceName": "Wrist Roller Machine",
+              "sourceHref": "/exercises/wrist-rollers.html",
+              "rawSets": "4",
+              "rawReps": "Failure",
+              "planned": {
+                "uid": "ms-wrist-roller-machine-22",
+                "exercise": {
+                  "id": "ms-wrist-roller-machine-22",
+                  "name": "Wrist Roller Machine",
+                  "kind": "reps",
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4
+              }
+            },
+            {
+              "sourceName": "Non-Stop Abs Training",
+              "sourceHref": null,
+              "rawSets": "30 Minutes",
+              "rawReps": "By Instinct",
+              "planned": {
+                "uid": "ms-non-stop-abs-training-23",
+                "exercise": {
+                  "id": "ms-non-stop-abs-training-23",
+                  "name": "Non-Stop Abs Training",
+                  "kind": "reps",
+                  "defaultSets": 30,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "chest",
+                    "back",
+                    "legs"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 30
+              }
+            }
+          ]
+        },
+        {
+          "label": "Arnold Schwarzenegger Shoulders & Arms Workout",
+          "focus": [
+            "arms"
+          ],
+          "exercises": [
+            {
+              "sourceName": "Barbell Curl",
+              "sourceHref": "/exercises/standing-barbell-curl.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-barbell-curl",
+                "exercise": {
+                  "id": "ms-barbell-curl",
+                  "name": "Barbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Seated Dumbbell Curl",
+              "sourceHref": "/exercises/seated-dumbbell-curl.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-seated-dumbbell-curl-2",
+                "exercise": {
+                  "id": "ms-seated-dumbbell-curl-2",
+                  "name": "Seated Dumbbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Dumbbell Concentration Curl",
+              "sourceHref": "/exercises/concentration-cur.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-dumbbell-concentration-curl-3",
+                "exercise": {
+                  "id": "ms-dumbbell-concentration-curl-3",
+                  "name": "Dumbbell Concentration Curl",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Close Grip Bench Press",
+              "sourceHref": "/exercises/close-grip-bench-press.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-close-grip-bench-press-4",
+                "exercise": {
+                  "id": "ms-close-grip-bench-press-4",
+                  "name": "Close Grip Bench Press",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Tricep Pushdown",
+              "sourceHref": "/exercises/tricep-extension.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-tricep-pushdown-5",
+                "exercise": {
+                  "id": "ms-tricep-pushdown-5",
+                  "name": "Tricep Pushdown",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Barbell French Press",
+              "sourceHref": "/exercises/french-press.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-barbell-french-press-6",
+                "exercise": {
+                  "id": "ms-barbell-french-press-6",
+                  "name": "Barbell French Press",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "One Arm Dumbbell Tricep Extension",
+              "sourceHref": "/exercises/one-arm-dumbbell-extension.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-one-arm-dumbbell-tricep-extension-7",
+                "exercise": {
+                  "id": "ms-one-arm-dumbbell-tricep-extension-7",
+                  "name": "One Arm Dumbbell Tricep Extension",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Seated Barbell Press",
+              "sourceHref": "/exercises/seated-shoulder-press.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-seated-barbell-press-8",
+                "exercise": {
+                  "id": "ms-seated-barbell-press-8",
+                  "name": "Seated Barbell Press",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Lateral Raise",
+              "sourceHref": "/exercises/dumbbell-lateral-raise.html",
+              "rawSets": "6",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-lateral-raise-9",
+                "exercise": {
+                  "id": "ms-lateral-raise-9",
+                  "name": "Lateral Raise",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Rear Delt Lateral Raise",
+              "sourceHref": "/exercises/bent-over-dumbbell-reverse-fly.html",
+              "rawSets": "5",
+              "rawReps": "6-10",
+              "planned": {
+                "uid": "ms-rear-delt-lateral-raise-10",
+                "exercise": {
+                  "id": "ms-rear-delt-lateral-raise-10",
+                  "name": "Rear Delt Lateral Raise",
+                  "kind": "reps",
+                  "defaultReps": 6,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 6
+              }
+            },
+            {
+              "sourceName": "Cable Lateral Raise",
+              "sourceHref": "/exercises/two-arm-cable-lateral-raise.html",
+              "rawSets": "5",
+              "rawReps": "10-12",
+              "planned": {
+                "uid": "ms-cable-lateral-raise-11",
+                "exercise": {
+                  "id": "ms-cable-lateral-raise-11",
+                  "name": "Cable Lateral Raise",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 5,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 5,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Standing Calf Raise",
+              "sourceHref": "/exercises/standing-calf-raise.html",
+              "rawSets": "10",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-standing-calf-raise-12",
+                "exercise": {
+                  "id": "ms-standing-calf-raise-12",
+                  "name": "Standing Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 10,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 10,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Seated Calf Raise",
+              "sourceHref": "/exercises/seated-calf-raise.html",
+              "rawSets": "8",
+              "rawReps": "15",
+              "planned": {
+                "uid": "ms-seated-calf-raise-13",
+                "exercise": {
+                  "id": "ms-seated-calf-raise-13",
+                  "name": "Seated Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 15,
+                  "defaultSets": 8,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 8,
+                "reps": 15
+              }
+            },
+            {
+              "sourceName": "One Leg Dumbbell Calf Raise",
+              "sourceHref": "/exercises/standing-one-leg-calf-raise-with-dumbbell.html",
+              "rawSets": "6",
+              "rawReps": "12",
+              "planned": {
+                "uid": "ms-one-leg-dumbbell-calf-raise-14",
+                "exercise": {
+                  "id": "ms-one-leg-dumbbell-calf-raise-14",
+                  "name": "One Leg Dumbbell Calf Raise",
+                  "kind": "reps",
+                  "defaultReps": 12,
+                  "defaultSets": 6,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 6,
+                "reps": 12
+              }
+            },
+            {
+              "sourceName": "Wrist Curl",
+              "sourceHref": "/exercises/dumbbell-wrist-curl-over-bench.html",
+              "rawSets": "4",
+              "rawReps": "10",
+              "planned": {
+                "uid": "ms-wrist-curl-15",
+                "exercise": {
+                  "id": "ms-wrist-curl-15",
+                  "name": "Wrist Curl",
+                  "kind": "reps",
+                  "defaultReps": 10,
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4,
+                "reps": 10
+              }
+            },
+            {
+              "sourceName": "Reverse Barbell Curl",
+              "sourceHref": "/exercises/reverse-barbell-curl.html",
+              "rawSets": "4",
+              "rawReps": "8",
+              "planned": {
+                "uid": "ms-reverse-barbell-curl-16",
+                "exercise": {
+                  "id": "ms-reverse-barbell-curl-16",
+                  "name": "Reverse Barbell Curl",
+                  "kind": "reps",
+                  "defaultReps": 8,
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4,
+                "reps": 8
+              }
+            },
+            {
+              "sourceName": "Wrist Roller Machine",
+              "sourceHref": "/exercises/wrist-rollers.html",
+              "rawSets": "4",
+              "rawReps": "Failure",
+              "planned": {
+                "uid": "ms-wrist-roller-machine-17",
+                "exercise": {
+                  "id": "ms-wrist-roller-machine-17",
+                  "name": "Wrist Roller Machine",
+                  "kind": "reps",
+                  "defaultSets": 4,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 4
+              }
+            },
+            {
+              "sourceName": "Non-Stop Abs Training",
+              "sourceHref": null,
+              "rawSets": "30 Minutes",
+              "rawReps": "By Instinct",
+              "planned": {
+                "uid": "ms-non-stop-abs-training-18",
+                "exercise": {
+                  "id": "ms-non-stop-abs-training-18",
+                  "name": "Non-Stop Abs Training",
+                  "kind": "reps",
+                  "defaultSets": 30,
+                  "met": 5,
+                  "cue": "As written in the source program",
+                  "restSeconds": 60,
+                  "bodyParts": [
+                    "arms"
+                  ],
+                  "goals": [
+                    "muscle"
+                  ],
+                  "isCustom": true
+                },
+                "sets": 30
+              }
+            }
+          ]
+        }
+      ],
+      "template": [
+        {
+          "focus": [
+            "chest",
+            "back",
+            "legs"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-bench-press",
+              "exercise": {
+                "id": "ms-bench-press",
+                "name": "Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-flye-2",
+              "exercise": {
+                "id": "ms-dumbbell-flye-2",
+                "name": "Dumbbell Flye",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-incline-bench-press-3",
+              "exercise": {
+                "id": "ms-incline-bench-press-3",
+                "name": "Incline Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-crossovers-4",
+              "exercise": {
+                "id": "ms-cable-crossovers-4",
+                "name": "Cable Crossovers",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dips-5",
+              "exercise": {
+                "id": "ms-dips-5",
+                "name": "Dips",
+                "kind": "reps",
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5
+            },
+            {
+              "uid": "ms-dumbbell-pullover-6",
+              "exercise": {
+                "id": "ms-dumbbell-pullover-6",
+                "name": "Dumbbell Pullover",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-wide-grip-pull-up-7",
+              "exercise": {
+                "id": "ms-wide-grip-pull-up-7",
+                "name": "Wide Grip Pull Up",
+                "kind": "reps",
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6
+            },
+            {
+              "uid": "ms-t-bar-row-8",
+              "exercise": {
+                "id": "ms-t-bar-row-8",
+                "name": "T Bar Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-pulley-row-9",
+              "exercise": {
+                "id": "ms-seated-pulley-row-9",
+                "name": "Seated Pulley Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-row-10",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-row-10",
+                "name": "One Arm Dumbbell Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-stiff-leg-deadlift-11",
+              "exercise": {
+                "id": "ms-stiff-leg-deadlift-11",
+                "name": "Stiff Leg Deadlift",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 15
+            },
+            {
+              "uid": "ms-squat-12",
+              "exercise": {
+                "id": "ms-squat-12",
+                "name": "Squat",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-press-13",
+              "exercise": {
+                "id": "ms-leg-press-13",
+                "name": "Leg Press",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-extension-14",
+              "exercise": {
+                "id": "ms-leg-extension-14",
+                "name": "Leg Extension",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-leg-curl-15",
+              "exercise": {
+                "id": "ms-leg-curl-15",
+                "name": "Leg Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-barbell-lunge-16",
+              "exercise": {
+                "id": "ms-barbell-lunge-16",
+                "name": "Barbell Lunge",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 15
+            },
+            {
+              "uid": "ms-standing-calf-raise-17",
+              "exercise": {
+                "id": "ms-standing-calf-raise-17",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-18",
+              "exercise": {
+                "id": "ms-seated-calf-raise-18",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-19",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-19",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-20",
+              "exercise": {
+                "id": "ms-wrist-curl-20",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-21",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-21",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-22",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-22",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-23",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-23",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": [
+            "arms"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-barbell-curl",
+              "exercise": {
+                "id": "ms-barbell-curl",
+                "name": "Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-dumbbell-curl-2",
+              "exercise": {
+                "id": "ms-seated-dumbbell-curl-2",
+                "name": "Seated Dumbbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-concentration-curl-3",
+              "exercise": {
+                "id": "ms-dumbbell-concentration-curl-3",
+                "name": "Dumbbell Concentration Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-close-grip-bench-press-4",
+              "exercise": {
+                "id": "ms-close-grip-bench-press-4",
+                "name": "Close Grip Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-tricep-pushdown-5",
+              "exercise": {
+                "id": "ms-tricep-pushdown-5",
+                "name": "Tricep Pushdown",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-barbell-french-press-6",
+              "exercise": {
+                "id": "ms-barbell-french-press-6",
+                "name": "Barbell French Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-tricep-extension-7",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-tricep-extension-7",
+                "name": "One Arm Dumbbell Tricep Extension",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-barbell-press-8",
+              "exercise": {
+                "id": "ms-seated-barbell-press-8",
+                "name": "Seated Barbell Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-lateral-raise-9",
+              "exercise": {
+                "id": "ms-lateral-raise-9",
+                "name": "Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-rear-delt-lateral-raise-10",
+              "exercise": {
+                "id": "ms-rear-delt-lateral-raise-10",
+                "name": "Rear Delt Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-lateral-raise-11",
+              "exercise": {
+                "id": "ms-cable-lateral-raise-11",
+                "name": "Cable Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-calf-raise-12",
+              "exercise": {
+                "id": "ms-standing-calf-raise-12",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-13",
+              "exercise": {
+                "id": "ms-seated-calf-raise-13",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-14",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-14",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-15",
+              "exercise": {
+                "id": "ms-wrist-curl-15",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-16",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-16",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-17",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-17",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-18",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-18",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": [
+            "chest",
+            "back",
+            "legs"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-bench-press",
+              "exercise": {
+                "id": "ms-bench-press",
+                "name": "Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-flye-2",
+              "exercise": {
+                "id": "ms-dumbbell-flye-2",
+                "name": "Dumbbell Flye",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-incline-bench-press-3",
+              "exercise": {
+                "id": "ms-incline-bench-press-3",
+                "name": "Incline Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-crossovers-4",
+              "exercise": {
+                "id": "ms-cable-crossovers-4",
+                "name": "Cable Crossovers",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dips-5",
+              "exercise": {
+                "id": "ms-dips-5",
+                "name": "Dips",
+                "kind": "reps",
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5
+            },
+            {
+              "uid": "ms-dumbbell-pullover-6",
+              "exercise": {
+                "id": "ms-dumbbell-pullover-6",
+                "name": "Dumbbell Pullover",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-wide-grip-pull-up-7",
+              "exercise": {
+                "id": "ms-wide-grip-pull-up-7",
+                "name": "Wide Grip Pull Up",
+                "kind": "reps",
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6
+            },
+            {
+              "uid": "ms-t-bar-row-8",
+              "exercise": {
+                "id": "ms-t-bar-row-8",
+                "name": "T Bar Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-pulley-row-9",
+              "exercise": {
+                "id": "ms-seated-pulley-row-9",
+                "name": "Seated Pulley Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-row-10",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-row-10",
+                "name": "One Arm Dumbbell Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-stiff-leg-deadlift-11",
+              "exercise": {
+                "id": "ms-stiff-leg-deadlift-11",
+                "name": "Stiff Leg Deadlift",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 15
+            },
+            {
+              "uid": "ms-squat-12",
+              "exercise": {
+                "id": "ms-squat-12",
+                "name": "Squat",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-press-13",
+              "exercise": {
+                "id": "ms-leg-press-13",
+                "name": "Leg Press",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-extension-14",
+              "exercise": {
+                "id": "ms-leg-extension-14",
+                "name": "Leg Extension",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-leg-curl-15",
+              "exercise": {
+                "id": "ms-leg-curl-15",
+                "name": "Leg Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-barbell-lunge-16",
+              "exercise": {
+                "id": "ms-barbell-lunge-16",
+                "name": "Barbell Lunge",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 15
+            },
+            {
+              "uid": "ms-standing-calf-raise-17",
+              "exercise": {
+                "id": "ms-standing-calf-raise-17",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-18",
+              "exercise": {
+                "id": "ms-seated-calf-raise-18",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-19",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-19",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-20",
+              "exercise": {
+                "id": "ms-wrist-curl-20",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-21",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-21",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-22",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-22",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-23",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-23",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": [
+            "arms"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-barbell-curl",
+              "exercise": {
+                "id": "ms-barbell-curl",
+                "name": "Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-dumbbell-curl-2",
+              "exercise": {
+                "id": "ms-seated-dumbbell-curl-2",
+                "name": "Seated Dumbbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-concentration-curl-3",
+              "exercise": {
+                "id": "ms-dumbbell-concentration-curl-3",
+                "name": "Dumbbell Concentration Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-close-grip-bench-press-4",
+              "exercise": {
+                "id": "ms-close-grip-bench-press-4",
+                "name": "Close Grip Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-tricep-pushdown-5",
+              "exercise": {
+                "id": "ms-tricep-pushdown-5",
+                "name": "Tricep Pushdown",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-barbell-french-press-6",
+              "exercise": {
+                "id": "ms-barbell-french-press-6",
+                "name": "Barbell French Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-tricep-extension-7",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-tricep-extension-7",
+                "name": "One Arm Dumbbell Tricep Extension",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-barbell-press-8",
+              "exercise": {
+                "id": "ms-seated-barbell-press-8",
+                "name": "Seated Barbell Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-lateral-raise-9",
+              "exercise": {
+                "id": "ms-lateral-raise-9",
+                "name": "Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-rear-delt-lateral-raise-10",
+              "exercise": {
+                "id": "ms-rear-delt-lateral-raise-10",
+                "name": "Rear Delt Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-lateral-raise-11",
+              "exercise": {
+                "id": "ms-cable-lateral-raise-11",
+                "name": "Cable Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-calf-raise-12",
+              "exercise": {
+                "id": "ms-standing-calf-raise-12",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-13",
+              "exercise": {
+                "id": "ms-seated-calf-raise-13",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-14",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-14",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-15",
+              "exercise": {
+                "id": "ms-wrist-curl-15",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-16",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-16",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-17",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-17",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-18",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-18",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": [
+            "chest",
+            "back",
+            "legs"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-bench-press",
+              "exercise": {
+                "id": "ms-bench-press",
+                "name": "Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-flye-2",
+              "exercise": {
+                "id": "ms-dumbbell-flye-2",
+                "name": "Dumbbell Flye",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-incline-bench-press-3",
+              "exercise": {
+                "id": "ms-incline-bench-press-3",
+                "name": "Incline Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-crossovers-4",
+              "exercise": {
+                "id": "ms-cable-crossovers-4",
+                "name": "Cable Crossovers",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-dips-5",
+              "exercise": {
+                "id": "ms-dips-5",
+                "name": "Dips",
+                "kind": "reps",
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5
+            },
+            {
+              "uid": "ms-dumbbell-pullover-6",
+              "exercise": {
+                "id": "ms-dumbbell-pullover-6",
+                "name": "Dumbbell Pullover",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-wide-grip-pull-up-7",
+              "exercise": {
+                "id": "ms-wide-grip-pull-up-7",
+                "name": "Wide Grip Pull Up",
+                "kind": "reps",
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6
+            },
+            {
+              "uid": "ms-t-bar-row-8",
+              "exercise": {
+                "id": "ms-t-bar-row-8",
+                "name": "T Bar Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-pulley-row-9",
+              "exercise": {
+                "id": "ms-seated-pulley-row-9",
+                "name": "Seated Pulley Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-row-10",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-row-10",
+                "name": "One Arm Dumbbell Row",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-stiff-leg-deadlift-11",
+              "exercise": {
+                "id": "ms-stiff-leg-deadlift-11",
+                "name": "Stiff Leg Deadlift",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 15
+            },
+            {
+              "uid": "ms-squat-12",
+              "exercise": {
+                "id": "ms-squat-12",
+                "name": "Squat",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-press-13",
+              "exercise": {
+                "id": "ms-leg-press-13",
+                "name": "Leg Press",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 8
+            },
+            {
+              "uid": "ms-leg-extension-14",
+              "exercise": {
+                "id": "ms-leg-extension-14",
+                "name": "Leg Extension",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-leg-curl-15",
+              "exercise": {
+                "id": "ms-leg-curl-15",
+                "name": "Leg Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 10
+            },
+            {
+              "uid": "ms-barbell-lunge-16",
+              "exercise": {
+                "id": "ms-barbell-lunge-16",
+                "name": "Barbell Lunge",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 15
+            },
+            {
+              "uid": "ms-standing-calf-raise-17",
+              "exercise": {
+                "id": "ms-standing-calf-raise-17",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-18",
+              "exercise": {
+                "id": "ms-seated-calf-raise-18",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-19",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-19",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-20",
+              "exercise": {
+                "id": "ms-wrist-curl-20",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-21",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-21",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-22",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-22",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-23",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-23",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "chest",
+                  "back",
+                  "legs"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": [
+            "arms"
+          ],
+          "pinned": [
+            {
+              "uid": "ms-barbell-curl",
+              "exercise": {
+                "id": "ms-barbell-curl",
+                "name": "Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-dumbbell-curl-2",
+              "exercise": {
+                "id": "ms-seated-dumbbell-curl-2",
+                "name": "Seated Dumbbell Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-dumbbell-concentration-curl-3",
+              "exercise": {
+                "id": "ms-dumbbell-concentration-curl-3",
+                "name": "Dumbbell Concentration Curl",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-close-grip-bench-press-4",
+              "exercise": {
+                "id": "ms-close-grip-bench-press-4",
+                "name": "Close Grip Bench Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-tricep-pushdown-5",
+              "exercise": {
+                "id": "ms-tricep-pushdown-5",
+                "name": "Tricep Pushdown",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-barbell-french-press-6",
+              "exercise": {
+                "id": "ms-barbell-french-press-6",
+                "name": "Barbell French Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-one-arm-dumbbell-tricep-extension-7",
+              "exercise": {
+                "id": "ms-one-arm-dumbbell-tricep-extension-7",
+                "name": "One Arm Dumbbell Tricep Extension",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-seated-barbell-press-8",
+              "exercise": {
+                "id": "ms-seated-barbell-press-8",
+                "name": "Seated Barbell Press",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-lateral-raise-9",
+              "exercise": {
+                "id": "ms-lateral-raise-9",
+                "name": "Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 6
+            },
+            {
+              "uid": "ms-rear-delt-lateral-raise-10",
+              "exercise": {
+                "id": "ms-rear-delt-lateral-raise-10",
+                "name": "Rear Delt Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 6,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 6
+            },
+            {
+              "uid": "ms-cable-lateral-raise-11",
+              "exercise": {
+                "id": "ms-cable-lateral-raise-11",
+                "name": "Cable Lateral Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 5,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 5,
+              "reps": 10
+            },
+            {
+              "uid": "ms-standing-calf-raise-12",
+              "exercise": {
+                "id": "ms-standing-calf-raise-12",
+                "name": "Standing Calf Raise",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 10,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 10,
+              "reps": 10
+            },
+            {
+              "uid": "ms-seated-calf-raise-13",
+              "exercise": {
+                "id": "ms-seated-calf-raise-13",
+                "name": "Seated Calf Raise",
+                "kind": "reps",
+                "defaultReps": 15,
+                "defaultSets": 8,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 8,
+              "reps": 15
+            },
+            {
+              "uid": "ms-one-leg-dumbbell-calf-raise-14",
+              "exercise": {
+                "id": "ms-one-leg-dumbbell-calf-raise-14",
+                "name": "One Leg Dumbbell Calf Raise",
+                "kind": "reps",
+                "defaultReps": 12,
+                "defaultSets": 6,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 6,
+              "reps": 12
+            },
+            {
+              "uid": "ms-wrist-curl-15",
+              "exercise": {
+                "id": "ms-wrist-curl-15",
+                "name": "Wrist Curl",
+                "kind": "reps",
+                "defaultReps": 10,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 10
+            },
+            {
+              "uid": "ms-reverse-barbell-curl-16",
+              "exercise": {
+                "id": "ms-reverse-barbell-curl-16",
+                "name": "Reverse Barbell Curl",
+                "kind": "reps",
+                "defaultReps": 8,
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4,
+              "reps": 8
+            },
+            {
+              "uid": "ms-wrist-roller-machine-17",
+              "exercise": {
+                "id": "ms-wrist-roller-machine-17",
+                "name": "Wrist Roller Machine",
+                "kind": "reps",
+                "defaultSets": 4,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 4
+            },
+            {
+              "uid": "ms-non-stop-abs-training-18",
+              "exercise": {
+                "id": "ms-non-stop-abs-training-18",
+                "name": "Non-Stop Abs Training",
+                "kind": "reps",
+                "defaultSets": 30,
+                "met": 5,
+                "cue": "As written in the source program",
+                "restSeconds": 60,
+                "bodyParts": [
+                  "arms"
+                ],
+                "goals": [
+                  "muscle"
+                ],
+                "isCustom": true
+              },
+              "sets": 30
+            }
+          ]
+        },
+        {
+          "focus": []
+        }
+      ]
+    }
+  ]
+}

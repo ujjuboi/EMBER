@@ -50,6 +50,8 @@ export type StoreValue = AppState & {
   applyTrainerPlan: () => void
   beginTrainerReview: () => void
   backToTrainerPick: () => void
+  selectProgram: (id: string) => void
+  clearProgram: () => void
   finishWorkout: (input: {
     workoutId: string
     title: string

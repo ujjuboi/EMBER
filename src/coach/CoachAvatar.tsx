@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { durationFor, posesFor, sampleLoop, type Pose } from './poses'
+import { durationFor, hasPose, posesFor, sampleLoop, type Pose } from './poses'
 
 type Props = {
   exerciseId: string
@@ -25,6 +25,7 @@ export function CoachAvatar({
   hideFloor = false,
 }: Props) {
   const glowId = useId().replace(/:/g, '')
+  const hasAnimation = phase === 'rest' || phase === 'celebrate' || hasPose(exerciseId)
   const [pose, setPose] = useState<Pose>(() => posesFor(exerciseId, phase)[0] ?? sampleLoop(posesFor('idle', 'work'), 0))
   const startRef = useRef(0)
 
@@ -33,7 +34,7 @@ export function CoachAvatar({
   }, [exerciseId, phase])
 
   useEffect(() => {
-    if (!playing) return
+    if (!playing || !hasAnimation) return
     let frame = 0
     const tick = (now: number) => {
       const ms = durationFor(exerciseId, phase)
@@ -43,7 +44,9 @@ export function CoachAvatar({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [exerciseId, phase, playing])
+  }, [exerciseId, phase, playing, hasAnimation])
+
+  if (!hasAnimation) return null
 
   const p = pose
   const side = p.view === 'side'

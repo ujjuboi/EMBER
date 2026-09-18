@@ -991,6 +991,11 @@ export function posesFor(exerciseId: string, phase: 'work' | 'rest' | 'celebrate
   return POSE_LOOPS[exerciseId] ?? POSE_LOOPS.idle ?? [idle]
 }
 
+// Whether a workout animation loop exists for this exercise (work phase).
+export function hasPose(exerciseId: string): boolean {
+  return Boolean(POSE_LOOPS[exerciseId])
+}
+
 export function durationFor(exerciseId: string, phase: 'work' | 'rest' | 'celebrate'): number {
   if (phase === 'rest') return LOOP_MS.rest ?? 2200
   if (phase === 'celebrate') return LOOP_MS.celebrate ?? 700

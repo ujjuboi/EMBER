@@ -1,15 +1,16 @@
 import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from 'react'
-import { bodyPartForDay, toggleEquipment, type Equipment } from '../data/exercises'
+import { bodyPartForDay, toggleEquipment, type BodyPart, type Equipment, type TrainerGoal } from '../data/exercises'
+import { programDayForDate, programDaySlot, programWeek, programById } from '../data/programs'
 import { dateLabel, isoDate, streakFromDates } from './dates'
 import { derivePartner } from './partner'
 import { generateSalt, hashPassword } from './password'
-import { suggestSession } from './trainer'
+import { advanceProgression, initialProgression, suggestDay, suggestSession } from './trainer'
 import { backupFilename, parseBackup, readTextFile, serializeBackup, shareOrDownload } from './backup'
-import type { AppState, HistoryItem, Partner, SessionProgress, Workout } from './types'
-import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
-import { normalizePairingCode, publicKeyFingerprint } from './pairing'
 import { StoreContext, type StoreValue } from './store-hooks'
 import { requestPersistentStorage } from './persist'
+import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
+import { normalizePairingCode, publicKeyFingerprint } from './pairing'
+import type { AppState, HistoryItem, Partner, PlannedExercise, SessionProgress, TrainerProgram, Workout } from './types'
 import * as db from './db'
 
 function blankPartner(): Partner {
@@ -47,6 +48,8 @@ const seedState = (): AppState => ({
   trainerDay: new Date().getDay(),
   trainerBodyPart: bodyPartForDay(new Date().getDay()),
   trainerGoal: 'strength',
+  program: null,
+  progression: initialProgression(),
   toast: null,
 })
 
@@ -83,7 +86,7 @@ function generateRecoveryCode(): string {
 }
 
 async function signInState(email: string): Promise<AppState> {
-  const [profile, history, plan, partnerData, activeWorkout, customExercises, pairing] = await Promise.all([
+  const [profile, history, plan, partnerData, activeWorkout, customExercises, pairing, programData] = await Promise.all([
     db.loadProfile(email),
     db.loadHistory(email),
     db.loadPlan(email),
@@ -91,9 +94,10 @@ async function signInState(email: string): Promise<AppState> {
     db.loadWorkoutInProgress(email),
     db.loadCustomExercises(email),
     db.loadPairing(email),
+    db.loadProgram(email),
   ])
   const totals = workoutTotalsFromHistory(history)
-  return {
+  const next: AppState = {
     signedIn: true,
     accountEmail: email,
     onboarded: profile.onboarded,
@@ -124,8 +128,29 @@ async function signInState(email: string): Promise<AppState> {
     trainerDay: profile.trainerDay,
     trainerBodyPart: profile.trainerBodyPart,
     trainerGoal: profile.trainerGoal,
+    program: programData.program,
+    progression: programData.progression,
     toast: null,
   }
+  // An active program drives today's session: calendar row -> focus/plan.
+  if (programData.program?.start) {
+    const program = programData.program
+    const day = programDayForDate(program)
+    next.trainerGoal = program.goal
+    next.trainerDay = new Date().getDay()
+    next.trainerBodyPart = day.focus[0] ?? profile.trainerBodyPart
+    if (!activeWorkout) {
+      next.plan = day.rest
+        ? []
+        : suggestDay(day.focus, program.goal, next.equipment, {
+            pinned: programDaySlot(program).pinned,
+            loads: next.progression.loads,
+          })
+      next.planSource = 'trainer'
+      next.trainerPhase = 'review'
+    }
+  }
+  return next
 }
 
 async function loadInitialState(): Promise<AppState> {
@@ -192,6 +217,11 @@ function persistPlan(s: AppState): Promise<void> {
   return db.savePlan(s.accountEmail, s.plan)
 }
 
+function persistProgram(s: AppState): Promise<void> {
+  if (!s.accountEmail) return Promise.resolve()
+  return db.saveProgram(s.accountEmail, s.program, s.progression)
+}
+
 function persistCustomExercises(s: AppState): Promise<void> {
   if (!s.accountEmail) return Promise.resolve()
   return db.saveCustomExercises(s.accountEmail, s.customExercises)
@@ -223,11 +253,60 @@ function persistWorkout(s: AppState): Promise<void> {
 
 function applyEquipment(s: AppState, equipment: Equipment[]): AppState {
   const next: AppState = { ...s, equipment }
-  if (s.trainerPhase === 'review') {
-    next.plan = suggestSession(s.trainerBodyPart, s.trainerGoal, equipment)
+  if (s.trainerPhase !== 'review') return next
+  if (s.program?.start) {
+    const day = programDayForDate(s.program)
+    next.plan = day.rest
+      ? []
+      : suggestDay(day.focus, s.program.goal, equipment, {
+          pinned: programDaySlot(s.program).pinned,
+          loads: s.progression.loads,
+        })
     next.planSource = 'trainer'
+    return next
   }
+  next.plan = suggestSession(s.trainerBodyPart, s.trainerGoal, equipment)
+  next.planSource = 'trainer'
   return next
+}
+
+// Today's session when a program is active: rest days yield an empty plan.
+function programDayPlan(s: AppState): { plan: PlannedExercise[]; focus: BodyPart[] } | null {
+  if (!s.program?.start) return null
+  const day = programDayForDate(s.program)
+  if (day.rest) return { plan: [], focus: [] }
+  return {
+    focus: day.focus,
+    plan: suggestDay(day.focus, s.program.goal, s.equipment, {
+      pinned: programDaySlot(s.program).pinned,
+      loads: s.progression.loads,
+    }),
+  }
+}
+
+function programAwareNext(s: AppState, patch: { bodyPart?: BodyPart; goal?: TrainerGoal }): AppState {
+  const today = programDayPlan(s)
+  if (!today) {
+    const bodyPart = patch.bodyPart ?? s.trainerBodyPart
+    const goal = patch.goal ?? s.trainerGoal
+    return {
+      ...s,
+      trainerBodyPart: bodyPart,
+      trainerGoal: goal,
+      plan: suggestSession(bodyPart, goal, s.equipment),
+      planSource: 'trainer',
+      trainerPhase: 'review',
+    }
+  }
+  return {
+    ...s,
+    plan: today.plan,
+    planSource: 'trainer',
+    trainerPhase: 'review',
+    trainerBodyPart: today.focus[0] ?? (patch.bodyPart ?? s.trainerBodyPart),
+    trainerGoal: s.program?.goal ?? (patch.goal ?? s.trainerGoal),
+    trainerDay: new Date().getDay(),
+  }
 }
 
 const COMMIT_DEBOUNCE_MS = 400
@@ -275,6 +354,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       persistProfile(next),
       persistHistory(next),
       persistPlan(next),
+      persistProgram(next),
       persistCustomExercises(next),
       persistPartnerLinked(next),
       persistPartnerData(next),
@@ -509,8 +589,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           trainerGoal: trainerGoal ?? s.trainerGoal,
         }
         if (s.trainerPhase === 'review' && (equipment ?? s.equipment).length > 0) {
-          next.plan = suggestSession(s.trainerBodyPart, next.trainerGoal, next.equipment)
-          next.planSource = 'trainer'
+          if (s.program?.start) {
+            const day = programDayForDate(s.program)
+            next.plan = day.rest
+              ? []
+              : suggestDay(day.focus, s.program.goal, next.equipment, {
+                  pinned: programDaySlot(s.program).pinned,
+                  loads: next.progression.loads,
+                })
+            next.planSource = 'trainer'
+          } else {
+            next.plan = suggestSession(next.trainerBodyPart, next.trainerGoal, next.equipment)
+            next.planSource = 'trainer'
+          }
         }
         commit(next)
         notifySyncChanged()
@@ -653,16 +744,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       loadWorkoutSets: (workoutId) => db.loadWorkoutSets(workoutId),
       setTrainerFocus: ({ bodyPart, goal }) => {
         const s = current()
-        commit({
-          ...s,
-          trainerBodyPart: bodyPart,
-          trainerGoal: goal,
-          plan: suggestSession(bodyPart, goal, s.equipment),
-          planSource: 'trainer',
-        })
+        commit(programAwareNext(s, { bodyPart, goal }))
       },
       setTrainerDay: (day) => {
         const s = current()
+        if (s.program?.start) {
+          commit(programAwareNext(s, {}))
+          return
+        }
         const bodyPart = bodyPartForDay(day)
         const next: AppState = {
           ...s,
@@ -677,20 +766,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       applyTrainerPlan: () => {
         const s = current()
-        commit({
-          ...s,
-          plan: suggestSession(s.trainerBodyPart, s.trainerGoal, s.equipment),
-          planSource: 'trainer',
-        })
+        commit(programAwareNext(s, { bodyPart: s.trainerBodyPart, goal: s.trainerGoal }))
       },
       beginTrainerReview: () => {
         const s = current()
-        commit({
-          ...s,
-          plan: suggestSession(s.trainerBodyPart, s.trainerGoal, s.equipment),
-          planSource: 'trainer',
-          trainerPhase: 'review',
-        })
+        commit(programAwareNext(s, { bodyPart: s.trainerBodyPart, goal: s.trainerGoal }))
+      },
+      selectProgram: (id) => {
+        const s = current()
+        if (s.workoutInProgress) return
+        const preset = programById(id)
+        if (!preset) return
+        const program: TrainerProgram = {
+          id: preset.id,
+          name: preset.name,
+          goal: preset.goal,
+          start: isoDate(),
+          template: preset.template,
+        }
+        const progressed: AppState = { ...s, program, progression: initialProgression() }
+        commit(programAwareNext(progressed, { bodyPart: progressed.trainerBodyPart, goal: preset.goal }), { immediate: true })
+      },
+      clearProgram: () => {
+        const s = current()
+        commit(
+          {
+            ...s,
+            program: null,
+            progression: initialProgression(),
+            plan: [],
+            planSource: 'trainer',
+            trainerPhase: s.workoutInProgress ? s.trainerPhase : 'pick',
+            trainerBodyPart: bodyPartForDay(new Date().getDay()),
+            trainerDay: new Date().getDay(),
+          },
+          { immediate: true },
+        )
       },
       backToTrainerPick: () => {
         const s = current()
@@ -733,7 +844,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             console.error('[Store] finishWorkout persist failed:', err)
           }
         })()
-        commit({
+        let next: AppState = {
           ...s,
           calories: totals.calories,
           steps: totals.steps,
@@ -744,7 +855,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           plan: [],
           planSource: 'trainer',
           trainerPhase: 'pick',
-        }, { immediate: true })
+        }
+        if (s.program?.start) {
+          const day = programDayForDate(s.program, date)
+          if (!day.rest) {
+            next = {
+              ...next,
+              progression: advanceProgression(
+                s.progression,
+                s.program.goal,
+                date,
+                s.workingWorkout?.exercises ?? s.plan,
+                workoutSets,
+                programWeek(s.program, date),
+              ),
+            }
+          }
+        }
+        commit(next, { immediate: true })
         notifySyncChanged()
       },
       logRestDay: () => {

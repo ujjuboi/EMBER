@@ -7,15 +7,33 @@ import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { Section } from '../../components/ui/Section'
-import { TRAINER_GOALS, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
+import { TRAINER_GOALS, normalizeTrainerGoal, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
+import { EXTERNAL_PROGRAMS, programById } from '../../data/programs'
 import { parseBackup, readTextFile } from '../../lib/backup'
 import { partnersSinceLabel } from '../../lib/dates'
 import { isStoragePersisted, requestPersistentStorage } from '../../lib/persist'
 import { useStore } from '../../lib/store-hooks'
+import type { TrainerProgram } from '../../lib/types'
 import { KitChips } from '../trainer/KitChips'
 
 function sameKit(a: Equipment[], b: Equipment[]) {
   return a.length === b.length && a.every((id) => b.includes(id))
+}
+
+type GoalPick = { kind: 'goal'; goal: TrainerGoal } | { kind: 'program'; id: string }
+
+function pickFor(program: TrainerProgram | null, trainerGoal: TrainerGoal): GoalPick {
+  if (program && EXTERNAL_PROGRAMS.some((preset) => preset.id === program.id)) {
+    return { kind: 'program', id: program.id }
+  }
+  return { kind: 'goal', goal: program ? normalizeTrainerGoal(program.id) : trainerGoal }
+}
+
+function pickEqual(a: GoalPick, b: GoalPick): boolean {
+  if (a.kind !== b.kind) return false
+  if (a.kind === 'goal' && b.kind === 'goal') return a.goal === b.goal
+  if (a.kind === 'program' && b.kind === 'program') return a.id === b.id
+  return false
 }
 
 export function YouPage() {
@@ -32,19 +50,22 @@ export function YouPage() {
     partnerLinked,
     partnerSince,
     partner,
+    program,
     updateProfile,
     unlinkPartner,
     signOut,
     exportData,
     importData,
     generateRecoveryCode,
+    selectProgram,
+    clearProgram,
     showToast,
   } = useStore()
   const [weight, setWeight] = useState(String(weightKg))
   const [feet, setFeet] = useState(String(heightFt))
   const [inches, setInches] = useState(String(heightIn))
   const [goal, setGoal] = useState(String(stepGoal))
-  const [focus, setFocus] = useState<TrainerGoal>(trainerGoal)
+  const [goalPick, setGoalPick] = useState<GoalPick>(() => pickFor(program, trainerGoal))
   const [kit, setKit] = useState<Equipment[]>(equipment)
   const [error, setError] = useState('')
   const [unlinkOpen, setUnlinkOpen] = useState(false)
@@ -111,7 +132,7 @@ export function YouPage() {
     feet !== String(heightFt) ||
     inches !== String(heightIn) ||
     goal !== String(stepGoal) ||
-    focus !== trainerGoal ||
+    !pickEqual(goalPick, pickFor(program, trainerGoal)) ||
     !sameKit(kit, equipment)
 
   const heightError =
@@ -138,14 +159,20 @@ export function YouPage() {
       setError('Pick at least one piece of equipment')
       return
     }
+    const pickGoal: TrainerGoal = goalPick.kind === 'goal' ? goalPick.goal : programById(goalPick.id)?.goal ?? 'general'
     updateProfile({
       weightKg: weightNum,
       heightFt: height.heightFt,
       heightIn: height.heightIn,
       stepGoal: goalNum,
-      trainerGoal: focus,
+      trainerGoal: pickGoal,
       equipment: kit,
     })
+    if (goalPick.kind === 'program') {
+      if (program?.id !== goalPick.id) selectProgram(goalPick.id)
+    } else if (program) {
+      clearProgram()
+    }
     setError('')
   }
 
@@ -170,7 +197,19 @@ export function YouPage() {
         </Section>
 
         <Section title="Goal">
-          <ChipRow options={TRAINER_GOALS} value={focus} onSelect={setFocus} />
+          <ChipRow
+            options={TRAINER_GOALS}
+            value={goalPick.kind === 'goal' ? goalPick.goal : ''}
+            onSelect={(goal: TrainerGoal) => setGoalPick({ kind: 'goal', goal })}
+          />
+          <div className="mt-4">
+            <ChipRow
+              label="Custom programs"
+              options={EXTERNAL_PROGRAMS.map((preset) => ({ id: preset.id, label: preset.name }))}
+              value={goalPick.kind === 'program' ? goalPick.id : ''}
+              onSelect={(id) => setGoalPick({ kind: 'program', id })}
+            />
+          </div>
         </Section>
 
         <Section title="Equipment" error={error.includes('equipment') ? error : undefined}>

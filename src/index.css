@@ -115,3 +115,25 @@ textarea {
   animation: pixel-bob 2.4s ease-in-out infinite;
   animation-delay: 0.4s;
 }
+
+@keyframes ember-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  display: inline-flex;
+  will-change: transform;
+  animation: ember-marquee 12s linear infinite;
+}
+
+.marquee-item::after {
+  content: '•';
+  display: inline-block;
+  margin: 0 0.75rem;
+  opacity: 0.55;
+}

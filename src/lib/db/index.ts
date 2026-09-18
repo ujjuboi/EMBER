@@ -2,13 +2,14 @@ import { Capacitor } from '@capacitor/core'
 import { CapacitorSQLite } from '@capacitor-community/sqlite'
 import type {
   BackupPairing, EmberBackup, HistoryItem, Partner, PartnerActivity, PlannedExercise, PlanSource, SessionProgress, TrainerPhase,
-  Workout, WorkoutSet,
+  TrainerProgram, ProgramProgression, Workout, WorkoutSet,
 } from '../types'
 import { derivePartner } from '../partner'
 import type { BodyPart, Equipment, TrainerGoal } from '../../data/exercises'
 import type { Exercise } from '../../data/exercises'
 import { isoDate } from '../dates'
 import { generateSalt, hashPassword, verify as verifyPassword } from '../password'
+import { initialProgression } from '../trainer'
 
 const DB_NAME = 'ember_db'
 
@@ -83,9 +84,9 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-// --- Schema (version 7) ---
+// --- Schema (version 8) ---
 
-const SCHEMA_VERSION = 7
+const SCHEMA_VERSION = 8
 
 const WORKOUT_TABLE = `CREATE TABLE IF NOT EXISTS workout (
   id TEXT PRIMARY KEY,
@@ -146,6 +147,17 @@ const PAIRING_TABLE = `CREATE TABLE IF NOT EXISTS pairing (
   mutual INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+)`
+
+// One active program per account (the selected preset + its start/progression).
+const PROGRAM_TABLE = `CREATE TABLE IF NOT EXISTS program (
+  account_email TEXT PRIMARY KEY,
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  start TEXT,
+  template TEXT NOT NULL,
+  progression TEXT NOT NULL
 )`
 
 async function getSchemaVersion(): Promise<number> {
@@ -264,6 +276,7 @@ async function createSchema(): Promise<void> {
       WORKOUT_TABLE,
       WORKOUT_SET_TABLE,
       CUSTOM_EXERCISE_TABLE,
+      PROGRAM_TABLE,
       PLAN_INDEX,
       WORKOUT_SET_INDEX,
     ]
@@ -300,6 +313,10 @@ async function createSchema(): Promise<void> {
 
   if (version < 7) {
     await migrateV6toV7()
+  }
+
+  if (version < 8) {
+    await migrateV7toV8()
   }
 
   await setSchemaVersion(SCHEMA_VERSION)
@@ -389,6 +406,12 @@ async function migrateV6toV7(): Promise<void> {
       })
     }
   }
+}
+
+// v7 -> v8. Adds the per-account `program` table (selected program preset +
+// start/progression). Data-preserving.
+async function migrateV7toV8(): Promise<void> {
+  await CapacitorSQLite.execute({ database: DB_NAME, statements: PROGRAM_TABLE })
 }
 
 export async function accountExists(email: string): Promise<boolean> {
@@ -1009,6 +1032,68 @@ export async function savePlan(accountEmail: string, plan: PlannedExercise[], fo
   })
 }
 
+// --- Program ---
+
+export type ProgramRow = {
+  program: TrainerProgram | null
+  progression: ProgramProgression
+}
+
+export async function loadProgram(accountEmail: string): Promise<ProgramRow> {
+  const result = await CapacitorSQLite.query({
+    database: DB_NAME,
+    statement: 'SELECT * FROM program WHERE account_email = ?',
+    values: [accountEmail],
+  })
+  const rows = result.values as Record<string, unknown>[] | undefined
+  if (!rows || rows.length === 0) return { program: null, progression: initialProgression() }
+  const row = rows[0]
+  const program: TrainerProgram = {
+    id: String(row.id),
+    name: String(row.name),
+    goal: String(row.goal) as TrainerGoal,
+    start: row.start ? String(row.start) : null,
+    template: JSON.parse(String(row.template)),
+  }
+  return {
+    program,
+    progression: JSON.parse(String(row.progression)) as ProgramProgression,
+  }
+}
+
+// Passing a null program clears the active program row for the account.
+export async function saveProgram(
+  accountEmail: string,
+  program: TrainerProgram | null,
+  progression: ProgramProgression,
+): Promise<void> {
+  return enqueue(async () => {
+    if (!program) {
+      await CapacitorSQLite.run({
+        database: DB_NAME,
+        statement: 'DELETE FROM program WHERE account_email = ?',
+        values: [accountEmail],
+      })
+      return
+    }
+    await CapacitorSQLite.run({
+      database: DB_NAME,
+      statement: `INSERT OR REPLACE INTO program
+        (account_email, id, name, goal, start, template, progression)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      values: [
+        accountEmail,
+        program.id,
+        program.name,
+        program.goal,
+        program.start,
+        JSON.stringify(program.template),
+        JSON.stringify(progression),
+      ],
+    })
+  })
+}
+
 // --- Partner ---
 
 function partnerInsertStatement(accountEmail: string): { statement: string; values: unknown[] } {
@@ -1300,6 +1385,8 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     loadPairing(accountEmail),
   ])
 
+  const programRow = await loadProgram(accountEmail)
+
   return {
     app: 'ember',
     schema: SCHEMA_VERSION,
@@ -1327,6 +1414,7 @@ export async function exportAccount(accountEmail: string): Promise<EmberBackup> 
     profile,
     history,
     plan: Array.from(planByDate.entries()).map(([forDate, items]) => ({ forDate, items })),
+    program: programRow.program ? programRow : null,
     partner: partnerData.partner,
     partnerLinked: partnerData.partnerLinked,
     partnerSince: partnerData.partnerSince,
@@ -1370,11 +1458,29 @@ function replaceAccountStatements(backup: EmberBackup, email: string): { stateme
     { statement: 'DELETE FROM history WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM partner WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM pairing WHERE account_email = ?', values: [email] },
+    { statement: 'DELETE FROM program WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM profile WHERE account_email = ?', values: [email] },
     { statement: 'DELETE FROM custom_exercise WHERE account_email = ?', values: [email] },
     profileInsertStatement(email, backup.profile),
     partnerInsertFullStatement(email, backup.partner, backup.partnerLinked, backup.partnerSince),
     ...(backup.pairing ? [pairingInsertStatement(email, backup.pairing)] : []),
+    ...(backup.program?.program
+      ? [
+          {
+            statement: `INSERT INTO program (account_email, id, name, goal, start, template, progression)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            values: [
+              email,
+              backup.program.program.id,
+              backup.program.program.name,
+              backup.program.program.goal,
+              backup.program.program.start,
+              JSON.stringify(backup.program.program.template),
+              JSON.stringify(backup.program.progression),
+            ],
+          },
+        ]
+      : []),
     ...backup.history.map((item) => historyInsertStatement(email, item)),
     ...(backup.customExercises ?? []).map((exercise) => customExerciseInsertStatement(email, exercise)),
     ...planStatements,
