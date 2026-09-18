@@ -1,42 +1,35 @@
 // Extract SVG-coach pose loops from dataset GIFs (scripts/extract-poses.mjs)
 //
 //   npm run poses            # --core: bodyweight/dumbbell/bench/bands/pullup/tubes + cardio
-//   npm run poses -- --all   # full 1,304 (long-running, best-effort)
+//   npm run poses -- --all   # full set (long-running, best-effort)
 //   npm run poses -- --only ds-0001 ds-0043   # specific exercises
 //   npm run poses -- --limit 5                # first N of the selected set
+//   npm run poses -- --model lite             # torque blazePose accuracy tier
+//   npm run poses -- --workers 6              # parallel CPUs (default 4)
 //
-// Mirrors the plan: decode each GIF to frames (sharp), run MoveNet
-// (tfjs-node + @tensorflow-models/pose-detection, model downloaded on first
-// run), map the 17 keypoints onto the app's Pose model, auto-detect side/front,
-// project into the 200×260 viewBox, sample ~8 keyframes, and write one file per
-// exercise under src/coach/poses/generated/. Any missing/failed pose falls back
-// to the idle loop at runtime.
+// Mirrors the plan: decode each GIF to frames (sharp), run BlazePose 33-landmark
+// detection (worker pool on the CPU backend — BlazePose preprocessing needs the
+// Transform kernel the tfjs-node backend lacks), then retarget the detections
+// onto a fixed human-proportioned skeleton via scripts/skeleton.mjs — gated,
+// gap-filled, fixed bone lengths, grounded feet, strictly in-bounds. ~8
+// keyframes per exercise are written to src/coach/poses/generated/. Any
+// missing/failed pose falls back to the idle loop at runtime.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import util from 'node:util'
+import { Worker } from 'node:worker_threads'
+import os from 'node:os'
 import path from 'node:path'
 import sharp from 'sharp'
-
-// tfjs-node 4.x still calls util.isNullOrUndefined, removed in newer Node.
-util.isNullOrUndefined ??= (v) => v === null || v === undefined
-
-const tf = await import('@tensorflow/tfjs-node')
-const poseDetection = await import('@tensorflow-models/pose-detection')
-await tf.ready()
+import { fillDetections, buildRetargeted, sanityCheck, VIEWBOX_W, VIEWBOX_H } from './skeleton.mjs'
 
 const RAW_URL = 'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main'
 const RAW_JSON_URL = `${RAW_URL}/data/exercises.json`
 const INGESTED = fileURLToPath(new URL('../src/data/ingested/exercises.json', import.meta.url))
 const OUT_DIR = fileURLToPath(new URL('../src/coach/poses/generated', import.meta.url))
 
-const VIEWBOX_W = 200
-const VIEWBOX_H = 260
-const FLOOR_Y = 232 // just above the floor line CoachAvatar draws at y=246
 const MAX_FRAMES = 30
 const SAMPLE_FRAMES = 8
-const MIN_SCORE = 0.35
-const POINT_MIN_SCORE = 0.3
 
 const CORE_KIT = new Set(['bodyweight', 'dumbbells', 'bands', 'bench', 'pullup', 'tubes'])
 
@@ -49,6 +42,8 @@ const opts = {
   limit: Number(arg('--limit') || 0),
   only: process.argv.includes('--only') ? process.argv.slice(process.argv.indexOf('--only') + 1).filter((a) => a.startsWith('ds-')) : [],
   core: !process.argv.includes('--all') && !process.argv.includes('--only'),
+  model: arg('--model') ?? 'full', // BlazePose tier: lite | full | heavy
+  workers: Math.min(Number(arg('--workers') || 4), Math.max(4, os.availableParallelism?.() ?? 4)),
 }
 
 function isCore(record) {
@@ -60,95 +55,6 @@ function isCore(record) {
     (record.bodyParts ?? []).includes('core')
   ) return true
   return false
-}
-
-const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
-
-function frameScore(frame) {
-  const m = Object.fromEntries(frame.keypoints.map((kp) => [kp.name, kp]))
-  const needed = [
-    'nose', 'left_shoulder', 'right_shoulder', 'left_hip', 'right_hip',
-    'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist',
-    'left_knee', 'right_knee', 'left_ankle', 'right_ankle',
-  ]
-  const scores = needed.map((name) => m[name]?.score ?? 0)
-  return scores.reduce((a, b) => a + b, 0) / scores.length
-}
-
-function detectView(m) {
-  const s = m.left_shoulder; const r = m.right_shoulder
-  const lh = m.left_hip; const rh = m.right_hip
-  if (!s || !r || !lh || !rh) return 'side'
-  const shoulderMid = mid(s, r)
-  const hipMid = mid(lh, rh)
-  const torsoH = Math.hypot(hipMid.x - shoulderMid.x, hipMid.y - shoulderMid.y) || 1
-  const spread = Math.max(Math.abs(s.x - r.x), Math.abs(lh.x - rh.x))
-  return spread / torsoH > 0.5 ? 'front' : 'side'
-}
-
-function detectFacing(m) {
-  const s = m.left_shoulder; const r = m.right_shoulder
-  const nose = m.nose
-  if (!s || !r || !nose) return null
-  const midX = (s.x + r.x) / 2
-  return nose.x < midX ? 'left' : 'right' // nose toward viewer-left ⇒ figure faces left
-}
-
-function projectFrames(frames) {
-  const usable = frames.filter((frame) => frameScore(frame) >= MIN_SCORE)
-  if (usable.length === 0) return null
-  const anchor = usable.reduce((a, b) => (frameScore(a) >= frameScore(b) ? a : b))
-  const anchorMap = Object.fromEntries(anchor.keypoints.map((kp) => [kp.name, kp]))
-  const view = detectView(anchorMap)
-  const facing = view === 'side' ? detectFacing(anchorMap) : null
-
-  const kps = usable.flatMap((frame) => frame.keypoints.filter((kp) => (kp.score ?? 0) >= POINT_MIN_SCORE))
-  if (kps.length === 0) return null
-  const minX = Math.min(...kps.map((p) => p.x))
-  const maxX = Math.max(...kps.map((p) => p.x))
-  const minY = Math.min(...kps.map((p) => p.y))
-  const maxY = Math.max(...kps.map((p) => p.y))
-  const w = maxX - minX || 1
-  const h = maxY - minY || 1
-  const scale = Math.min((VIEWBOX_W - 16) / w, (VIEWBOX_H - 56) / h)
-  const offsetX = VIEWBOX_W / 2 - (scale * (minX + maxX)) / 2
-  const offsetY = FLOOR_Y - scale * maxY
-
-  const project = (p) => {
-    let x = p.x * scale + offsetX
-    if (facing === 'left') x = VIEWBOX_W - x
-    return { x: Math.round(x), y: Math.round(p.y * scale + offsetY) }
-  }
-
-  const poses = []
-  for (const frame of frames) {
-    const m = Object.fromEntries(frame.keypoints.map((kp) => [kp.name, kp]))
-    const s = m.left_shoulder; const r = m.right_shoulder
-    const lh = m.left_hip; const rh = m.right_hip
-    if (!s || !r || !lh || !rh) continue
-    const neck = mid(s, r)
-    const hip = mid(lh, rh)
-    poses.push({
-      view,
-      head: project(m.nose ?? neck),
-      neck: project(neck),
-      lShoulder: project(s),
-      rShoulder: project(r),
-      lElbow: project(m.left_elbow ?? s),
-      rElbow: project(m.right_elbow ?? r),
-      lWrist: project(m.left_wrist ?? s),
-      rWrist: project(m.right_wrist ?? r),
-      hip: project(hip),
-      lHip: project(lh),
-      rHip: project(rh),
-      lKnee: project(m.left_knee ?? lh),
-      rKnee: project(m.right_knee ?? rh),
-      lAnkle: project(m.left_ankle ?? lh),
-      rAnkle: project(m.right_ankle ?? rh),
-    })
-  }
-  if (poses.length === 0) return null
-  return { view, frames: poses }
 }
 
 function sampleEvenly(poses, n) {
@@ -182,32 +88,83 @@ async function decodeRaw(buf) {
   return chunks
 }
 
-// MoveNet keypoints are backed by the inference tensor's memory — snapshot them
-// into plain {name,x,y,score} objects before the tensor is disposed, and only
-// then free the tensor.
-async function runMoveNet(chunks) {
-  const results = []
-  for (const chunk of chunks) {
-    const tensor = tf.tensor3d(new Uint8Array(chunk.data), [chunk.height, chunk.width, chunk.channels])
-    try {
-      const poses = await detector.estimatePoses(tensor)
-      const det = poses[0]
-      if (!det) {
-        results.push(null)
-        continue
-      }
-      const keypoints = det.keypoints.map((kp) => ({
-        name: kp.name,
-        x: Number(kp.x),
-        y: Number(kp.y),
-        score: Number(kp.score ?? 0),
-      }))
-      results.push({ keypoints })
-    } finally {
-      tensor.dispose()
+// Worker pool wrapping scripts/pose-worker.mjs (one BlazePose detector per
+// worker, CPU backend). Chunk ArrayBuffers are transferred to workers to avoid
+// copies; a simple FIFO keeps all workers busy across exercises.
+class PosePool {
+  constructor(size, modelType) {
+    this.size = size
+    this.queue = []
+    this.idle = []
+    this.seq = 0
+    this.pending = new Map()
+    this.workers = []
+    for (let i = 0; i < size; i += 1) this.workers.push(this.spawn(modelType))
+  }
+
+  spawn(modelType) {
+    const worker = new Worker(new URL('./pose-worker.mjs', import.meta.url), {
+      workerData: { modelType },
+    })
+    this.idle.push(worker)
+    worker.on('message', ({ id, frames }) => {
+      const pending = this.pending.get(id)
+      if (!pending) return
+      this.pending.delete(id)
+      this.idle.push(worker)
+      this.pump()
+      pending.resolve(frames)
+    })
+    worker.on('error', (err) => {
+      const pending = this.pending.get(this.idle.length) ?? this.pending.values().next().value
+      this.pending.delete(pending?.id ?? this.seq)
+      if (pending) pending.reject(err)
+    })
+    worker.on('exit', () => {
+      // The main() error handler turns an unexpected exit into a clear failure.
+    })
+    return worker
+  }
+
+  pump() {
+    while (this.queue.length > 0 && this.idle.length > 0) {
+      const worker = this.idle.shift()
+      const job = this.queue.shift()
+      this.pending.set(job.id, job)
+      const copies = job.chunks.map((c) => Buffer.from(c.data))
+      worker.postMessage(
+        {
+          id: job.id,
+          chunks: copies.map((buf, i) => ({ data: buf, width: job.chunks[i].width, height: job.chunks[i].height, channels: job.chunks[i].channels })),
+        },
+        copies.map((buf) => buf.buffer),
+      )
     }
   }
-  return results
+
+  run(chunks) {
+    const id = ++this.seq
+    return new Promise((resolve, reject) => {
+      this.queue.push({ id, chunks, resolve, reject })
+      this.pump()
+    })
+  }
+
+  async dispose() {
+    await Promise.all(this.workers.map((w) => new Promise((res) => w.once('exit', res) && w.terminate())))
+  }
+}
+
+let pool
+
+async function runPose(chunks) {
+  return pool.run(chunks)
+}
+
+function frameReport(clip) {
+  const total = clip.frames.length * 15
+  const clamped = clip.frames.reduce((sum, f) => sum + f.clamped, 0)
+  return `ok${clamped > 0 ? ` (clamped ${clamped}/${total})` : ''}`
 }
 
 async function processExercise(record) {
@@ -218,23 +175,28 @@ async function processExercise(record) {
   const buf = Buffer.from(await res.arrayBuffer())
   const chunks = await decodeRaw(buf)
   if (chunks.length < 2) return 'frames-too-few'
-  const detections = await runMoveNet(chunks)
-  const frames = detections.filter(Boolean)
-  const projected = projectFrames(frames)
-  if (!projected || projected.frames.length === 0) return 'no-pose'
-  const loopMs = projected.frames.length > 1 ? 1400 : 2200
+
+  const detections = await runPose(chunks)
+  const filled = fillDetections(detections)
+  if (!filled) return 'no-pose'
+  const clip = buildRetargeted(filled)
+  if (!clip) return 'no-pose'
+
+  const reason = sanityCheck(clip)
+  if (reason) return reason
+
+  const loopMs = clip.frames.length > 1 ? 1400 : 2200
   const file = {
     id: record.id,
     name: record.name,
-    view: projected.view,
+    view: clip.view,
     loopMs,
-    frames: sampleEvenly(projected.frames, SAMPLE_FRAMES),
+    frames: sampleEvenly(clip.frames.map((f) => f.frame), SAMPLE_FRAMES),
   }
   await writeFile(path.join(OUT_DIR, `${record.id}.json`), `${JSON.stringify(file)}\n`, 'utf8')
-  return 'ok'
+  return frameReport(clip)
 }
 
-let detector
 let rawGif = new Map()
 
 async function main() {
@@ -254,25 +216,28 @@ async function main() {
   if (opts.only.length > 0) selected = selected.filter((record) => opts.only.includes(record.id))
   if (opts.limit > 0) selected = selected.slice(0, opts.limit)
 
-  console.log(`Processing ${selected.length} exercises (${opts.all ? 'all' : opts.only.length ? opts.only.join(',') : 'core'})`)
-  detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
-    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-  })
+  console.log(`Processing ${selected.length} exercises (${opts.all ? 'all' : opts.only.length ? opts.only.join(',') : 'core'}) model=${opts.model} workers=${opts.workers}`)
+  pool = new PosePool(opts.workers, opts.model)
   await mkdir(OUT_DIR, { recursive: true })
 
   const tally = { ok: 0, skip: 0 }
   const reasons = {}
-  for (const [index, record] of selected.entries()) {
-    const status = await processExercise(record)
-    if (status === 'ok') tally.ok += 1
-    else {
-      tally.skip += 1
-      reasons[status] = (reasons[status] ?? 0) + 1
+  try {
+    for (const [index, record] of selected.entries()) {
+      const status = await processExercise(record)
+      if (status.startsWith('ok')) tally.ok += 1
+      else {
+        tally.skip += 1
+        reasons[status] = (reasons[status] ?? 0) + 1
+      }
+      console.log(`  [${index + 1}/${selected.length}] ${record.id} ${record.name} → ${status}`)
     }
-    console.log(`  [${index + 1}/${selected.length}] ${record.id} ${record.name} → ${status}`)
+  } finally {
+    await pool.dispose()
   }
 
   console.log(`Done. wrote ${tally.ok}, skipped ${tally.skip} ${JSON.stringify(reasons)}`)
+  console.log(`viewBox ${VIEWBOX_W}×${VIEWBOX_H}: any leftover out-of-bounds frame fails the sanity gate and is dropped.`)
 }
 
 main().catch((err) => {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { durationFor, posesFor, sampleLoop, type Pose } from './poses'
+import { clampPose, durationFor, posesFor, sampleLoop, type Pose } from './poses'
 
 type Props = {
   exerciseId: string
@@ -25,7 +25,9 @@ export function CoachAvatar({
   hideFloor = false,
 }: Props) {
   const glowId = useId().replace(/:/g, '')
-  const [pose, setPose] = useState<Pose>(() => posesFor(exerciseId, phase)[0] ?? sampleLoop(posesFor('idle', 'work'), 0))
+  const [pose, setPose] = useState<Pose>(() =>
+    clampPose(posesFor(exerciseId, phase)[0] ?? sampleLoop(posesFor('idle', 'work'), 0)),
+  )
   const startRef = useRef(0)
 
   useEffect(() => {

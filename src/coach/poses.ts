@@ -870,6 +870,27 @@ const celebrateB: Pose = front({
   rWrist: j(178, 28),
 })
 
+// Render-time safety net: matches scripts/skeleton.mjs clamping so no joint is
+// ever drawn outside the 200×260 viewBox — committed generated files predate the
+// extractor clamp, and /pose-qa hand-corrections are only validated to the raw
+// viewBox edges.
+const CLAMP_X_MIN = 14
+const CLAMP_X_MAX = 200 - 14
+const CLAMP_Y_MIN = 8
+const CLAMP_Y_MAX = 260 - 8
+
+export function clampPose(pose: Pose): Pose {
+  const out = { ...pose }
+  const keys = Object.keys(out).filter((key) => key !== 'view') as Exclude<keyof Pose, 'view'>[]
+  for (const key of keys) {
+    out[key] = {
+      x: Math.min(CLAMP_X_MAX, Math.max(CLAMP_X_MIN, out[key].x)),
+      y: Math.min(CLAMP_Y_MAX, Math.max(CLAMP_Y_MIN, out[key].y)),
+    }
+  }
+  return out
+}
+
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
 }
@@ -893,14 +914,14 @@ function easeInOut(t: number): number {
 
 export function sampleLoop(poses: Pose[], t: number): Pose {
   const first = poses[0] ?? idle
-  if (poses.length <= 1) return first
+  if (poses.length <= 1) return clampPose(first)
   const n = poses.length
   const wrapped = ((t % 1) + 1) % 1
   const idx = Math.floor(wrapped * n)
   const local = easeInOut(wrapped * n - idx)
   const a = poses[idx] ?? first
   const b = poses[(idx + 1) % n] ?? first
-  return lerpPose(a, b, local)
+  return clampPose(lerpPose(a, b, local))
 }
 
 export const POSE_LOOPS: Record<string, Pose[]> = {
