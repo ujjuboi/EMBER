@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { CoachAvatar } from '../../coach/CoachAvatar'
+import { exerciseGif } from '../../data/exercise-gifs'
 import { Button } from '../../components/ui/Button'
 import { Timer } from '../../components/ui/Timer'
 import { estimateKcal } from '../../lib/calories'
@@ -250,6 +251,7 @@ export function SessionPage() {
   }
 
   const coachPhase = phase === 'done' ? 'celebrate' : phase === 'rest' ? 'rest' : 'work'
+  const gif = phase === 'work' ? exerciseGif(item.exercise) : null
 
   return (
     <div className="flex min-h-dvh flex-col px-5 pb-8 pt-6">
@@ -267,12 +269,21 @@ export function SessionPage() {
       </header>
 
       <div className="mt-4 flex flex-1 flex-col items-center justify-center">
-        <CoachAvatar
-          exerciseId={item.exercise.coachId ?? item.exercise.id}
-          phase={coachPhase}
-          playing
-          className="h-64 w-full max-w-[280px]"
-        />
+        {gif ? (
+          <img
+            src={gif}
+            alt={`${item.exercise.name} animation`}
+            className="h-64 w-full max-w-[280px] rounded-2xl bg-white object-contain"
+            draggable={false}
+          />
+        ) : (
+          <CoachAvatar
+            exerciseId={item.exercise.coachId ?? item.exercise.id}
+            phase={coachPhase}
+            playing
+            className="h-64 w-full max-w-[280px]"
+          />
+        )}
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">{item.exercise.name}</h2>
         <p className="mt-1 text-sm text-muted">{item.exercise.cue}</p>
         <p className="mt-3 tabular text-xs uppercase tracking-[0.2em] text-orange">

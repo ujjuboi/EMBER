@@ -15,8 +15,8 @@ cloud, no subscription.
 - **Local accounts** — signup/log in with PBKDF2-hashed passwords stored on-device; data scoped per account across profiles, plans, history, workouts, and partner.
 - **Offline password recovery** — every account gets a one-time 12-char recovery code (hashed at rest) so a forgotten password is recoverable with no backend.
 - **Smart session suggester** — pick a body part, goal, and your kit; the trainer scores the catalog and prescribes sets/reps/rest.
-- **Live guided sessions** — work/rest/celebrate phases, timed sets auto-log, calorie estimates (MET × kg × hours), and full resume after a tab kill or background drop.
-- **SVG coach** — a stick figure that actually performs each move via pose loops (no GIFs, no video).
+- **Live guided sessions** — work/rest/celebrate phases, timed sets auto-log, calorie estimates (MET × kg × hours), and full resume after a tab kill or background drop. Exercises from the extracted programs play their matching animation GIF (© Gym visual) while in progress; everything else uses the SVG coach.
+- **SVG coach** — a built-in stick figure that performs most moves via pose loops; extracted-program exercises use their matching animation GIF instead.
 - **Streaks & calendars** — calendar days with a completed workout; your mark is a square, your partner's is a heart.
 - **Twin flame** — when you and your partner both train today, the flame becomes a heart.
 - **Partner P2P sync** — 6-char pairing codes, Ed25519-signed identity, WebRTC DataChannel push sync, offline reminder outbox.
@@ -137,12 +137,13 @@ start from the row you need.
 | `trainer/KitChips.tsx` | Onboarding + You | Equipment toggles |
 | `trainer/TrainerFocus.tsx` | Train | Goal chips |
 
-### Coach (no GIFs)
+### Coach
 
 | File | Job |
 | --- | --- |
 | `src/coach/poses.ts` | Joint graphs + named loops (squat, lunge, hinge, row, press, jack, …) |
 | `src/coach/CoachAvatar.tsx` | rAF interpolation, side vs front, far-limb dimming |
+| `src/data/exercise-gifs.ts` | Program-exercise animation GIFs (exercises-dataset, © Gym visual) + `exerciseGif()` lookup; assets in `public/exercises/` |
 
 Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name) then a loop in `poses.ts` if nothing close exists.
 
@@ -226,7 +227,9 @@ behavior — do not "simplify" them. → [docs/PRODUCT_RULES.md](./docs/PRODUCT_
 | font | Space Grotesk |
 
 Shell max width: **430px**, bottom nav respects `env(safe-area-inset-bottom)`.
-The coach is SVG pose loops in `src/coach/` — there are **no GIF files**
+The coach is SVG pose loops in `src/coach/`; extracted-program exercises also
+carry animation GIFs from the exercises-dataset (© Gym visual), see
+`src/data/exercise-gifs.ts` and `public/exercises/NOTICE.md`
 ([docs/COACH.md](./docs/COACH.md)).
 
 ## Routes

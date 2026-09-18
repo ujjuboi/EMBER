@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "icons": "node scripts/generate-icons.mjs",
     "plan": "node scripts/extract-program.mjs",
+    "gifs": "node scripts/pull-exercise-gifs.mjs",
     "relay": "node relay/server.mjs",
     "preview": "vite preview"
   },
