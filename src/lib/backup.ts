@@ -1,8 +1,8 @@
 import type { EmberBackup } from './types'
 
-export const BACKUP_SCHEMA = 7
+export const BACKUP_SCHEMA = 8
 
-export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6, 7]
+export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6, 7, 8]
 
 export function backupFilename(): string {
   const now = new Date()
@@ -45,6 +45,8 @@ export function parseBackup(text: string): EmberBackup {
   backup.workouts ??= []
   backup.workoutSets ??= []
   backup.plan ??= []
+  // Schema <=7 backups predate the program feature; restore them without one.
+  backup.program ??= null
   return backup as EmberBackup
 }
 

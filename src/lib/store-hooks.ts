@@ -37,6 +37,7 @@ export type StoreValue = AppState & {
   addToPlan: (item: PlannedExercise) => boolean
   saveCustomExercise: (exercise: Exercise) => boolean
   deleteCustomExercise: (id: string) => void
+  reorderPlan: (items: PlannedExercise[]) => void
   updatePlan: (uid: string, patch: { sets?: number; reps?: number; seconds?: number; weightKg?: number }) => void
   removeFromPlan: (uid: string) => void
   clearPlan: () => void
@@ -50,6 +51,8 @@ export type StoreValue = AppState & {
   applyTrainerPlan: () => void
   beginTrainerReview: () => void
   backToTrainerPick: () => void
+  selectProgram: (id: string) => void
+  clearProgram: () => void
   finishWorkout: (input: {
     workoutId: string
     title: string

@@ -3,7 +3,7 @@ import { Chip } from './Chip'
 type Props<T extends string> = {
   label?: string
   options: { id: T; label: string }[]
-  value: T
+  value: T | ''
   onSelect: (id: T) => void
 }
 

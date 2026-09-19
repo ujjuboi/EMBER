@@ -16,6 +16,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Scraped workout plans are dev artifacts; content belongs to the source site
+plans/extracted
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

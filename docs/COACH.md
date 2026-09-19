@@ -1,6 +1,6 @@
 # Coach motion
 
-There are **no GIF or video files**. The stick figure is SVG.
+The built-in trainer coach is **SVG** — no GIF or video for the curated library. Extracted-program exercises instead show their matching animation GIF (© Gym visual, from the exercises-dataset) during the work phase; see `src/data/exercise-gifs.ts` and `public/exercises/NOTICE.md`.
 
 1. `poses.ts` holds named pose loops (arrays of joint graphs).
 2. `CoachAvatar.tsx` interpolates the loop on `requestAnimationFrame`.
