@@ -260,5 +260,6 @@ export type AppState = {
   trainerDay: number
   trainerBodyPart: BodyPart
   trainerGoal: TrainerGoal
+  soundOn: boolean
   toast: string | null
 }

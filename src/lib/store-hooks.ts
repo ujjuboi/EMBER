@@ -32,6 +32,7 @@ export type StoreValue = AppState & {
     equipment?: Equipment[]
     trainerGoal?: TrainerGoal
   }) => void
+  setSoundOn: (soundOn: boolean) => void
   setEquipment: (id: Equipment) => void
   addEquipment: (id: Equipment) => void
   addToPlan: (item: PlannedExercise) => boolean
