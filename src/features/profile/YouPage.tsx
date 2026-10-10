@@ -7,6 +7,7 @@ import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
 import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { Section } from '../../components/ui/Section'
+import { Switch } from '../../components/ui/Switch'
 import { TRAINER_GOALS, normalizeTrainerGoal, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
 import { EXTERNAL_PROGRAMS, programById } from '../../data/programs'
 import { parseBackup, readTextFile } from '../../lib/backup'
@@ -51,6 +52,7 @@ export function YouPage() {
     partnerSince,
     partner,
     program,
+    soundOn,
     updateProfile,
     unlinkPartner,
     signOut,
@@ -59,6 +61,7 @@ export function YouPage() {
     generateRecoveryCode,
     selectProgram,
     clearProgram,
+    setSoundOn,
     showToast,
   } = useStore()
   const [weight, setWeight] = useState(String(weightKg))
@@ -228,6 +231,20 @@ export function YouPage() {
           </Button>
         </div>
       ) : null}
+
+      <div className="mt-6">
+        <Section title="Settings">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm">Countdown sound</p>
+              <p className="mt-0.5 text-xs text-muted">
+                Beep during the last 10 seconds of rest. Vibration stays on.
+              </p>
+            </div>
+            <Switch checked={soundOn} onChange={setSoundOn} label="Countdown sound" />
+          </div>
+        </Section>
+      </div>
 
       {partnerLinked && partner.name ? (
         <section className="mt-10">

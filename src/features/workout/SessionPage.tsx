@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Timer } from '../../components/ui/Timer'
 import { estimateKcal } from '../../lib/calories'
 import { formatClock } from '../../lib/format'
+import { playGo, playTick, vibrate } from '../../lib/sound'
 import { useStore } from '../../lib/store-hooks'
 import type { Workout, WorkoutSet } from '../../lib/types'
 
@@ -28,6 +29,7 @@ export function SessionPage() {
     weightKg,
     trainerBodyPart,
     workingWorkout,
+    soundOn,
     finishWorkout,
     abandonWorkout,
     persistSessionProgress,
@@ -51,7 +53,13 @@ export function SessionPage() {
   const finishing = useRef(false)
   const completedRef = useRef(false)
   const busy = useRef(false)
-  const pendingAdvance = useRef(false)
+  // The ref only tracks sets logged during this mount, so re-derive it from
+  // persisted progress: a rest resumed after the exercise's final set (e.g.
+  // following a reload) must advance to the next exercise.
+  const resumeItem = session[init.index]
+  const resumedAfterLastSet =
+    init.phase === 'rest' && !!resumeItem && init.setNo + 1 >= resumeItem.sets
+  const pendingAdvance = useRef(resumedAfterLastSet)
   const loggedRef = useRef(workoutId ? (workingWorkout?.setsLogged ?? 0) : 0)
   const kcalRef = useRef(init.kcal)
   const elapsedRef = useRef(init.elapsed)
@@ -62,6 +70,12 @@ export function SessionPage() {
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logSetRef = useRef<() => void>(() => {})
   const startNextWorkRef = useRef<() => void>(() => {})
+  // Latest sound preference, read inside the rest effect without making the
+  // countdown restart when the toggle changes.
+  const soundOnRef = useRef(soundOn)
+  // Tracks the last rest second that fired a cue so a re-run of the effect
+  // (e.g. React StrictMode's double-invoke) never double-beeps the same second.
+  const cueRef = useRef<number | null>(null)
 
   const item = session[index]
 
@@ -83,6 +97,10 @@ export function SessionPage() {
     if (phase === 'work') busy.current = false
   }, [phase])
 
+  useEffect(() => {
+    soundOnRef.current = soundOn
+  }, [soundOn])
+
   const startNextWork = () => {
     const pending = pendingAdvance.current
     const resolvedIndex = pending ? index + 1 : index
@@ -100,14 +118,28 @@ export function SessionPage() {
   startNextWorkRef.current = startNextWork
 
   useEffect(() => {
-    if (phase !== 'rest') return
+    if (phase !== 'rest') {
+      cueRef.current = null
+      return
+    }
     if (restLeft <= 0) {
+      if (cueRef.current !== 0) {
+        cueRef.current = 0
+        if (soundOnRef.current) playGo()
+        vibrate(200)
+      }
       setPulse(true)
       const id = window.setTimeout(() => {
         setPulse(false)
         startNextWorkRef.current()
       }, 700)
       return () => window.clearTimeout(id)
+    }
+    // Tick + vibrate once per second through the final 10 seconds.
+    if (restLeft <= 10 && cueRef.current !== restLeft) {
+      cueRef.current = restLeft
+      if (soundOnRef.current) playTick()
+      vibrate(100)
     }
     const id = window.setTimeout(() => setRestLeft((n) => n - 1), 1000)
     return () => window.clearTimeout(id)
@@ -265,8 +297,23 @@ export function SessionPage() {
     setPhase('work')
   }
 
-  const coachPhase = phase === 'done' ? 'celebrate' : phase === 'rest' ? 'rest' : 'work'
-  const gif = phase === 'work' ? exerciseGif(item.exercise) : null
+  // During rest, look ahead: last set of the move advances to the next exercise,
+  // otherwise the same move's next set. Mirrors startNextWork's resolution.
+  const nextUp =
+    phase === 'rest'
+      ? pendingAdvance.current
+        ? (() => {
+            const upcoming = session[index + 1]
+            return upcoming ? { exercise: upcoming.exercise, setNo: 1, sets: upcoming.sets } : null
+          })()
+        : { exercise: item.exercise, setNo: setNo + 2, sets: item.sets }
+      : null
+  // During the final 10s of rest the stage previews the next exercise: its GIF
+  // when one exists, otherwise its animated coach pose (not the rest pose).
+  const previewingNext = phase === 'rest' && restLeft <= 10
+  const stageExercise = previewingNext && nextUp ? nextUp.exercise : item.exercise
+  const stageGif = phase === 'work' || previewingNext ? exerciseGif(stageExercise) : null
+  const stagePhase = phase === 'done' ? 'celebrate' : previewingNext ? 'work' : phase === 'rest' ? 'rest' : 'work'
   const totalSets = session.reduce((sum, ex) => sum + ex.sets, 0)
   const percentThrough = totalSets > 0 ? Math.min(100, Math.round((loggedRef.current / totalSets) * 100)) : 0
 
@@ -286,22 +333,31 @@ export function SessionPage() {
       </header>
 
       <div className="mt-4 flex flex-1 flex-col items-center justify-center">
-        {gif ? (
+        {stageGif ? (
           <img
-            src={gif}
-            alt={`${item.exercise.name} animation`}
+            src={stageGif}
+            alt={`${stageExercise.name} animation`}
             className="h-64 w-full max-w-[280px] rounded-2xl bg-white object-contain"
             draggable={false}
           />
         ) : (
           <CoachAvatar
-            exerciseId={item.exercise.coachId ?? item.exercise.id}
-            phase={coachPhase}
+            exerciseId={stageExercise.coachId ?? stageExercise.id}
+            phase={stagePhase}
             playing
             className="h-64 w-full max-w-[280px]"
           />
         )}
-        {phase !== 'done' ? (
+        {phase === 'rest' && nextUp ? (
+          <div className="mt-2 text-center">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Next Up</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight">{nextUp.exercise.name}</h2>
+            <p className="mt-1 text-sm text-muted">{nextUp.exercise.cue}</p>
+            <p className="mt-3 tabular text-xs uppercase tracking-[0.2em] text-orange">
+              Set {nextUp.setNo} / {nextUp.sets}
+            </p>
+          </div>
+        ) : phase !== 'done' ? (
           <>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">{item.exercise.name}</h2>
             <p className="mt-1 text-sm text-muted">{item.exercise.cue}</p>

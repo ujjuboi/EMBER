@@ -1,8 +1,8 @@
 import type { EmberBackup } from './types'
 
-export const BACKUP_SCHEMA = 8
+export const BACKUP_SCHEMA = 9
 
-export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6, 7, 8]
+export const SUPPORTED_BACKUP_SCHEMAS = [4, 5, 6, 7, 8, 9]
 
 export function backupFilename(): string {
   const now = new Date()
@@ -47,6 +47,8 @@ export function parseBackup(text: string): EmberBackup {
   backup.plan ??= []
   // Schema <=7 backups predate the program feature; restore them without one.
   backup.program ??= null
+  // Schema <=8 backups predate the rest-countdown sound setting; default to on.
+  if (backup.profile) backup.profile.soundOn ??= true
   return backup as EmberBackup
 }
 

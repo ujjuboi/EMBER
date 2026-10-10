@@ -50,6 +50,7 @@ const seedState = (): AppState => ({
   trainerGoal: 'strength',
   program: null,
   progression: initialProgression(),
+  soundOn: true,
   toast: null,
 })
 
@@ -130,6 +131,7 @@ async function signInState(email: string): Promise<AppState> {
     trainerGoal: profile.trainerGoal,
     program: programData.program,
     progression: programData.progression,
+    soundOn: profile.soundOn,
     toast: null,
   }
   // An active program drives today's session: calendar row -> focus/plan.
@@ -204,6 +206,7 @@ function persistProfile(s: AppState): Promise<void> {
     calories: s.calories,
     workoutInProgress: s.workoutInProgress,
     planSource: s.planSource,
+    soundOn: s.soundOn,
   })
 }
 
@@ -605,6 +608,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         commit(next)
         notifySyncChanged()
+      },
+      setSoundOn: (soundOn) => {
+        const s = current()
+        commit({ ...s, soundOn }, { immediate: true })
       },
       setEquipment: (id) => {
         const s = current()

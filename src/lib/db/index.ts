@@ -84,9 +84,9 @@ export async function initDb(): Promise<void> {
   await _initPromise
 }
 
-// --- Schema (version 8) ---
+// --- Schema (version 9) ---
 
-const SCHEMA_VERSION = 8
+const SCHEMA_VERSION = 9
 
 const WORKOUT_TABLE = `CREATE TABLE IF NOT EXISTS workout (
   id TEXT PRIMARY KEY,
@@ -234,6 +234,7 @@ async function createSchema(): Promise<void> {
       calories INTEGER NOT NULL DEFAULT 0,
       workout_in_progress INTEGER NOT NULL DEFAULT 0,
       plan_source TEXT NOT NULL DEFAULT 'trainer',
+      sound_on INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL
     )`,
       `CREATE TABLE IF NOT EXISTS history (
@@ -317,6 +318,10 @@ async function createSchema(): Promise<void> {
 
   if (version < 8) {
     await migrateV7toV8()
+  }
+
+  if (version < 9) {
+    await migrateV8toV9()
   }
 
   await setSchemaVersion(SCHEMA_VERSION)
@@ -412,6 +417,19 @@ async function migrateV6toV7(): Promise<void> {
 // start/progression). Data-preserving.
 async function migrateV7toV8(): Promise<void> {
   await CapacitorSQLite.execute({ database: DB_NAME, statements: PROGRAM_TABLE })
+}
+
+// v8 -> v9. Adds the per-account `profile.sound_on` preference (rest countdown
+// cues). Data-preserving; existing accounts default to sound on.
+async function migrateV8toV9(): Promise<void> {
+  if (await tableExists('profile')) {
+    if (!(await columnExists('profile', 'sound_on'))) {
+      await CapacitorSQLite.execute({
+        database: DB_NAME,
+        statements: 'ALTER TABLE profile ADD COLUMN sound_on INTEGER NOT NULL DEFAULT 1',
+      })
+    }
+  }
 }
 
 export async function accountExists(email: string): Promise<boolean> {
@@ -563,6 +581,7 @@ export type ProfileData = {
   calories: number
   workoutInProgress: boolean
   planSource: PlanSource
+  soundOn: boolean
 }
 
 function defaultProfileData(): ProfileData {
@@ -585,6 +604,7 @@ function defaultProfileData(): ProfileData {
     calories: 0,
     workoutInProgress: false,
     planSource: 'trainer',
+    soundOn: true,
   }
 }
 
@@ -592,8 +612,8 @@ function profileInsertStatement(accountEmail: string, p: ProfileData): { stateme
   return {
     statement: `INSERT INTO profile (account_email, display_name, weight_kg, height_ft, height_in, step_goal, onboarded,
       equipment, trainer_phase, trainer_day, trainer_body_part, trainer_goal,
-      partner_linked, partner_since, streak, steps, calories, workout_in_progress, plan_source, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      partner_linked, partner_since, streak, steps, calories, workout_in_progress, plan_source, sound_on, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     values: [
       accountEmail,
       p.displayName,
@@ -614,6 +634,7 @@ function profileInsertStatement(accountEmail: string, p: ProfileData): { stateme
       p.calories,
       p.workoutInProgress ? 1 : 0,
       p.planSource,
+      p.soundOn ? 1 : 0,
       new Date().toISOString(),
     ],
   }
@@ -652,6 +673,8 @@ function rowToProfile(row: Record<string, unknown>): ProfileData {
     calories: Number(row.calories) || 0,
     workoutInProgress: !!(row.workout_in_progress as number),
     planSource: (row.plan_source as PlanSource) || 'trainer',
+    // Absent before v9 — default to sound on.
+    soundOn: row.sound_on == null ? true : !!(row.sound_on as number),
   }
 }
 
@@ -678,7 +701,7 @@ export async function saveProfile(accountEmail: string, profile: ProfileData): P
         trainer_phase = ?, trainer_day = ?, trainer_body_part = ?, trainer_goal = ?,
         partner_linked = ?, partner_since = ?,
         streak = ?, steps = ?, calories = ?,
-        workout_in_progress = ?, plan_source = ?, updated_at = ?
+        workout_in_progress = ?, plan_source = ?, sound_on = ?, updated_at = ?
       WHERE account_email = ?`,
       values: [
         profile.displayName,
@@ -699,6 +722,7 @@ export async function saveProfile(accountEmail: string, profile: ProfileData): P
         profile.calories,
         profile.workoutInProgress ? 1 : 0,
         profile.planSource,
+        profile.soundOn ? 1 : 0,
         new Date().toISOString(),
         accountEmail,
       ],
