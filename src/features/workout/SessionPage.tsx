@@ -53,7 +53,13 @@ export function SessionPage() {
   const finishing = useRef(false)
   const completedRef = useRef(false)
   const busy = useRef(false)
-  const pendingAdvance = useRef(false)
+  // The ref only tracks sets logged during this mount, so re-derive it from
+  // persisted progress: a rest resumed after the exercise's final set (e.g.
+  // following a reload) must advance to the next exercise.
+  const resumeItem = session[init.index]
+  const resumedAfterLastSet =
+    init.phase === 'rest' && !!resumeItem && init.setNo + 1 >= resumeItem.sets
+  const pendingAdvance = useRef(resumedAfterLastSet)
   const loggedRef = useRef(workoutId ? (workingWorkout?.setsLogged ?? 0) : 0)
   const kcalRef = useRef(init.kcal)
   const elapsedRef = useRef(init.elapsed)
@@ -64,8 +70,11 @@ export function SessionPage() {
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logSetRef = useRef<() => void>(() => {})
   const startNextWorkRef = useRef<() => void>(() => {})
+  // Latest sound preference, read inside the rest effect without making the
+  // countdown restart when the toggle changes.
+  const soundOnRef = useRef(soundOn)
   // Tracks the last rest second that fired a cue so a re-run of the effect
-  // (e.g. when the sound toggle changes) never double-beeps the same second.
+  // (e.g. React StrictMode's double-invoke) never double-beeps the same second.
   const cueRef = useRef<number | null>(null)
 
   const item = session[index]
@@ -87,6 +96,10 @@ export function SessionPage() {
   useEffect(() => {
     if (phase === 'work') busy.current = false
   }, [phase])
+
+  useEffect(() => {
+    soundOnRef.current = soundOn
+  }, [soundOn])
 
   const startNextWork = () => {
     const pending = pendingAdvance.current
@@ -112,7 +125,7 @@ export function SessionPage() {
     if (restLeft <= 0) {
       if (cueRef.current !== 0) {
         cueRef.current = 0
-        if (soundOn) playGo()
+        if (soundOnRef.current) playGo()
         vibrate(200)
       }
       setPulse(true)
@@ -125,12 +138,12 @@ export function SessionPage() {
     // Tick + vibrate once per second through the final 10 seconds.
     if (restLeft <= 10 && cueRef.current !== restLeft) {
       cueRef.current = restLeft
-      if (soundOn) playTick()
+      if (soundOnRef.current) playTick()
       vibrate(100)
     }
     const id = window.setTimeout(() => setRestLeft((n) => n - 1), 1000)
     return () => window.clearTimeout(id)
-  }, [phase, restLeft, soundOn])
+  }, [phase, restLeft])
 
   useEffect(() => {
     if (phase !== 'work' || !item || item.exercise.kind !== 'timed') return

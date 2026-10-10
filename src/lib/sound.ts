@@ -24,7 +24,10 @@ function getContext(): AudioContext | null {
       if (!Ctor) return null
       sharedContext = new Ctor()
     }
-    if (sharedContext.state === 'suspended') void sharedContext.resume()
+    if (sharedContext.state === 'suspended') {
+      // Resume can reject when the browser blocks audio until a user gesture.
+      void sharedContext.resume().catch(() => {})
+    }
     return sharedContext
   } catch {
     return null
@@ -34,19 +37,23 @@ function getContext(): AudioContext | null {
 function tone(frequency: number, durationMs: number, delayMs = 0): void {
   const context = getContext()
   if (!context) return
-  const start = context.currentTime + delayMs / 1000
-  const end = start + durationMs / 1000
-  const oscillator = context.createOscillator()
-  const gain = context.createGain()
-  oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(frequency, start)
-  gain.gain.setValueAtTime(0.0001, start)
-  gain.gain.exponentialRampToValueAtTime(0.14, start + 0.01)
-  gain.gain.exponentialRampToValueAtTime(0.0001, end)
-  oscillator.connect(gain)
-  gain.connect(context.destination)
-  oscillator.start(start)
-  oscillator.stop(end + 0.02)
+  try {
+    const start = context.currentTime + delayMs / 1000
+    const end = start + durationMs / 1000
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(frequency, start)
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.exponentialRampToValueAtTime(0.14, start + 0.01)
+    gain.gain.exponentialRampToValueAtTime(0.0001, end)
+    oscillator.connect(gain)
+    gain.connect(context.destination)
+    oscillator.start(start)
+    oscillator.stop(end + 0.02)
+  } catch {
+    // A closed or otherwise unusable context must not crash the cue.
+  }
 }
 
 /** Short beep, once per second through the final 10s of rest. */
