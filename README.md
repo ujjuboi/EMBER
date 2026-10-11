@@ -32,7 +32,19 @@ Deployed to **Netlify** and installable on any phone from Chrome or Safari:
 
 **[https://emberlifestyle.netlify.app/](https://emberlifestyle.netlify.app/)**
 
-Deploys from the `main` branch (see [docs/deployment.md](./docs/deployment.md)).
+Deploys from the `main` branch — the **PWA** build of EMBER (see
+[docs/deployment.md](./docs/deployment.md)).
+
+## Branches
+
+Two branches ship two builds of the same app:
+
+- **`main`** — the **PWA** version, deployed to Netlify and installable straight
+  from a browser. No native shell.
+- **`apk`** — the default branch for the **native app** (Android APK / iOS).
+  Adds the Capacitor shell (`android/` + `ios/`) and real device steps from
+  Health Connect / HealthKit. Build and sideload from this branch — see
+  [Install as an app](#install-as-an-app).
 
 ## Tech stack
 
@@ -275,14 +287,14 @@ EMBER is an installable **Progressive Web App** — no app store, no APK.
   standalone, offline-capable.
 
 There's also a **Capacitor native shell** (`android/` + `ios/`, app ID
-`app.ember.lifestyle`) for sideloading the same app as a real native app. On
-native it reads today's steps from Health Connect / HealthKit (see
-`src/lib/steps.ts`); the PWA path is unchanged. Build with `npm run android:run`
-(device with Health Connect) or open `ios/App/App.xcodeproj` in Xcode and run on
-a **physical iPhone** — HealthKit is unavailable in the Simulator, and free
-Apple ID sideloads expire after 7 days. Requirements/privacy:
-`public/privacy.html` is the Health Connect privacy policy, served at
-`https://emberlifestyle.netlify.app/privacy`.
+`app.ember.lifestyle`) on the **`apk`** branch for sideloading the same app as a
+real native app. On native it reads today's steps from Health Connect /
+HealthKit (see `src/lib/steps.ts`); the PWA path is unchanged. Build with
+`npm run android:run` (device with Health Connect) or open
+`ios/App/App.xcodeproj` in Xcode and run on a **physical iPhone** — HealthKit is
+unavailable in the Simulator, and free Apple ID sideloads expire after 7 days.
+Requirements/privacy: `public/privacy.html` is the Health Connect privacy
+policy, served at `https://emberlifestyle.netlify.app/privacy`.
 
 ## Developing
 
