@@ -612,6 +612,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'strength', 'general'],
     equipment: ['tubes'],
+    coachId: 'curl',
   }),
   move('tube-single-tricep-extension', 'Single tricep extension', 'reps', {
     defaultReps: 12,
@@ -622,6 +623,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'strength', 'general'],
     equipment: ['tubes'],
+    coachId: 'tricep-extension',
   }),
   move('tube-alternating-hammer-curl', 'Alternating hammer curl', 'reps', {
     defaultReps: 12,
@@ -632,6 +634,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'curl',
   }),
   move('tube-straight-arm-tricep-extensions', 'Straight arm tricep extensions', 'reps', {
     defaultReps: 12,
@@ -642,6 +645,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'tricep-extension',
   }),
   move('tube-close-grip-curl', 'Close grip curl', 'reps', {
     defaultReps: 12,
@@ -652,6 +656,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'strength'],
     equipment: ['tubes'],
+    coachId: 'curl',
   }),
   move('tube-overhead-tricep-extension', 'Overhead tricep extension', 'reps', {
     defaultReps: 12,
@@ -662,6 +667,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['arms'],
     goals: ['muscle', 'strength', 'general'],
     equipment: ['tubes'],
+    coachId: 'tricep-extension',
   }),
   // Chest (tubes)
   move('tube-twisting-floor-press', 'Twisting floor press', 'reps', {
@@ -673,6 +679,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['chest'],
     goals: ['strength', 'muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'press-floor',
     compound: true,
   }),
   move('tube-close-floor-press', 'Close floor press', 'reps', {
@@ -684,6 +691,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['chest'],
     goals: ['strength', 'muscle'],
     equipment: ['tubes'],
+    coachId: 'press-floor',
     compound: true,
   }),
   move('tube-low-chest-fly', 'Low chest fly', 'reps', {
@@ -695,6 +703,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['chest'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'pull-apart',
   }),
   move('tube-floor-fly', 'Floor fly', 'reps', {
     defaultReps: 12,
@@ -705,6 +714,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['chest'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'press-floor',
   }),
   move('tube-decline-floor-press', 'Decline floor press', 'reps', {
     defaultReps: 10,
@@ -715,6 +725,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['chest'],
     goals: ['strength', 'muscle'],
     equipment: ['tubes'],
+    coachId: 'press-floor',
     compound: true,
   }),
   // Back (tubes)
@@ -727,6 +738,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['back'],
     goals: ['strength', 'muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'hinge-row',
     compound: true,
   }),
   move('tube-kneeling-side-rows', 'Kneeling side rows', 'reps', {
@@ -738,6 +750,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['back'],
     goals: ['muscle', 'strength', 'general'],
     equipment: ['tubes'],
+    coachId: 'hinge-row',
   }),
   move('tube-seated-rear-delt-fly', 'Seated rear delt fly', 'reps', {
     defaultReps: 12,
@@ -748,6 +761,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['back'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'pull-apart',
   }),
   move('tube-leaning-rear-row', 'Leaning rear row', 'reps', {
     defaultReps: 12,
@@ -758,6 +772,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['back'],
     goals: ['muscle', 'strength'],
     equipment: ['tubes'],
+    coachId: 'hinge-row',
     compound: true,
   }),
   move('tube-half-pull-x-side-shrug', 'Half pull x side shrug', 'reps', {
@@ -769,9 +784,10 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['back'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'hinge-row',
   }),
   // Legs (tubes)
-  move('tube-band-squats', 'Band squats', 'reps', {
+  move('tube-band-squats', 'Tube band squats', 'reps', {
     defaultReps: 12,
     defaultSets: 3,
     met: 5.5,
@@ -780,6 +796,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['muscle', 'strength', 'general', 'fatloss'],
     equipment: ['tubes'],
+    coachId: 'squat',
     compound: true,
   }),
   move('tube-split-squats', 'Band split squats', 'reps', {
@@ -791,6 +808,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['strength', 'muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'lunge',
     compound: true,
   }),
   move('tube-pulsing-squats', 'Band pulsing squats', 'reps', {
@@ -802,6 +820,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['endurance', 'muscle', 'fatloss'],
     equipment: ['tubes'],
+    coachId: 'squat',
     compound: true,
   }),
   move('tube-leg-press', 'Band leg press', 'reps', {
@@ -813,6 +832,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['muscle', 'strength'],
     equipment: ['tubes'],
+    coachId: 'squat',
     compound: true,
   }),
   move('tube-kickbacks', 'Band kickbacks', 'reps', {
@@ -824,6 +844,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['muscle', 'general'],
     equipment: ['tubes'],
+    coachId: 'kickback',
   }),
   move('tube-single-leg-rdls', 'Band single-leg RDLs', 'reps', {
     defaultReps: 10,
@@ -834,6 +855,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['legs'],
     goals: ['strength', 'mobility', 'general'],
     equipment: ['tubes'],
+    coachId: 'hinge',
     compound: true,
   }),
   // Core (tubes)
@@ -846,6 +868,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['core'],
     goals: ['muscle', 'endurance'],
     equipment: ['tubes'],
+    coachId: 'sit-up',
   }),
   move('tube-wood-chopper', 'Wood chopper', 'reps', {
     defaultReps: 10,
@@ -856,9 +879,10 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['core'],
     goals: ['strength', 'endurance', 'general'],
     equipment: ['tubes'],
+    coachId: 'pallof',
     compound: true,
   }),
-  move('tube-mountain-climber', 'Mountain climber', 'reps', {
+  move('tube-mountain-climber', 'Tube mountain climber', 'reps', {
     defaultReps: 15,
     defaultSets: 3,
     met: 6.0,
@@ -868,6 +892,7 @@ export const EXERCISES: Exercise[] = [
     goals: ['fatloss', 'endurance'],
     equipment: ['tubes'],
     compound: true,
+    coachId: 'mountain-climber',
   }),
   move('tube-cable-crunches', 'Cable crunches', 'reps', {
     defaultReps: 12,
@@ -878,6 +903,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['core'],
     goals: ['muscle', 'endurance', 'general'],
     equipment: ['tubes'],
+    coachId: 'sit-up',
   }),
   move('tube-side-bends', 'Side bends', 'reps', {
     defaultReps: 12,
@@ -888,6 +914,7 @@ export const EXERCISES: Exercise[] = [
     bodyParts: ['core'],
     goals: ['mobility', 'endurance', 'general'],
     equipment: ['tubes'],
+    coachId: 'side-bend',
   }),
   move('bench-dip', 'Bench dip', 'reps', {
     defaultReps: 10,
