@@ -1,7 +1,8 @@
 # Exercise animation media
 
 The `public/exercises/*.gif` files are animation GIFs for the extracted workout
-programs (Arnold Volume + Full Body), sourced from the
+programs (Arnold Volume + Full Body) and the resistance-tube exercises, sourced
+from the
 [exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset).
 
 > **© Gym visual — https://gymvisual.com/**

@@ -1,7 +1,8 @@
 import type { Exercise } from './exercises'
 
 // Exercise animation GIFs for the extracted workout programs (Arnold Volume +
-// Full Body), pulled from the exercises-dataset (https://github.com/hasaneyldrm/exercises-dataset).
+// Full Body) and the resistance-tube exercises, pulled from the
+// exercises-dataset (https://github.com/hasaneyldrm/exercises-dataset).
 // Media: © Gym visual — https://gymvisual.com/ (180×180), see NOTICE there.
 const GIF_BY_EXERCISE_ID: Record<string, string> = {
   'ms-bench-press': '/exercises/0025-EIeI8Vf.gif',
@@ -91,8 +92,29 @@ const GIF_BY_EXERCISE_ID: Record<string, string> = {
   'ms-barbell-curls-7': '/exercises/0031-25GPyDY.gif',
   'ms-leg-curls-8': '/exercises/0586-17lJ1kr.gif',
   'ms-ab-wheel-roll-out-9': '/exercises/0857-NAgVB3t.gif',
+  'tube-double-bicep-curl': '/exercises/0968-3omWx6P.gif',
+  'tube-alternating-hammer-curl': '/exercises/0968-3omWx6P.gif',
+  'tube-close-grip-curl': '/exercises/3123-XFc3vpY.gif',
+  'tube-single-tricep-extension': '/exercises/0998-obe5LMq.gif',
+  'tube-straight-arm-tricep-extensions': '/exercises/0998-obe5LMq.gif',
+  'tube-overhead-tricep-extension': '/exercises/0998-obe5LMq.gif',
+  'tube-twisting-floor-press': '/exercises/0989-c16nYGA.gif',
+  'tube-floor-fly': '/exercises/0458-neonEDL.gif',
+  'tube-seated-back-row': '/exercises/3144-Nu7jqFE.gif',
+  'tube-kneeling-side-rows': '/exercises/0988-km0sQC0.gif',
+  'tube-leaning-rear-row': '/exercises/0990-DKBwJrL.gif',
+  'tube-seated-rear-delt-fly': '/exercises/0993-sTfvVsG.gif',
+  'tube-half-pull-x-side-shrug': '/exercises/1018-trmte8s.gif',
+  'tube-band-squats': '/exercises/1004-TUZLh71.gif',
+  'tube-pulsing-squats': '/exercises/1004-TUZLh71.gif',
+  'tube-split-squats': '/exercises/1001-y8bYM8w.gif',
+  'tube-single-leg-rdls': '/exercises/1009-kuMiR2T.gif',
+  'tube-reverse-crunches': '/exercises/0872-nCU1Ekp.gif',
+  'tube-wood-chopper': '/exercises/1007-euq4pwp.gif',
+  'tube-cable-crunches': '/exercises/1005-Kzg30R7.gif',
+  'tube-mountain-climber': '/exercises/0630-RJgzwny.gif',
 }
 
 export function exerciseGif(exercise: Pick<Exercise, 'id' | 'coachId'>): string | null {
-  return GIF_BY_EXERCISE_ID[exercise.coachId ?? exercise.id] ?? null
+  return GIF_BY_EXERCISE_ID[exercise.id] ?? GIF_BY_EXERCISE_ID[exercise.coachId ?? ''] ?? null
 }
