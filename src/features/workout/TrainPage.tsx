@@ -2,7 +2,7 @@ import { Check, GripVertical, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
-import { CoachAvatar } from '../../coach/CoachAvatar'
+import { ExerciseVisual } from '../../coach/ExerciseVisual'
 import { AutoScroll } from '../../components/ui/AutoScroll'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
@@ -582,7 +582,7 @@ function AddSheet({
                         onClick={() => onAdd(exercise)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-white/5"
                       >
-                        <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
+                        <ExerciseVisual exercise={exercise} className="h-16 w-16 shrink-0" />
                         <AutoScroll className="min-w-0 flex-1 text-sm">{exercise.name}</AutoScroll>
                       </button>
                       {exercise.isCustom ? (
@@ -787,7 +787,7 @@ function PlanRowContent({
   return (
     <div className="flex items-start gap-3">
       {dragHandle}
-      <CoachAvatar exerciseId={item.exercise.coachId ?? item.exercise.id} className="h-16 w-16 shrink-0" />
+      <ExerciseVisual exercise={item.exercise} className="h-16 w-16 shrink-0" />
       <div className="min-w-0 flex-1">
         {preview ? (
           <>
