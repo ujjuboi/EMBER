@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
+import { SearchInput } from '../../components/ui/SearchInput'
 import { BODY_PARTS, equipmentLabel, goalLabel, type BodyPart, type Exercise } from '../../data/exercises'
 import {
   BUILTIN_PROGRAMS,
@@ -527,8 +528,14 @@ function AddSheet({
   onClose: () => void
 }) {
   const [customOpen, setCustomOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
   const maxHeight = useSheetMaxHeight()
+
+  const trimmedQuery = query.trim().toLowerCase()
+  const matches = trimmedQuery
+    ? exercises.filter((exercise) => exercise.name.toLowerCase().includes(trimmedQuery))
+    : exercises
 
   useEffect(() => {
     if (!customOpen) return
@@ -555,40 +562,47 @@ function AddSheet({
           </button>
         </div>
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
-          {exercises.length === 0 ? (
-            <p className="border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-              No more moves for this focus.
-            </p>
-          ) : (
-            <ul className="divide-y divide-line border border-line">
-              {exercises.map((exercise) => (
-                <li key={exercise.id}>
-                  <div className="flex items-center gap-2 px-3 py-3">
-                    <button
-                      type="button"
-                      onClick={() => onAdd(exercise)}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-white/5"
-                    >
-                      <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
-                      <AutoScroll className="min-w-0 flex-1 text-sm">{exercise.name}</AutoScroll>
-                    </button>
-                    {exercise.isCustom ? (
+          <SearchInput value={query} onChange={setQuery} placeholder="Search exercises" />
+          <div className="mt-2">
+            {exercises.length === 0 ? (
+              <p className="border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+                No more moves for this focus.
+              </p>
+            ) : matches.length === 0 ? (
+              <p className="border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+                No exercises match “{query.trim()}”.
+              </p>
+            ) : (
+              <ul className="divide-y divide-line border border-line">
+                {matches.map((exercise) => (
+                  <li key={exercise.id}>
+                    <div className="flex items-center gap-2 px-3 py-3">
                       <button
                         type="button"
-                        aria-label={`Delete ${exercise.name}`}
-                        onClick={() => onDeleteCustom(exercise.id)}
-                        className="shrink-0 rounded-lg border border-line p-1.5 text-muted hover:border-orange/50 hover:text-orange"
+                        onClick={() => onAdd(exercise)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-white/5"
                       >
-                        <Trash2 size={14} />
+                        <CoachAvatar exerciseId={exercise.coachId ?? exercise.id} className="h-16 w-16 shrink-0" />
+                        <AutoScroll className="min-w-0 flex-1 text-sm">{exercise.name}</AutoScroll>
                       </button>
-                    ) : (
-                      <Plus size={16} className="shrink-0 text-muted" />
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                      {exercise.isCustom ? (
+                        <button
+                          type="button"
+                          aria-label={`Delete ${exercise.name}`}
+                          onClick={() => onDeleteCustom(exercise.id)}
+                          className="shrink-0 rounded-lg border border-line p-1.5 text-muted hover:border-orange/50 hover:text-orange"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      ) : (
+                        <Plus size={16} className="shrink-0 text-muted" />
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {customOpen ? (
             <div ref={formRef} className="mt-3 border border-line px-3 py-3">
               <div className="mb-3 flex items-center justify-between">
