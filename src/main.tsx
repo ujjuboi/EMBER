@@ -6,6 +6,13 @@ import { defineCustomElements } from 'jeep-sqlite/loader'
 import App from './App.tsx'
 import './index.css'
 
+// Register the PWA service worker in a browser only. Inside the native
+// Capacitor WebView it would precache the shell assets and fight `cap sync`;
+// the native shell is served by the OS, not the service worker.
+if (Capacitor.getPlatform() === 'web') {
+  void import('virtual:pwa-register').then(({ registerSW }) => registerSW())
+}
+
 async function initSqlite(): Promise<void> {
   if (Capacitor.getPlatform() !== 'web') return
   await defineCustomElements(window)

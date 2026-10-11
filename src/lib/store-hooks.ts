@@ -1,11 +1,15 @@
 import { createContext, useContext } from 'react'
 import type { BodyPart, Equipment, Exercise, TrainerGoal } from '../data/exercises'
 import type { AppState, PlannedExercise, SessionProgress, WorkoutSet } from './types'
+import type { StepsPermission } from './steps'
 
 export type StoreValue = AppState & {
   ready: boolean
   initError: string | null
   retryInit: () => void
+  stepsPermission: StepsPermission
+  connectHealth: () => Promise<boolean>
+  refreshSteps: () => Promise<void>
   createAccount: (email: string, password: string) => Promise<{ ok: boolean; error?: string; recoveryCode?: string }>
   logIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string; dest?: '/home' | '/onboarding' }>
   resetPassword: (

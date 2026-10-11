@@ -65,7 +65,10 @@ label is honest.
 
 Partner `streak`, `calories`, and `lastWorkout` are **computed locally from the
 synced history** (`src/lib/partner.ts`), mirroring how the "you" side derives
-them. `steps` is a synced scalar (no Health Connect/HealthKit yet).
+them. `steps` is a synced scalar: on the native app it reads the real device
+count (Health Connect/HealthKit via `src/lib/steps.ts`), and on the web app it
+falls back to the workout-derived estimate — either way it's the same shape on
+the wire.
 
 ## Dev simulation
 

@@ -10,6 +10,7 @@ import { StoreContext, type StoreValue } from './store-hooks'
 import { requestPersistentStorage } from './persist'
 import { createSyncSession, storePendingPairCode, type SessionHooks, type SyncSessionLike } from './sync/session'
 import { normalizePairingCode, publicKeyFingerprint } from './pairing'
+import { getOwnSteps, isNative, requestStepsPermission, stepsPermission as currentStepsPermission, type StepsPermission } from './steps'
 import type { AppState, HistoryItem, Partner, PlannedExercise, SessionProgress, TrainerProgram, Workout } from './types'
 import * as db from './db'
 
@@ -98,6 +99,10 @@ async function signInState(email: string): Promise<AppState> {
     db.loadProgram(email),
   ])
   const totals = workoutTotalsFromHistory(history)
+  // On native, hydrate the real device step count (Health Connect/HealthKit).
+  // `getOwnSteps` falls back to the workout-derived estimate until access is
+  // granted, so the PWA behavior is the baseline and web is untouched.
+  const steps = await getOwnSteps(totals.steps)
   const next: AppState = {
     signedIn: true,
     accountEmail: email,
@@ -108,7 +113,7 @@ async function signInState(email: string): Promise<AppState> {
     heightIn: profile.heightIn,
     stepGoal: profile.stepGoal,
     streak: totals.streak,
-    steps: totals.steps,
+    steps,
     calories: totals.calories,
     workoutInProgress: !!activeWorkout,
     workingWorkout: activeWorkout,
@@ -319,6 +324,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState | null>(null)
   const [hydrated, setHydrated] = useState(false)
   const [initError, setInitError] = useState<string | null>(null)
+  const [stepsPermission, setStepsPermission] = useState<StepsPermission>(() => currentStepsPermission())
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -404,6 +410,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       flushTimerRef.current = window.setTimeout(() => void flushWrites(), COMMIT_DEBOUNCE_MS)
     }
   }, [flushWrites])
+
+  // Re-read today's steps on native. Falls back to the workout-derived
+  // estimate until health access is granted, and mirrors the module-level
+  // permission state into React so buttons/denied copy update.
+  const refreshSteps = useCallback(async () => {
+    const s = current()
+    if (!s.accountEmail || !isNative()) return
+    const fallback = workoutTotalsFromHistory(s.history).steps
+    const steps = await getOwnSteps(fallback)
+    setStepsPermission(currentStepsPermission())
+    const latest = current()
+    if (steps !== latest.steps) commit({ ...latest, steps }, { immediate: true })
+  }, [commit])
+
+  const connectHealth = useCallback(async () => {
+    if (!isNative()) return false
+    const granted = await requestStepsPermission()
+    setStepsPermission(currentStepsPermission())
+    if (granted) {
+      const s = current()
+      const fallback = workoutTotalsFromHistory(s.history).steps
+      const steps = await getOwnSteps(fallback)
+      const latest = current()
+      commit({ ...latest, steps }, { immediate: true })
+    }
+    return granted
+  }, [commit])
+
+  // HealthKit / Health Connect aggregate in the OS; just re-query when the app
+  // returns to the foreground so Home matches the OS number. No polling.
+  useEffect(() => {
+    if (!isNative()) return
+    let cancelled = false
+    let removeListener: (() => void) | undefined
+    void import('@capacitor/app').then(({ App }) => {
+      void App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) void refreshSteps()
+      }).then((handle) => {
+        if (cancelled) handle.remove()
+        else removeListener = () => handle.remove()
+      })
+    })
+    return () => {
+      cancelled = true
+      removeListener?.()
+    }
+  }, [refreshSteps])
 
   const sessionRef = useRef<SyncSessionLike | null>(null)
 
@@ -503,6 +556,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready: hydrated,
       initError,
       retryInit: hydrate,
+      stepsPermission,
+      refreshSteps,
+      connectHealth,
       createAccount: async (email, password) => {
         const trimmed = email.trim().toLowerCase()
         if (!trimmed.includes('@')) return { ok: false, error: 'Enter a valid email' }
@@ -1012,7 +1068,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true, dest }
       },
     }
-  }, [state, hydrated, initError, hydrate, commit, sessionHooks, notifySyncChanged])
+  }, [state, hydrated, initError, hydrate, commit, sessionHooks, notifySyncChanged, stepsPermission, refreshSteps, connectHealth])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

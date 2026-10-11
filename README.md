@@ -24,6 +24,7 @@ cloud, no subscription.
 - **Custom exercise library** — add your own moves forked off existing coach poses.
 - **Backup & restore** — export/import your account (workouts, history, plan, profile, partner, customs) as JSON, optionally taking ownership with a fresh password.
 - **Installable PWA** — standalone on Android and iOS, works offline after first load.
+- **Native apps (sideload)** — a Capacitor 8 shell wraps the same app; on device, today's steps come from **Health Connect** (Android) / **HealthKit** (iOS) instead of the workout-derived estimate, with a fallback so nothing ever shows a broken 0.
 
 ## Live app
 
@@ -45,7 +46,8 @@ Deploys from the `main` branch (see [docs/deployment.md](./docs/deployment.md)).
 | Persistence | On-device SQLite (`@capacitor-community/sqlite`, jeep-sqlite on web) |
 | Auth | Local PBKDF2-SHA256 accounts (`crypto.subtle`) |
 | Partner sync | Ed25519 (`@noble/curves`) + WebRTC DataChannel + Node `ws` signaling relay |
-| PWA | `vite-plugin-pwa` (manifest + service worker) |
+| PWA | `vite-plugin-pwa` (manifest + service worker, web-only) |
+| Native shell | Capacitor 8 (`@capacitor/android` + `@capacitor/ios`), health steps via `@capacitor/health-fitness` (Health Connect / HealthKit) |
 | Lint | oxlint |
 
 ## Quick start
@@ -127,13 +129,13 @@ start from the row you need.
 | `auth/AuthPage.tsx` | `/` | Login / signup (local accounts), one-time recovery-code modal, restore-from-backup |
 | `auth/OnboardingPage.tsx` | `/onboarding` | Name, body, kit, optional 6-char partner code |
 | `auth/ResetPasswordPage.tsx` | `/forgot` | Email + recovery code + new password reset |
-| `home/HomePage.tsx` | `/home` | Greeting, week calendar, streak copy, Home CTAs |
+| `home/HomePage.tsx` | `/home` | Greeting, week calendar, streak copy, steps row, Home CTAs |
 | `home/MonthCalendar.tsx` | used on Home + Partner | Day cells, you=square, partner=heart, remind, range select |
 | `workout/TrainPage.tsx` | `/train` | Body-part chips, scored plan, custom moves, Start/Continue |
 | `workout/SessionPage.tsx` | `/train/go` | Work/rest/celebrate, coach, kcal, End vs finish |
 | `partner/PartnerPage.tsx` | `/partner` | Compare stats + calendar with Refresh + last-synced, or pair/accept empty state |
 | `partner/PartnerWidget.tsx` | Home + Partner | Linked card vs pair form (code + wait + Accept/Decline) vs remind |
-| `profile/YouPage.tsx` | `/you` | Profile, kit, unlink, log out |
+| `profile/YouPage.tsx` | `/you` | Profile, kit, health-data connect, unlink, log out |
 | `trainer/KitChips.tsx` | Onboarding + You | Equipment toggles |
 | `trainer/TrainerFocus.tsx` | Train | Goal chips |
 
@@ -163,7 +165,8 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 
 | File | Job |
 | --- | --- |
-| `lib/store.tsx` | App state. React context over on-device SQLite (`lib/db/index.ts`), per-account rows + session restore; wires the sync session in `StoreProvider` |
+| `lib/store.tsx` | App state. React context over on-device SQLite (`lib/db/index.ts`), per-account rows + session restore; wires the sync session in `StoreProvider`; hydrates native device steps + refreshes on Home mount and app resume |
+| `lib/steps.ts` | Native-only steps layer (`@capacitor/health-fitness`): permission request + grant hint, today's steps, step history; every helper falls back to the derived estimate on web/un-granted |
 | `lib/db/index.ts` | Schema v7 (`account` / `session` / per-account `profile` · `history` · `plan` · `partner` · `pairing` · `workout` · `workout_set` · `custom_exercise`), version-gated migrations, all load/save, `createAccountRow` / `verifyCredentials` / `setRecoveryCode` / `verifyRecoveryCode` / `resetPassword` / `loadPairing` / `savePairing` / backup export+import |
 | `lib/password.ts` | PBKDF2-SHA256 hashing (per-user salt, 100k iterations); recovery codes reuse the same verify |
 | `lib/pairing.ts` | Per-account Ed25519 keypair, pairing-code gen/validation, signed-message envelope, `stableRoomId` |
@@ -181,7 +184,7 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 
 ### Store actions
 
-`createAccount` · `logIn` · `resetPassword` · `generateRecoveryCode` · `signOut` · `completeOnboarding` · `updateProfile` · `setEquipment` · `addEquipment` · `addToPlan` · `updatePlan` · `removeFromPlan` · `clearPlan` · `beginWorkout` · `setTrainerFocus` · `setTrainerDay` · `applyTrainerPlan` · `beginTrainerReview` · `backToTrainerPick` · `finishWorkout` · `logRestDay` · `startPairing` · `acceptPair` · `declinePair` · `refreshPartner` · `remindPartner` · `unlinkPartner` · `showToast` · `clearToast`
+`createAccount` · `logIn` · `resetPassword` · `generateRecoveryCode` · `signOut` · `completeOnboarding` · `updateProfile` · `setEquipment` · `addEquipment` · `addToPlan` · `updatePlan` · `removeFromPlan` · `clearPlan` · `beginWorkout` · `setTrainerFocus` · `setTrainerDay` · `applyTrainerPlan` · `beginTrainerReview` · `backToTrainerPick` · `finishWorkout` · `logRestDay` · `refreshSteps` · `connectHealth` · `startPairing` · `acceptPair` · `declinePair` · `refreshPartner` · `remindPartner` · `unlinkPartner` · `showToast` · `clearToast`
 
 `createAccount` / `logIn` / `resetPassword` / `signOut` are async and hit `lib/db/index.ts`. Keep the same names if you want screens to stay untouched. `createAccount` returns the plaintext recovery code once; `importData` accepts an optional `newPassword` to take ownership of a restored account.
 
@@ -256,6 +259,11 @@ carry animation GIFs from the exercises-dataset (© Gym visual), see
 | `npm run plan -- <url>` | Extract a workout page into `plans/extracted/<slug>.json` (app-model shaped). Supports muscleandstrength.com (`.node-stats-block` + exercise tables) and muscleandfitness.com (WordPress workout galleries, e.g. body-part guides); falls back to the Wayback Machine when Cloudflare blocks live fetch. Also downloads a banner image of the plan's subject (`--subject "Name"` to override the query, `--no-banner` to skip) and writes `<slug>.preview.html` with a slide-in/slide-out banner animation. Outputs are gitignored |
 | `npm run relay` | Run the local signaling relay (`ws://127.0.0.1:8787`) |
 | `npm run icons` | Regenerate `public/icons/*.png` from `public/favicon.svg` |
+| `npm run cap:sync` | Rebuild the web bundle and sync it into `android/` + `ios/` |
+| `npm run android:run` | Build + run the Android app on a connected device/emulator (`cap run android`) |
+| `npm run ios:run` | Build + run the iOS app on a connected device (`cap run ios`) |
+| `npm run android:build` | `cap build android` (sideloadable APK) |
+| `npm run ios:build` | `cap build ios` (sideloadable `.app`) |
 
 ## Install as an app
 
@@ -265,6 +273,16 @@ EMBER is an installable **Progressive Web App** — no app store, no APK.
   standalone and works offline.
 - **iPhone/iPad:** Safari → share sheet → **Add to Home Screen**. Opens
   standalone, offline-capable.
+
+There's also a **Capacitor native shell** (`android/` + `ios/`, app ID
+`app.ember.lifestyle`) for sideloading the same app as a real native app. On
+native it reads today's steps from Health Connect / HealthKit (see
+`src/lib/steps.ts`); the PWA path is unchanged. Build with `npm run android:run`
+(device with Health Connect) or open `ios/App/App.xcodeproj` in Xcode and run on
+a **physical iPhone** — HealthKit is unavailable in the Simulator, and free
+Apple ID sideloads expire after 7 days. Requirements/privacy:
+`public/privacy.html` is the Health Connect privacy policy, served at
+`https://emberlifestyle.netlify.app/privacy`.
 
 ## Developing
 
