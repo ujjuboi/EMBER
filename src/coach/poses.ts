@@ -851,6 +851,85 @@ const burpeeSquat: Pose = side({
   rWrist: j(124, 228),
 })
 
+const curlDown: Pose = side({
+  ...idle,
+})
+
+// Elbows pinned to the ribs, forearms rising to the shoulders: a standing curl.
+const curlUp: Pose = side({
+  ...idle,
+  lElbow: j(94, 92),
+  rElbow: j(126, 96),
+  lWrist: j(80, 62),
+  rWrist: j(112, 66),
+})
+
+const triExtBend: Pose = side({
+  ...idle,
+  lElbow: j(118, 50),
+  rElbow: j(138, 54),
+  lWrist: j(130, 76),
+  rWrist: j(150, 80),
+})
+
+const triExtStraight: Pose = side({
+  ...idle,
+  lElbow: j(106, 42),
+  rElbow: j(128, 46),
+  lWrist: j(88, 20),
+  rWrist: j(110, 24),
+})
+
+const kickBackLow: Pose = side({
+  ...idle,
+})
+
+// Kicking leg (far side) trails back while the arms extend the same way.
+const kickBackHigh: Pose = side({
+  ...kickBackLow,
+  lElbow: j(76, 74),
+  rElbow: j(108, 78),
+  lWrist: j(52, 100),
+  rWrist: j(86, 106),
+  lKnee: j(66, 176),
+  rKnee: j(112, 184),
+  lAnkle: j(40, 224),
+  rAnkle: j(104, 228),
+})
+
+const sideBendLeft: Pose = front({
+  head: j(94, 40),
+  neck: j(98, 58),
+  lShoulder: j(76, 66),
+  rShoulder: j(118, 70),
+  lElbow: j(82, 96),
+  rElbow: j(140, 98),
+  lWrist: j(76, 128),
+  rWrist: j(130, 132),
+  hip: j(100, 128),
+  lHip: j(90, 130),
+  rHip: j(110, 128),
+  lKnee: j(92, 176),
+  rKnee: j(110, 176),
+  lAnkle: j(88, 228),
+  rAnkle: j(110, 228),
+})
+
+const sideBendRight: Pose = front({
+  ...sideBendLeft,
+  head: j(114, 44),
+  neck: j(106, 60),
+  lShoulder: j(92, 60),
+  rShoulder: j(128, 74),
+  lElbow: j(96, 92),
+  rElbow: j(146, 102),
+  lWrist: j(92, 124),
+  rWrist: j(140, 136),
+  hip: j(104, 130),
+  lHip: j(94, 128),
+  rHip: j(114, 132),
+})
+
 const restPose: Pose = side({
   ...idle,
   lElbow: j(88, 92),
@@ -943,6 +1022,10 @@ export const POSE_LOOPS: Record<string, Pose[]> = {
   thruster: [thrusterDown, thrusterUp],
   'jumping-jack': [jackClosed, jackOpen],
   burpee: [idle, burpeeSquat, pushHigh, jumpExtend],
+  curl: [curlDown, curlUp],
+  'tricep-extension': [triExtBend, triExtStraight],
+  kickback: [kickBackLow, kickBackHigh],
+  'side-bend': [sideBendLeft, sideBendRight],
   rest: [restPose, { ...restPose, head: j(118, 34) }],
   celebrate: [celebrateA, celebrateB],
 }
@@ -981,6 +1064,10 @@ export const LOOP_MS: Record<string, number> = {
   thruster: 1200,
   'jumping-jack': 720,
   burpee: 2400,
+  curl: 1000,
+  'tricep-extension': 1200,
+  kickback: 1200,
+  'side-bend': 1400,
   rest: 2200,
   celebrate: 700,
 }

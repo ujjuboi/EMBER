@@ -81,6 +81,40 @@ export const GIF_SOURCE_IDS = {
   'Barbell Curls': '0031',
 }
 
+// Curated GIF mapping for the resistance-tube exercises (plans/tube-exercise-gifs.md).
+// Key: the app exercise id in src/data/exercises.ts. Value: the exercises-dataset id
+// whose animation GIF best matches that move. Gymvisual has no "resistance tube"
+// equipment, so these are its "band" entries where a reasonable match exists; the
+// rest keep the SVG coach. Verified against data/exercises.json.
+export const TUBE_GIF_SOURCE_IDS = {
+  // Arms
+  'tube-double-bicep-curl': '0968', // band alternating biceps curl
+  'tube-alternating-hammer-curl': '0968', // (closest band curl)
+  'tube-close-grip-curl': '3123', // resistance band seated biceps curl
+  'tube-single-tricep-extension': '0998', // band side triceps extension
+  'tube-straight-arm-tricep-extensions': '0998',
+  'tube-overhead-tricep-extension': '0998', // (no overhead band version)
+  // Chest
+  'tube-twisting-floor-press': '0989', // band one arm twisting chest press
+  'tube-floor-fly': '0458', // floor fly (with barbell)
+  // Back
+  'tube-seated-back-row': '3144', // resistance band seated straight back row
+  'tube-kneeling-side-rows': '0988', // band one arm standing low row
+  'tube-leaning-rear-row': '0990', // band one arm twisting seated row
+  'tube-seated-rear-delt-fly': '0993', // band reverse fly
+  'tube-half-pull-x-side-shrug': '1018', // band shrug
+  // Legs
+  'tube-band-squats': '1004', // band squat
+  'tube-pulsing-squats': '1004', // (tempo variant)
+  'tube-split-squats': '1001', // band single leg split squat
+  'tube-single-leg-rdls': '1009', // band stiff leg deadlift
+  // Core
+  'tube-reverse-crunches': '0872', // reverse crunch
+  'tube-wood-chopper': '1007', // band standing twisting crunch
+  'tube-cable-crunches': '1005', // band standing crunch
+  'tube-mountain-climber': '0630', // mountain climber
+}
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const datasetArg = process.argv[2]
 const dataset =
@@ -101,6 +135,11 @@ for (const name of Object.keys(GIF_SOURCE_IDS)) {
     throw new Error(`Unknown dataset id ${GIF_SOURCE_IDS[name]} for "${name}"`)
   }
 }
+for (const [exerciseId, sourceId] of Object.entries(TUBE_GIF_SOURCE_IDS)) {
+  if (!byId.has(sourceId)) {
+    throw new Error(`Unknown dataset id ${sourceId} for "${exerciseId}"`)
+  }
+}
 
 // Map every exercise id in the extracted program files to its gif file, so the
 // runtime can look up by the id the app already uses.
@@ -119,6 +158,11 @@ for (const file of [arnold, fullBody]) {
       }
     }
   }
+}
+
+// --- Tube exercises (keyed directly by app exercise id) ---
+for (const [exerciseId, sourceId] of Object.entries(TUBE_GIF_SOURCE_IDS)) {
+  idToGif.set(exerciseId, byId.get(sourceId).gif_url)
 }
 
 // --- Download ---
@@ -150,14 +194,15 @@ const url = 'https://github.com/hasaneyldrm/exercises-dataset'
 const ts = `import type { Exercise } from './exercises'
 
 // Exercise animation GIFs for the extracted workout programs (Arnold Volume +
-// Full Body), pulled from the exercises-dataset (${url}).
+// Full Body) and the resistance-tube exercises, pulled from the
+// exercises-dataset (${url}).
 // Media: © Gym visual — https://gymvisual.com/ (180×180), see NOTICE there.
 const GIF_BY_EXERCISE_ID: Record<string, string> = {
 ${entries}
 }
 
 export function exerciseGif(exercise: Pick<Exercise, 'id' | 'coachId'>): string | null {
-  return GIF_BY_EXERCISE_ID[exercise.coachId ?? exercise.id] ?? null
+  return GIF_BY_EXERCISE_ID[exercise.id] ?? GIF_BY_EXERCISE_ID[exercise.coachId ?? ''] ?? null
 }
 `
 writeFileSync(`${root}/src/data/exercise-gifs.ts`, ts)

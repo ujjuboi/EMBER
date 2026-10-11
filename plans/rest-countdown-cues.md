@@ -5,7 +5,7 @@ Fixes issue #37 ("Show next exercise and add sound cue during rest"). During res
 ## Goal
 
 - At rest, show the next exercise (name, cue, set indicator) labeled **Next Up** with the rest countdown.
-- For `restLeft ≤ 10`: play a tick beep + vibrate once per second; show the next exercise's animation GIF. Above 10s the stick-figure coach (rest pose) stays.
+- For `restLeft ≤ 10`: play a tick beep + vibrate once per second; show the next exercise's animation GIF when it has one (otherwise its coach pose). Moves with a GIF also show it above 10s.
 - Sound cues are backed by a Settings toggle on the You page (per-account, persisted); vibration is unconditional.
 
 ## Decisions (confirmed)
@@ -35,10 +35,10 @@ Fixes issue #37 ("Show next exercise and add sound cue during rest"). During res
 
 - Pull `soundOn` from `useStore()`.
 - Compute the next-up move (per Decisions) and render a **Next Up** card during `phase === 'rest'`: label, next exercise name + cue, `Set X / Y`, with the rest countdown `Timer` attached.
-- Animation split in the main stage:
-  - `restLeft > 10` → `CoachAvatar` (rest pose, stick figure) — unchanged behavior.
-  - `restLeft ≤ 10` → `exerciseGif(next.exercise)` `<img>`; fall back to `CoachAvatar` when no GIF.
-  - Work phase unchanged (current exercise GIF/avatar).
+- Animation in the main stage is GIF-first (`ExerciseVisual`): `exerciseGif(...)` when the move has a dataset clip, otherwise `CoachAvatar`.
+  - `restLeft > 10` → the current exercise's GIF, or the rest-pose coach when no clip.
+  - `restLeft ≤ 10` → the next exercise's GIF, or its coach pose when no clip.
+  - Session end (`phase === 'done'`) → the SVG celebrate loop always; GIFs are skipped.
 - Countdown cues in the existing rest effect:
   - `10 ≥ restLeft > 0` → `playTick()` + `vibrate(100)` each second.
   - `restLeft ≤ 0` → `playGo()` + longer `vibrate(200)` alongside the existing `pulse` animation.
@@ -60,7 +60,7 @@ Fixes issue #37 ("Show next exercise and add sound cue during rest"). During res
 ## Verification
 
 - `npm run lint` + `npm run build` (tsc strict) green.
-- Manual: finish a set → Next Up card during rest; stick figure until 10s, then GIF + ticking beep/vibration per second; auto-advance fires with `playGo()`.
+- Manual: finish a set → Next Up card during rest; the current move's GIF (coach when no clip) until 10s, then the next move's GIF + ticking beep/vibration per second; auto-advance fires with `playGo()`.
 - Toggle off → rest is silent but still vibrates; toggle on → beeps return; setting survives reload.
 - Export → restore round-trips schema 9; a schema 8 backup restores with sound on.
 - Offline smoke test (no external audio assets).

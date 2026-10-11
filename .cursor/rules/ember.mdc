@@ -16,7 +16,7 @@ This repo is a **clickable UI prototype** with on-device persistence. State live
 - **Rest day is explicit.** Empty calendar ≠ rest. Empty partner today = "hasn't trained yet" + **Send reminder**. Logged rest = "rest day", no remind.
 - **Twin flame** only when *you* and the *linked partner* both completed a session today. Show a **heart** (not a flame) and the copy **Twin flame**. Partner marks on the calendar and legends are small hearts, not dots. You = filled square.
 - "Next session unlocks in X hours" counts down to **tonight's midnight**, not the 35-hour streak-expiry clock.
-- Coach is **SVG pose loops** in `src/coach/`, not GIFs or video. Side view unless the move is frontal (jumping jack, pull-apart, celebrate).
+- Coach visuals prefer an exercise's dataset **animation GIF** (`src/data/exercise-gifs.ts`) when one exists, otherwise the **SVG pose loops** in `src/coach/`. The rest pose and the end-of-session celebrate are always SVG. Side view unless the move is frontal (jumping jack, pull-apart, celebrate).
 
 ## Code habits
 

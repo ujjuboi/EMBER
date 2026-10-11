@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { CoachAvatar } from '../../coach/CoachAvatar'
-import { exerciseGif } from '../../data/exercise-gifs'
+import { ExerciseVisual } from '../../coach/ExerciseVisual'
 import { Button } from '../../components/ui/Button'
 import { Timer } from '../../components/ui/Timer'
 import { estimateKcal } from '../../lib/calories'
@@ -308,11 +307,10 @@ export function SessionPage() {
           })()
         : { exercise: item.exercise, setNo: setNo + 2, sets: item.sets }
       : null
-  // During the final 10s of rest the stage previews the next exercise: its GIF
-  // when one exists, otherwise its animated coach pose (not the rest pose).
+  // During the final 10s of rest the stage previews the next exercise; the GIF
+  // shows whenever one exists, otherwise the animated coach pose plays.
   const previewingNext = phase === 'rest' && restLeft <= 10
   const stageExercise = previewingNext && nextUp ? nextUp.exercise : item.exercise
-  const stageGif = phase === 'work' || previewingNext ? exerciseGif(stageExercise) : null
   const stagePhase = phase === 'done' ? 'celebrate' : previewingNext ? 'work' : phase === 'rest' ? 'rest' : 'work'
   const totalSets = session.reduce((sum, ex) => sum + ex.sets, 0)
   const percentThrough = totalSets > 0 ? Math.min(100, Math.round((loggedRef.current / totalSets) * 100)) : 0
@@ -333,21 +331,12 @@ export function SessionPage() {
       </header>
 
       <div className="mt-4 flex flex-1 flex-col items-center justify-center">
-        {stageGif ? (
-          <img
-            src={stageGif}
-            alt={`${stageExercise.name} animation`}
-            className="h-64 w-full max-w-[280px] rounded-2xl bg-white object-contain"
-            draggable={false}
-          />
-        ) : (
-          <CoachAvatar
-            exerciseId={stageExercise.coachId ?? stageExercise.id}
-            phase={stagePhase}
-            playing
-            className="h-64 w-full max-w-[280px]"
-          />
-        )}
+        <ExerciseVisual
+          exercise={stageExercise}
+          phase={stagePhase}
+          playing
+          className="h-64 w-full max-w-[280px]"
+        />
         {phase === 'rest' && nextUp ? (
           <div className="mt-2 text-center">
             <p className="text-[11px] uppercase tracking-[0.22em] text-orange">Next Up</p>

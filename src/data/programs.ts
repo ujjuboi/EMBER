@@ -83,6 +83,24 @@ function extractedPresets(file: ExtractedProgramFile): ProgramPreset[] {
 export const EXTERNAL_PROGRAMS: ProgramPreset[] = [
   ...extractedPresets(arnoldVolumeFile),
   ...extractedPresets(fullBodyFile),
+  // A hand-authored alternative split surfaced among the custom program picks.
+  // `source` stays 'builtin' because the preset is defined here rather than
+  // extracted from the external JSON files the others come from.
+  {
+    id: 'resistance-tube',
+    name: 'Resistance Tube Split',
+    goal: 'general',
+    source: 'builtin',
+    template: [
+      day(['arms']),
+      day(['chest']),
+      day(['back']),
+      day(['legs']),
+      day(['core']),
+      day([]),
+      day([]),
+    ],
+  },
 ]
 
 export const ALL_PROGRAMS: ProgramPreset[] = [...BUILTIN_PROGRAMS, ...EXTERNAL_PROGRAMS]
