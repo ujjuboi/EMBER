@@ -77,7 +77,7 @@ https://github.com/hasaneyldrm/exercises-dataset.
 
 ### 2. Run `npm run gifs`
 
-Downloads the 14 new files into `public/exercises/` and regenerates
+Downloads the 16 new files into `public/exercises/` and regenerates
 `src/data/exercise-gifs.ts` with the tube-id entries (keyed by app id).
 
 ### 3. `src/data/exercise-gifs.ts`
@@ -117,4 +117,4 @@ Downloads the 14 new files into `public/exercises/` and regenerates
   as closer-to-reality than the generic coach pose.
 - GIF count is fixed per dataset release; if a better datasource appears,
   re-run is a one-line map change.
-- PWA precache grows by the 14 new GIFs (small; existing set is ~6.7 MB).
+- PWA precache grows by the 16 new GIFs (small; existing set is ~6.7 MB).

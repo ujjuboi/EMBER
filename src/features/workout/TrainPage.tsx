@@ -471,6 +471,14 @@ function ProgramSheet({
     )
   }
 
+  // Hand-authored presets live in EXTERNAL_PROGRAMS so the You page can select
+  // them, but they are not web-sourced: group them under Built-in.
+  const builtinPrograms = [
+    ...BUILTIN_PROGRAMS,
+    ...EXTERNAL_PROGRAMS.filter((preset) => preset.source !== 'extracted'),
+  ]
+  const webPrograms = EXTERNAL_PROGRAMS.filter((preset) => preset.source === 'extracted')
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70">
       <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
@@ -507,9 +515,9 @@ function ProgramSheet({
             </li>
           </ul>
           <p className="mt-4 px-3 text-[11px] uppercase tracking-[0.22em] text-muted">Built-in</p>
-          <ul className="mt-1 divide-y divide-line border border-line">{BUILTIN_PROGRAMS.map(renderRow)}</ul>
+          <ul className="mt-1 divide-y divide-line border border-line">{builtinPrograms.map(renderRow)}</ul>
           <p className="mt-4 px-3 text-[11px] uppercase tracking-[0.22em] text-muted">From the web</p>
-          <ul className="mt-1 divide-y divide-line border border-line">{EXTERNAL_PROGRAMS.map(renderRow)}</ul>
+          <ul className="mt-1 divide-y divide-line border border-line">{webPrograms.map(renderRow)}</ul>
         </div>
       </div>
     </div>

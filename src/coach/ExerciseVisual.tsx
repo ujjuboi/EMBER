@@ -11,7 +11,9 @@ type Props = {
 }
 
 // The animation GIF is the default visual when one exists; the animated SVG
-// coach is the fallback for moves without a dataset clip.
+// coach is the fallback for moves without a dataset clip. The celebrate phase
+// always uses the SVG loop so the end-of-session animation is never replaced by
+// a repeating work clip.
 export function ExerciseVisual({
   exercise,
   playing = true,
@@ -19,7 +21,7 @@ export function ExerciseVisual({
   className = '',
   hideFloor = false,
 }: Props) {
-  const gif = exerciseGif(exercise)
+  const gif = phase === 'celebrate' ? null : exerciseGif(exercise)
   if (gif) {
     return (
       <img
