@@ -83,6 +83,21 @@ function extractedPresets(file: ExtractedProgramFile): ProgramPreset[] {
 export const EXTERNAL_PROGRAMS: ProgramPreset[] = [
   ...extractedPresets(arnoldVolumeFile),
   ...extractedPresets(fullBodyFile),
+  {
+    id: 'resistance-tube',
+    name: 'Resistance Tube (New Exercises)',
+    goal: 'general',
+    source: 'builtin',
+    template: [
+      day(['arms']),
+      day(['chest']),
+      day(['back']),
+      day(['legs']),
+      day(['core']),
+      day([]),
+      day([]),
+    ],
+  },
 ]
 
 export const ALL_PROGRAMS: ProgramPreset[] = [...BUILTIN_PROGRAMS, ...EXTERNAL_PROGRAMS]
