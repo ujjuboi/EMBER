@@ -1,40 +1,79 @@
 # Deployment
 
-## Hosting
+## What ships
 
-EMBER is an **installable PWA** served as static files — no App Store, no APK.
-Production is deployed to **Netlify** (repository `ujjuboi/EMBER`, Git-connected):
+This branch (the default branch) ships the **native** EMBER app: a Capacitor 8
+shell around the same Vite/React web bundle, built to Android and iOS and
+**sideloaded** — no app store, no signing pipeline, no hosted URL. The web
+assets are compiled into the app, and there is no app server.
 
-- **Production branch:** `main` (pushes auto-deploy; PRs get deploy previews).
-- **Build settings:** driven by `netlify.toml` — build command `npm run build`,
-  publish directory `dist`, SPA fallback (`/* -> /index.html` via redirects and
-  `public/_redirects`).
-- **Env var:** `VITE_RELAY_URL` is the production signaling relay base URL
-  (scheme **must** be `wss://` — `ws://` is blocked as mixed content on the
-  HTTPS site). The client appends `?room=<code>` itself.
+The browser **PWA** variant lives on the `main` branch, which is untouched by
+this one.
 
-HTTPS is required for the local password hash (`crypto.subtle`) and the service
-worker — Netlify supplies it automatically.
-
-## Build
+## Build & run
 
 ```bash
-npm run build        # tsc -b && vite build (generates sw + manifest)
+npm install
+npm run cap:sync       # npm run build, then copy dist/ into android/ + ios/
 ```
 
-`dist/` must contain `sw.js`, `manifest.webmanifest`, and `icons/*`.
+### Android
 
-## Verify a deploy
+```bash
+npm run android:run    # build + install on a connected device/emulator
+npm run android:build  # produce a sideloadable APK
+```
 
-1. Load the site over HTTPS and install it — Chrome: **Install app**;
-   Safari: **Add to Home Screen**. It opens standalone.
-2. Go offline (airplane mode) and reload — the shell, the precached SQLite WASM,
-   and a workout round-trip still work; data persists in the IndexedDB/OPFS
-   store.
-3. Auth works over HTTPS (`crypto.subtle`), which is why a plain `http://` LAN
-   URL is not supported.
-4. Partner sync: pair two devices through the deployed relay (live Refresh,
-   twin flame, reminder, unlink rotates the code).
+The device needs **Health Connect** (via Google Play Services) for real steps.
+`cap sync` runs `@capacitor/health-fitness`'s hook, which reads
+`android/healthfitness.config.json` and writes the Health Connect permissions
+into the merged `AndroidManifest.xml`.
+
+### iOS
+
+```bash
+npm run ios:run        # build + run on a connected device
+npm run ios:build      # produce a sideloadable .app
+# or open ios/App/App.xcworkspace in Xcode
+```
+
+HealthKit is **unavailable in the iOS Simulator** — run on a physical iPhone.
+With a free Apple ID the provisioning profile expires after 7 days; re-run to
+re-provision.
+
+## Verify a build
+
+1. Launch on the device — the app opens standalone, with no browser chrome.
+2. Go offline (airplane mode) and complete a workout — the on-device SQLite
+   store still persists everything and the session resumes.
+3. Auth works because the native scheme is a secure context (`https://localhost`
+   on Android via `server.androidScheme`, `capacitor://localhost` on iOS), so
+   `crypto.subtle` is available.
+4. Steps: **You → Connect health data** → grant → Home/You show the real device
+   step count. Deny or revoke and the workout-derived estimate returns instead
+   of a hard 0.
+5. Partner sync: pair two devices, or a device and a browser tab, through
+   `VITE_RELAY_URL`.
+
+## Settings
+
+- **Env var:** `VITE_RELAY_URL` is the signaling relay base URL the app appends
+  `?room=<code>` to. See `.env.example`.
+- **Privacy policy:** lives inside the app (**You → Privacy policy**,
+  `src/data/privacy.ts`). No hosted page is required. Health Connect's own OS
+  permission screen renders a link from the Android string
+  `privacy_policy_url`, which is intentionally empty on this branch — the
+  resource must exist (even empty) or the plugin throws when requesting
+  permissions.
+
+## Development
+
+```bash
+npm install
+npm run dev          # http://127.0.0.1:5173/ at ~390px width
+npm run lint         # oxlint
+npm run build        # tsc -b && vite build (generates sw + manifest)
+```
 
 ## Partner sync relay
 
@@ -44,11 +83,3 @@ on an always-on node inside the Tailscale tailnet, exposed tailnet-only via
 and never sees workout data. Deploy steps, the systemd/launchd snippets, and the
 **Tailscale Funnel** migration path (one CLI command to make the relay public)
 live in `relay/README.md`.
-
-## Development
-
-```bash
-npm install
-npm run dev          # http://127.0.0.1:5173/ at ~390px width
-npm run lint         # oxlint
-```

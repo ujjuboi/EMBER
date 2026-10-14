@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { isWorkoutLog } from '../../lib/activity'
 import { isoDate, nextMidnightMs } from '../../lib/dates'
-import { formatSpan } from '../../lib/format'
+import { fmt, formatSpan } from '../../lib/format'
 import { useStore } from '../../lib/store-hooks'
 import { sessionTitle } from '../../lib/trainer'
 import { PartnerWidget } from '../partner/PartnerWidget'
@@ -20,7 +20,10 @@ export function HomePage() {
     trainerBodyPart,
     trainerGoal,
     streak,
+    steps,
+    stepGoal,
     workoutInProgress,
+    refreshSteps,
     logRestDay,
   } = useStore()
   const [selected, setSelected] = useState(isoDate)
@@ -32,6 +35,14 @@ export function HomePage() {
     partnerLinked && partner.history.some((item) => item.date === today && isWorkoutLog(item)),
   )
   const twinFlame = trainedToday && partnerTrainedToday
+
+  // Real device steps (native) refresh on every Home visit so the count is
+  // fresh; on web this is a no-op passthrough of the derived estimate.
+  useEffect(() => {
+    void refreshSteps()
+  }, [refreshSteps])
+
+  const progress = stepGoal > 0 ? Math.min(1, steps / stepGoal) : 0
 
   return (
     <div className="px-5 pb-28 pt-8">
@@ -68,6 +79,19 @@ export function HomePage() {
             ) : undefined
           }
         />
+      </div>
+
+      <div className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-line bg-surface px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">Steps today</p>
+          <p className="mt-0.5 truncate text-xs text-muted">Goal {fmt(stepGoal)}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="tabular text-2xl font-semibold leading-none tracking-tight text-ink">{fmt(steps)}</p>
+        </div>
+      </div>
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line">
+        <div className="h-full rounded-full bg-orange transition-[width] duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
 
       <div className="mt-6">

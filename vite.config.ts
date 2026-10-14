@@ -9,7 +9,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // Registration is gated to the web platform in src/main.tsx so the
+      // service worker never runs inside the native Capacitor WebView.
+      injectRegister: false,
       manifest: {
         name: 'EMBER',
         short_name: 'EMBER',

@@ -5,14 +5,18 @@ import { Confirm } from '../../components/ui/Confirm'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
+import { PrivacyDialog } from '../../components/ui/PrivacyDialog'
 import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { Section } from '../../components/ui/Section'
+import { Stat } from '../../components/ui/Stat'
 import { Switch } from '../../components/ui/Switch'
 import { TRAINER_GOALS, normalizeTrainerGoal, toggleEquipment, type Equipment, type TrainerGoal } from '../../data/exercises'
 import { EXTERNAL_PROGRAMS, programById } from '../../data/programs'
 import { parseBackup, readTextFile } from '../../lib/backup'
 import { partnersSinceLabel } from '../../lib/dates'
+import { fmt } from '../../lib/format'
 import { isStoragePersisted, requestPersistentStorage } from '../../lib/persist'
+import { isAndroid, isNative } from '../../lib/steps'
 import { useStore } from '../../lib/store-hooks'
 import type { TrainerProgram } from '../../lib/types'
 import { KitChips } from '../trainer/KitChips'
@@ -46,6 +50,9 @@ export function YouPage() {
     heightFt,
     heightIn,
     stepGoal,
+    steps,
+    stepsPermission,
+    connectHealth,
     trainerGoal,
     equipment,
     partnerLinked,
@@ -79,6 +86,18 @@ export function YouPage() {
   const restoreInputRef = useRef<HTMLInputElement>(null)
   const [dataProtected, setDataProtected] = useState<boolean | null>(null)
   const [protecting, setProtecting] = useState(false)
+  const [connectingHealth, setConnectingHealth] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
+
+  const connectHealthData = async () => {
+    if (connectingHealth) return
+    setConnectingHealth(true)
+    try {
+      await connectHealth()
+    } finally {
+      setConnectingHealth(false)
+    }
+  }
 
   useEffect(() => {
     let mounted = true
@@ -221,6 +240,59 @@ export function YouPage() {
             onToggle={(id) => setKit((current) => toggleEquipment(current, id))}
             onAdd={(id) => setKit((current) => (current.includes(id) ? current : [...current, id]))}
           />
+        </Section>
+
+        <Section title="Steps">
+          <div className="flex items-end justify-between gap-3">
+            <Stat label="Today" value={fmt(steps)} />
+            <p className="shrink-0 pb-1 text-right text-xs text-muted">
+              Goal <span className="tabular text-sm font-semibold text-ink">{fmt(stepGoal)}</span>
+            </p>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-line">
+            <div
+              className="h-full rounded-full bg-orange transition-[width] duration-500"
+              style={{ width: `${stepGoal > 0 ? Math.min(100, (steps / stepGoal) * 100) : 0}%` }}
+            />
+          </div>
+          {!isNative() ? (
+            <p className="text-xs text-muted">
+              Steps are estimated from your sessions on the web app. Install the app to read real steps from your
+              device.
+            </p>
+          ) : stepsPermission === 'granted' ? (
+            <p className="flex items-center gap-1.5 text-xs text-muted">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange" />
+              Live from {isAndroid() ? 'Health Connect' : 'HealthKit'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <Button variant="line" block onClick={() => void connectHealthData()} disabled={connectingHealth}>
+                {connectingHealth
+                  ? 'Connecting…'
+                  : stepsPermission === 'denied'
+                    ? 'Reconnect health data'
+                    : 'Connect health data'}
+              </Button>
+              <p className="text-xs text-muted">
+                {stepsPermission === 'denied'
+                  ? isAndroid()
+                    ? 'Open Health Connect on your phone and allow EMBER to read steps, then reconnect here.'
+                    : 'Open Settings → Health → Data Access & Devices, allow EMBER to read steps, then reconnect here.'
+                  : 'Reads your real step count from your device. Until then you\'re seeing an estimate from your sessions.'}
+              </p>
+            </div>
+          )}
+        </Section>
+
+        <Section title="Privacy">
+          <p className="text-xs text-muted">
+            Local-first by design — your data stays on this device, and health data is only read with your
+            permission.
+          </p>
+          <Button variant="line" block onClick={() => setPrivacyOpen(true)}>
+            Privacy policy
+          </Button>
         </Section>
       </div>
 
@@ -383,6 +455,8 @@ export function YouPage() {
       {recoveryCode ? (
         <RecoveryCodeModal code={recoveryCode} onDone={() => setRecoveryCode(null)} />
       ) : null}
+
+      {privacyOpen ? <PrivacyDialog onClose={() => setPrivacyOpen(false)} /> : null}
 
       {unlinkOpen ? (
         <Confirm
