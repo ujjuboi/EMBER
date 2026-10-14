@@ -28,7 +28,7 @@ EMBER already depends on `@capacitor/core` + `@capacitor-community/sqlite` (v8) 
 - Android Studio / SDK + JDK 17+.
 - **Physical iPhone** — HealthKit is unavailable in the iOS Simulator.
 - Android device with **Health Connect** installed (Play Services).
-- A public HTTPS **privacy policy** page — Health Connect requires a real URL or `requestHealthPermissions()` rejects. Add `public/privacy.html` (served by the existing Netlify origin) and point `privacyPolicyUrl` at it.
+- No hosted **privacy policy** page. The policy is an in-app dialog (**You → Privacy policy**, `src/data/privacy.ts`). Health Connect's own OS permission screen renders a link from the Android `privacy_policy_url` string, left **empty** here — the resource only has to exist (even empty), or the plugin throws on every `requestHealthPermissions()` call.
 
 ### 1. Capacitor scaffold
 
@@ -67,11 +67,10 @@ npm run build && npx cap add android && npx cap add ios && npx cap sync
   ```json
   {
     "permissions": { "STEPS": "Read" },
-    "disableBackgroundJobs": true,
-    "privacyPolicyUrl": "https://emberlifestyle.netlify.app/privacy"
+    "disableBackgroundJobs": true
   }
   ```
-  (`privacyPolicyUrl` can point at `public/privacy.html` on the existing Netlify origin.)
+  (`privacyPolicyUrl` is omitted on purpose — the policy lives in the app, and Health Connect's own screen shows no policy link. The hook still writes an empty `privacy_policy_url` string, which the plugin requires to exist.)
 
 ### 3. Steps layer — new `src/lib/steps.ts`
 
@@ -92,7 +91,7 @@ npm run build && npx cap add android && npx cap add ios && npx cap sync
 ### 5. UI
 
 - **Home (`src/features/home/HomePage.tsx`)** — add a compact "Steps today / `stepGoal`" row (additive only; the locked streak copy and CTAs stay untouched).
-- **You (`src/features/profile/YouPage.tsx`)** — new Steps section: today's steps vs `stepGoal`, a "Connect health data" grant button when permission is unknown/denied, and a denied state that points to Health Connect (Android) / Health settings (iOS). Reuse the existing `Button`/`Stat`/`Section` primitives; the per-account `stepGoal` field already exists.
+- **You (`src/features/profile/YouPage.tsx`)** — new Steps section: today's steps vs `stepGoal`, a "Connect health data" grant button when permission is unknown/denied, and a denied state that points to Health Connect (Android) / Health settings (iOS). Reuse the existing `Button`/`Stat`/`Section` primitives; the per-account `stepGoal` field already exists. Plus a Privacy section that opens the in-app policy dialog (`src/components/ui/PrivacyDialog.tsx` over `src/data/privacy.ts`).
 - **Partner (`src/features/partner/PartnerPage.tsx`)** — the existing `steps` Stat + compare become real automatically (partner steps remain a synced scalar from the `push` payload).
 
 ### 6. Verification
@@ -102,16 +101,16 @@ See [Verification](#verification) below.
 ## Notes / risks
 
 - **HealthKit is unavailable in the iOS Simulator** — test on a physical iPhone.
-- **Health Connect on Android** must be installed *and* the user must grant permission inside the Health Connect app itself (the OS aggregate is per-Google-account); a missing `privacyPolicyUrl` makes `requestHealthPermissions()` reject.
+- **Health Connect on Android** must be installed *and* the user must grant permission inside the Health Connect app itself (the OS aggregate is per-Google-account). No `privacyPolicyUrl` is configured here — verified in the plugin source that only a *missing* `privacy_policy_url` resource throws; an empty value is fine, so Health Connect's screen just shows no policy link (the policy is the in-app dialog instead).
 - **Semantics change:** `steps` goes from "workout-derived estimate" to "real device steps" for native users. Partner-compare copy should be read with fresh eyes (copy is product — the *streak* rules are locked; steps display is not, per `docs/PRODUCT_RULES.md`).
 - **Day boundary:** always query from local midnight so the daily number matches the user's calendar; `history` dates are local ISO days already.
-- **PWA must not regress:** all native branches are additive; the Netlify build keeps the current behavior (service worker, jeep-sqlite, derived steps).
+- **PWA must not regress:** all native branches are additive; the web build keeps the current behavior (service worker, jeep-sqlite, derived steps).
 - **WebRTC in WebViews:** partner sync may need a device-side sanity check (WKWebView / Android WebView `RTCPeerConnection`) — verify with the two-device smoke test from `README.md`.
 - **Free Apple ID sideloads expire after 7 days** — re-provision to continue developing.
 
 ## Verification
 
-- `npm run lint` + `npm run build` (tsc strict) green; Netlify PWA build unaffected.
+- `npm run lint` + `npm run build` (tsc strict) green; web build unaffected.
 - **Android:** `npx cap run android` on a device with Health Connect → grant STEPS read → Home/You show today's real step count; killing/reopening the app keeps it; airplane-mode offline workout round-trip still works (native SQLite).
 - **iOS:** open `ios/App/App.xcworkspace`, set signing to a personal team, run on a physical iPhone → HealthKit prompt → steps appear; workout round-trip + resume works.
 - **Permission flows:** grant once → steps show; revoke/deny → fallback estimate shows instead of 0; Health Connect app uninstalled (Android) → fallback.
@@ -121,6 +120,6 @@ See [Verification](#verification) below.
 
 ## File checklist
 
-- New: `capacitor.config.ts`, `android/`, `ios/`, `src/lib/steps.ts`, `public/privacy.html`, `plans/capacitor-native.md`
+- New: `capacitor.config.ts`, `android/`, `ios/`, `src/lib/steps.ts`, `src/data/privacy.ts`, `src/components/ui/PrivacyDialog.tsx`, `plans/capacitor-native.md`
 - Modified: `package.json` (+ `package-lock.json`, `@capacitor/*` deps + scripts like `cap:sync` / `android:run` / `ios:run`), `src/main.tsx` (SW gate), `src/lib/store.tsx` (native steps hydrate + resume refresh), `src/features/home/HomePage.tsx` (steps row), `src/features/profile/YouPage.tsx` (steps section), `src/lib/sync/session.ts` (only if partner push needs a steps source switch)
 - No change: `src/lib/db/index.ts`, `src/lib/types.ts` (fields already exist)

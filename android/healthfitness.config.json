@@ -1,5 +1,4 @@
 {
   "permissions": { "STEPS": "Read" },
-  "disableBackgroundJobs": true,
-  "privacyPolicyUrl": "https://emberlifestyle.netlify.app/privacy"
+  "disableBackgroundJobs": true
 }

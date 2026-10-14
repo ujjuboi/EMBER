@@ -4,7 +4,8 @@ EMBER is local-first. All data lives in an **on-device SQLite** database (`ember
 backed by `@capacitor-community/sqlite`. On the web the store runs through
 `jeep-sqlite` (IndexedDB/OPFS); the SQLite WASM engine is precached by the service
 worker so the app keeps working **fully offline** after the first load. There is no
-app server — Netlify only serves static files.
+app server — the native build bundles its assets, and every byte stays on the
+device.
 
 ## Database
 

@@ -4,5 +4,11 @@
     <string name="title_activity_main">EMBER</string>
     <string name="package_name">app.ember.lifestyle</string>
     <string name="custom_url_scheme">app.ember.lifestyle</string>
-    <string name="background_notification_title">Measuring your health and fitness data.</string>    <string name="background_notification_description">The app is running in the background.</string>    <string name="privacy_policy_url">https://emberlifestyle.netlify.app/privacy</string>
+    <string name="background_notification_title">Measuring your health and fitness data.</string>
+    <string name="background_notification_description">The app is running in the background.</string>
+    <!-- Health Connect renders this link on its own permission screen. Left empty on
+         purpose: the privacy policy lives in the app (You > Privacy policy) and this
+         branch hosts no policy URL. The resource must still exist (even empty) or
+         getPrivacyPolicyUrl() throws on every requestHealthPermissions() call. -->
+    <string name="privacy_policy_url"/>
 </resources>

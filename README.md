@@ -26,21 +26,20 @@ cloud, no subscription.
 - **Installable PWA** — standalone on Android and iOS, works offline after first load.
 - **Native apps (sideload)** — a Capacitor 8 shell wraps the same app; on device, today's steps come from **Health Connect** (Android) / **HealthKit** (iOS) instead of the workout-derived estimate, with a fallback so nothing ever shows a broken 0.
 
-## Live app
+## Native app
 
-Deployed to **Netlify** and installable on any phone from Chrome or Safari:
-
-**[https://emberlifestyle.netlify.app/](https://emberlifestyle.netlify.app/)**
-
-Deploys from the `main` branch — the **PWA** build of EMBER (see
-[docs/deployment.md](./docs/deployment.md)).
+EMBER ships as a **Capacitor native app** — build it to an Android APK or an iOS
+`.app` and sideload it to a device. There's no hosted URL and no store listing;
+the web bundle is compiled into the app. See
+[Install as an app](#install-as-an-app) and
+[docs/deployment.md](./docs/deployment.md).
 
 ## Branches
 
 Two branches ship two builds of the same app:
 
-- **`main`** — the **PWA** version, deployed to Netlify and installable straight
-  from a browser. No native shell.
+- **`main`** — the **PWA** version, installable straight from a browser. No
+  native shell.
 - **`apk`** — the default branch for the **native app** (Android APK / iOS).
   Adds the Capacitor shell (`android/` + `ios/`) and real device steps from
   Health Connect / HealthKit. Build and sideload from this branch — see
@@ -104,14 +103,14 @@ Full protocol details: [docs/partner-sync.md](./docs/partner-sync.md) and
 src/
   app/                 Shell (430px frame + gate), bottom nav, route guard
   coach/               Stick-figure coach: pose loops + rAF SVG renderer
-  components/ui/       Buttons, chips, fields, confirm, toast, timer
-  data/                Exercise catalog (+ posed coach mapping)
+  components/ui/       Buttons, chips, fields, confirm, privacy dialog, toast, timer
+  data/                Exercise catalog (+ posed coach mapping), privacy policy
   features/
     auth/              Login/signup, onboarding, password reset
     home/              Home, streak, week/month calendar
     workout/           Train planner + live session
     partner/           Partner compare + pairing widget
-    profile/           You (profile, kit, unlink, recovery code)
+    profile/           You (profile, kit, health connect, privacy, unlink, recovery code)
     trainer/           Goal/kit chips
   lib/                 Store, SQLite db layer, hashing, pairing, sync, dates, scoring, calories
 relay/                 Signaling relay server (Node ws) + deploy docs
@@ -147,7 +146,7 @@ start from the row you need.
 | `workout/SessionPage.tsx` | `/train/go` | Work/rest/celebrate, coach, kcal, End vs finish |
 | `partner/PartnerPage.tsx` | `/partner` | Compare stats + calendar with Refresh + last-synced, or pair/accept empty state |
 | `partner/PartnerWidget.tsx` | Home + Partner | Linked card vs pair form (code + wait + Accept/Decline) vs remind |
-| `profile/YouPage.tsx` | `/you` | Profile, kit, health-data connect, unlink, log out |
+| `profile/YouPage.tsx` | `/you` | Profile, kit, health-data connect, privacy policy, unlink, log out |
 | `trainer/KitChips.tsx` | Onboarding + You | Equipment toggles |
 | `trainer/TrainerFocus.tsx` | Train | Goal chips |
 
@@ -169,6 +168,7 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | `Chip.tsx` `ChipRow.tsx` | Filters |
 | `Field.tsx` `HeightField.tsx` | Forms |
 | `Confirm.tsx` | End session / unlink |
+| `PrivacyDialog.tsx` | Scrollable in-app privacy policy (`data/privacy.ts`), opened from You |
 | `Toast.tsx` | Remind + pairing feedback |
 | `Timer.tsx` | Session countdown |
 | `Stat.tsx` `Section.tsx` | Layout bits |
@@ -193,6 +193,7 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 | `lib/calories.ts` | MET × kg × hours |
 | `lib/format.ts` | Times, numbers, `formatSpan` |
 | `data/exercises.ts` | Catalog (`coachId`, body parts, kit, goals) |
+| `data/privacy.ts` | Privacy-policy copy rendered by `components/ui/PrivacyDialog.tsx` |
 
 ### Store actions
 
@@ -203,7 +204,8 @@ Add a new move: catalog row in `src/data/exercises.ts` (`coachId` → loop name)
 ## Architecture
 
 The app is **local-first**: no app server, no cloud account, no database backend.
-Hosting serves static files only.
+The native app bundles its web assets, and everything you create stays on the
+device.
 
 - **Persistence & PWA** — on-device SQLite schema v7 (`account`, `session`,
   `profile`, `history`, `plan`, `partner`, `pairing`, `workout`, `workout_set`,
@@ -215,8 +217,8 @@ Hosting serves static files only.
 - **Partner sync** — Ed25519 identity, 6-char pairing codes, signaling relay,
   signed WebRTC DataChannel pushes, offline outbox, locally-derived partner stats.
   → [docs/partner-sync.md](./docs/partner-sync.md)
-- **Deployment** — Netlify Git-connected build, `VITE_RELAY_URL` wiring, deploy
-  verification, Tailscale relay hosting.
+- **Deployment** — native Android/iOS build + sideload, `VITE_RELAY_URL` wiring,
+  build verification, Tailscale relay hosting.
   → [docs/deployment.md](./docs/deployment.md)
 
 Key files: types `src/lib/types.ts` · store → DB `src/lib/store.tsx` →
@@ -293,8 +295,9 @@ HealthKit (see `src/lib/steps.ts`); the PWA path is unchanged. Build with
 `npm run android:run` (device with Health Connect) or open
 `ios/App/App.xcodeproj` in Xcode and run on a **physical iPhone** — HealthKit is
 unavailable in the Simulator, and free Apple ID sideloads expire after 7 days.
-Requirements/privacy: `public/privacy.html` is the Health Connect privacy
-policy, served at `https://emberlifestyle.netlify.app/privacy`.
+Privacy: the policy lives in the app — **You → Privacy policy**
+(`src/data/privacy.ts`), so no hosted page is needed. Health Connect's own
+permission screen shows no policy link on this branch.
 
 ## Developing
 

@@ -5,6 +5,7 @@ import { Confirm } from '../../components/ui/Confirm'
 import { ChipRow } from '../../components/ui/ChipRow'
 import { Field } from '../../components/ui/Field'
 import { HeightField, parseHeight } from '../../components/ui/HeightField'
+import { PrivacyDialog } from '../../components/ui/PrivacyDialog'
 import { RecoveryCodeModal } from '../../components/ui/RecoveryCodeModal'
 import { Section } from '../../components/ui/Section'
 import { Stat } from '../../components/ui/Stat'
@@ -86,6 +87,7 @@ export function YouPage() {
   const [dataProtected, setDataProtected] = useState<boolean | null>(null)
   const [protecting, setProtecting] = useState(false)
   const [connectingHealth, setConnectingHealth] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
 
   const connectHealthData = async () => {
     if (connectingHealth) return
@@ -282,6 +284,16 @@ export function YouPage() {
             </div>
           )}
         </Section>
+
+        <Section title="Privacy">
+          <p className="text-xs text-muted">
+            Local-first by design — your data stays on this device, and health data is only read with your
+            permission.
+          </p>
+          <Button variant="line" block onClick={() => setPrivacyOpen(true)}>
+            Privacy policy
+          </Button>
+        </Section>
       </div>
 
       {dirty ? (
@@ -443,6 +455,8 @@ export function YouPage() {
       {recoveryCode ? (
         <RecoveryCodeModal code={recoveryCode} onDone={() => setRecoveryCode(null)} />
       ) : null}
+
+      {privacyOpen ? <PrivacyDialog onClose={() => setPrivacyOpen(false)} /> : null}
 
       {unlinkOpen ? (
         <Confirm
